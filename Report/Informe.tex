@@ -1,0 +1,159 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage[left=2.5cm, right=2.5cm, top=3cm, bottom=3cm]{geometry}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{listings}
+\lstdefinelanguage{JavaScript}{
+  keywords={break, case, catch, continue, debugger, default, delete, do, else, false, finally, for, function, if, in, instanceof, new, null, return, switch, this, throw, true, try, typeof, var, void, while, with},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]"
+}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{background}
+\usepackage[hidelinks]{hyperref}
+\usepackage{float}
+
+\definecolor{colorgreen}{rgb}{0,0.6,0}
+\definecolor{colorgray}{rgb}{0.5,0.5,0.5}
+\definecolor{colorpurple}{rgb}{0.58,0,0.82}
+\definecolor{colorback}{RGB}{255,255,204}
+\definecolor{colorbackground}{RGB}{200,200,221}
+\definecolor{bordercolor}{RGB}{0,0,128}
+
+% Definiendo el estilo de las porciones de código
+\lstset{
+backgroundcolor=\color{colorbackground},
+commentstyle=\color{colorgreen},
+keywordstyle=\color{colorpurple},
+numberstyle=\tiny\color{colorgray},
+stringstyle=\color{colorgreen},
+basicstyle=\ttfamily\footnotesize,
+breakatwhitespace=false,
+breaklines=true,
+captionpos=b,
+keepspaces=true,
+numbers=left,
+showspaces=false,
+showstringspaces=false,
+showtabs=false,
+tabsize=2,
+frame=single,
+framesep=2pt,
+rulecolor=\color{black},
+framerule=1pt
+}
+
+% Configuración de encabezado y pie de página
+\setlength{\headheight}{15.04742pt}
+\addtolength{\topmargin}{-3.04742pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{\textit{Universidad de La Habana - Facultad de Matemática y Computación}}
+
+% Configuración de títulos
+\titleformat{\section}
+  {\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+% Configuración de fondo de página
+\backgroundsetup{
+  scale=1,
+  color=bordercolor,
+  opacity=0.3,
+  angle=0,
+  position=current page.south,
+  vshift=10cm,
+  hshift=0cm,
+  contents={%
+    \begin{tikzpicture}[remember picture,overlay]
+      \draw[bordercolor,ultra thick] (current page.south west) rectangle (current page.north east);
+    \end{tikzpicture}
+  }
+}
+%sl23
+
+\begin{document}
+\graphicspath{{./}}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\huge\bfseries Informe\\[0.4cm]}
+    {\LARGE Compilador HULK-C++-RS\\}
+    \vspace*{2cm}
+    
+     
+    {\Large \textbf{Richard Alejandro Matos Arderí}\\[0.5cm]}
+    {\Large \textbf{Abraham Romero Imbert}\\[0.5cm]}
+    {\Large \textbf{Mauricio Sunde Jiménez}\\[0.5cm]}
+    
+    {\Large Grupo 311, Ciencia de la Computación\\[0.5cm]}
+    {\Large Facultad de Matemática y Computación\\[0.5cm]}
+    {\Large Universidad de La Habana\\[0.5cm]}
+    \vfill
+    \includegraphics[width=0.2\textwidth, height=0.2\textheight]{Images/MATCOM.jpg}\\[0.5cm]
+    {\Large 2025}
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
