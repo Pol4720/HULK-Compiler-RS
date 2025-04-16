@@ -4,6 +4,15 @@
 %define api.token.constructor
 %define api.location.type {location}
 %locations
+%{
+#include "parser.tab.hh"
+using namespace yy;
+%}
+%{
+#include <FlexLexer.h>
+#include "parser.tab.hh"
+using namespace yy;
+%}
 
 %code requires {
   #include <string>
