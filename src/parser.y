@@ -1,56 +1,58 @@
-%language "c++"
-%define api.value.type {std::string}
-%define parse.error verbose
-%define api.token.constructor
-%define api.location.type {location}
-%locations
 %{
-#include "parser.tab.hh"
-using namespace yy;
-%}
-%{
-#include <FlexLexer.h>
-#include "parser.tab.hh"
-using namespace yy;
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+using namespace std;
+int yylex(void);
+void yyerror(const char *s);
+extern FILE *yyin;
 %}
 
-%code requires {
-  #include <string>
+%union {
+    double dval;
+    char* symp;
 }
 
-%code {
-  #include <iostream>
-  void yyerror(const std::string &msg);
-  int yylex(yy::parser::semantic_type *yylval, yy::parser::location_type *yylloc);
-}
+%token <dval> NUMBER
+%token <symp> WORD
+%token PLUS MINUS
+%token PRODUCT DIV
 
-%token FUNCTION PROTOCOL EXTENDS INHERITS TYPE RETURN NEW
-%token OR2 AND2 DOT SIN COS SQRT EXP LOG RAND PRINT IS AS
-%token PI E LET IN TRUE FALSE IF ELSE ELIF WHILE FOR RANGE
-%token ASSIGN1 ASSIGN2 COMMA OPAR CPAR PLUS MINUS STAR STAR2
-%token DIVIDE POW MOD AND OR IMPLICIT NOT EQ NE GT GE LT LE
-%token CONCAT CONCAT_SPACE LBRACE RBRACE LBRAKE RBRAKE SEMI COLON ARROW
-%token COMMENT COMMENT2
-%token <std::string> ID NUM STRING
+%left PLUS MINUS
+%left PRODUCT DIV
+
+%type <dval> EXP TERM FACTOR
 
 %%
 
-program:
-    | program statement
+input:
+    EXP { printf("Resultado: %g\n", $1); }
     ;
 
-statement:
-      expr SEMI     { std::cout << "Statement válido\n"; }
+EXP: EXP PLUS TERM   { $$ = $1 + $3; }
+    | EXP MINUS TERM  { $$ = $1 - $3; }
+    | TERM           { $$ = $1; }
     ;
 
-expr:
-      NUM           { std::cout << "Número: " << $1 << std::endl; }
-    | ID            { std::cout << "Identificador: " << $1 << std::endl; }
-    | STRING        { std::cout << "Cadena: " << $1 << std::endl; }
+TERM: TERM PRODUCT FACTOR   { $$ = $1 * $3; }
+    | TERM DIV FACTOR   {
+                            if ($3 == 0){
+                                yyerror("Error: División por cero.");
+                                $$ = 0;
+                            } else {
+                                $$ = $1 / $3;
+                            }
+                        }
+    | FACTOR { $$ = $1; }
+    ;
+
+FACTOR: NUMBER  { $$ = $1; }
+    | '(' EXP ')'   { $$ = $2; }
     ;
 
 %%
 
-void yyerror(const std::string &msg) {
-    std::cerr << "Error de sintaxis: " << msg << std::endl;
+void yyerror(const char* s) {
+    fprintf(stderr, "Error: %s\n", s);
 }
+
