@@ -4,3 +4,7 @@
 *.synctex.gz
 *.toc
 *.out
+Compiler/src/lex.yy.c
+Compiler/src/parser
+Compiler/src/parser.tab.c
+Compiler/src/parser.tab.h
