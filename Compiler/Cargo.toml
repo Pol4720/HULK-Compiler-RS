@@ -1,0 +1,11 @@
+[package]
+name = "simple_calc"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+lalrpop-util = { version = "0.22.1", features = ["lexer"] }
+
+[build-dependencies]
+lalrpop = "0.22.1"
