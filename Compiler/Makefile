@@ -12,7 +12,7 @@ set-nightly:
 	$(RUSTUP) override set $(NIGHTLY)
 
 # Compila el proyecto
-build:g
+build:
 	$(CARGO) build
 
 # Ejecuta el proyecto
