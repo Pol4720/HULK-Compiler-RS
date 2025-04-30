@@ -1,0 +1,26 @@
+use crate::ast::{Expr};
+use std::str::FromStr;
+
+
+grammar;
+
+pub ExpParser: Expr = {
+    <e:Expr> => e
+};
+
+Expr: Expr = {
+    <l:Expr> "+" <r:Term> => Expr::Add(Box::new(l), Box::new(r)),
+    <l:Expr> "-" <r:Term> => Expr::Sub(Box::new(l), Box::new(r)),
+    Term,
+};
+
+Term: Expr = {
+    <l:Term> "*" <r:Factor> => Expr::Mul(Box::new(l), Box::new(r)),
+    <l:Term> "/" <r:Factor> => Expr::Div(Box::new(l), Box::new(r)),
+    Factor,
+};
+
+Factor: Expr = {
+    r"[0-9]+" => Expr::Number(i64::from_str(<>).unwrap()),
+    "(" <e:Expr> ")" => e,
+};
