@@ -1,50 +1,50 @@
-use crate::hulk_tokens::*;
+use crate::hulk_Tokens::hulk_operators::*;
 
 #[derive(Debug)]
 pub enum Expr {
-    Number(i32),
-    Boolean(bool),
-    Str(String),
+    NumberLiteral(f64),
+    BooleanLiteral(bool),
+    StringLiteral(String),
     Identifier(String),
-    BinaryOp(Box<Expr>, OperatorToken, Box<Expr>),
-    UnaryOp(OperatorToken, Box<Expr>),
+    BinaryOp(Box<Expr>, BinaryOperatorToken, Box<Expr>),
+    UnaryOp(UnaryOperator, Box<Expr>),
     Print(Box<Expr>),
 }
 
 impl Expr {
-    pub fn eval(&self) -> Result<i64, String> {
+    pub fn eval(&self) -> Result<f64, String> { // Cambiado a f64
         match self {
-            Expr::Number(n) => Ok((*n).into()),
+            Expr::NumberLiteral(n) => Ok(*n),
             Expr::BinaryOp(left, op, right) => {
                 let left_val = left.eval()?;
                 let right_val = right.eval()?;
                 match op {
-                    OperatorToken::Plus => Ok(left_val + right_val),
-                    OperatorToken::Minus => Ok(left_val - right_val),
-                    OperatorToken::Mul => Ok(left_val * right_val),
-                    OperatorToken::Div => {
-                        if right_val == 0 {
+                    BinaryOperatorToken::Plus => Ok(left_val + right_val),
+                    BinaryOperatorToken::Minus => Ok(left_val - right_val),
+                    BinaryOperatorToken::Mul => Ok(left_val * right_val),
+                    BinaryOperatorToken::Div => {
+                        if right_val == 0.0 {
                             Err("Error: División por cero".to_string())
                         } else {
                             Ok(left_val / right_val)
                         }
                     }
-                    OperatorToken::Mod => Ok(left_val % right_val),
-                    OperatorToken::Pow => Ok(left_val.pow(right_val as u32)),
-                    OperatorToken::Eq => Ok((left_val == right_val) as i64),
-                    OperatorToken::Neq => Ok((left_val != right_val) as i64),
-                    OperatorToken::Gt => Ok((left_val > right_val) as i64),
-                    OperatorToken::Gte => Ok((left_val >= right_val) as i64),
-                    OperatorToken::Lt => Ok((left_val < right_val) as i64),
-                    OperatorToken::Lte => Ok((left_val <= right_val) as i64),
+                    BinaryOperatorToken::Mod => Ok(left_val % right_val),
+                    BinaryOperatorToken::Pow => Ok(left_val.powf(right_val)),
+                    BinaryOperatorToken::Eq => Ok((left_val == right_val) as i64 as f64),
+                    BinaryOperatorToken::Neq => Ok((left_val != right_val) as i64 as f64),
+                    BinaryOperatorToken::Gt => Ok((left_val > right_val) as i64 as f64),
+                    BinaryOperatorToken::Gte => Ok((left_val >= right_val) as i64 as f64),
+                    BinaryOperatorToken::Lt => Ok((left_val < right_val) as i64 as f64),
+                    BinaryOperatorToken::Lte => Ok((left_val <= right_val) as i64 as f64),
                     _ => Err("Operador no soportado".to_string()),
                 }
             }
             Expr::UnaryOp(op, expr) => {
                 let val = expr.eval()?;
                 match op {
-                    OperatorToken::Neg => Ok(-val),
-                    OperatorToken::Not => Ok((val == 0) as i64),
+                    UnaryOperator::Minus => Ok(-val),
+                    UnaryOperator::LogicalNot => Ok((val == 0.0) as i64 as f64),
                     _ => Err("Operador unario no soportado".to_string()),
                 }
             }
@@ -55,9 +55,9 @@ impl Expr {
     pub fn to_tree(&self, indent: usize) -> String {
         let padding = "  ".repeat(indent); // Sangría para cada nivel
         match self {
-            Expr::Number(n) => format!("{}Number({})", padding, n),
-            Expr::Boolean(b) => format!("{}Boolean({})", padding, b),
-            Expr::Str(s) => format!("{}Str(\"{}\")", padding, s),
+            Expr::NumberLiteral(n) => format!("{}NumberLiteral({})", padding, n),
+            Expr::BooleanLiteral(b) => format!("{}BooleanLiteral({})", padding, b),
+            Expr::StringLiteral(s) => format!("{}StringLiteral(\"{}\")", padding, s),
             Expr::Identifier(id) => format!("{}Identifier({})", padding, id),
             Expr::BinaryOp(left, op, right) => {
                 let op_str = format!("{:?}", op);
