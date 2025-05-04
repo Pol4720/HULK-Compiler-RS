@@ -1,42 +1,42 @@
 #[derive(Debug, PartialEq)]
 pub enum KeywordToken {
-    PRINT,
-    WHILE,
-    ELIF,
-    ELSE,
-    IF,
-    IN,
-    LET,
-    TRUE,
-    FALSE,
+    Print,
+    While,
+    Elif,
+    Else,
+    If,
+    In,
+    Let,
+    True,
+    False,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum OperatorToken {
-    MUL,
-    DIV,
-    PLUS,
-    MINUS,
-    MOD,
-    POW,
-    NEG,
-    NOT,
-    EQ,
-    NEQ,
-    GT,
-    GTE,
-    LT,
-    LTE,
+    Mul,
+    Div,
+    Plus,
+    Minus,
+    Mod,
+    Pow,
+    Neg,
+    Not,
+    Eq,
+    Neq,
+    Gt,
+    Gte,
+    Lt,
+    Lte,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum DelimiterToken {
-    SEMICOLON,
-    COMMA,
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
+    Semicolon,
+    Comma,
+    Lparen,
+    Rparen,
+    Lbrace,
+    Rbrace,
 }
 
 #[derive(Debug, PartialEq)]

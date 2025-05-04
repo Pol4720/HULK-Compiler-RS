@@ -1,26 +1,168 @@
-use crate::ast::{Expr};
 use std::str::FromStr;
 
+use crate::ast::Expr;
+use crate::hulk_tokens::*;
 
 grammar;
 
-pub ExpParser: Expr = {
-    <e:Expr> => e
+pub Expressions_List: Vec<Box<Expr>> = {
+    <v:(<Expr> Semicolon)*> => v
 };
 
-Expr: Expr = {
-    <l:Expr> "+" <r:Term> => Expr::Add(Box::new(l), Box::new(r)),
-    <l:Expr> "-" <r:Term> => Expr::Sub(Box::new(l), Box::new(r)),
-    Term,
+Expr: Box<Expr> = { EqualEqualExpr };
+
+EqualEqualExpr: Box<Expr> = {
+    <left:ComparisonExpr> <rest:(EqualOp ComparisonExpr)*> => {
+        rest.into_iter().fold(left, |l, (op, r)| {
+            Box::new(Expr::BinaryOp(l, op, r))
+        })
+    }
 };
 
-Term: Expr = {
-    <l:Term> "*" <r:Factor> => Expr::Mul(Box::new(l), Box::new(r)),
-    <l:Term> "/" <r:Factor> => Expr::Div(Box::new(l), Box::new(r)),
-    Factor,
+EqualOp: OperatorToken = {
+    "==" => OperatorToken::Eq,
+    "!=" => OperatorToken::Neq,
 };
 
-Factor: Expr = {
-    r"[0-9]+" => Expr::Number(i64::from_str(<>).unwrap()),
-    "(" <e:Expr> ")" => e,
+ComparisonExpr: Box<Expr> = {
+    <left:TermExpr> <rest:(ComparisonOp TermExpr)*> => {
+        rest.into_iter().fold(left, |l, (op, r)| {
+            Box::new(Expr::BinaryOp(l, op, r))
+        })
+    }
+};
+
+ComparisonOp: OperatorToken = {
+    ">" => OperatorToken::Gt,
+    ">=" => OperatorToken::Gte,
+    "<" => OperatorToken::Lt,
+    "<=" => OperatorToken::Lte,
+};
+
+TermExpr: Box<Expr> = {
+    <left:FactorExpr> <rest:(TermOp FactorExpr)*> => {
+        rest.into_iter().fold(left, |l, (op, r)| {
+            Box::new(Expr::BinaryOp(l, op, r))
+        })
+    }
+};
+
+TermOp: OperatorToken = {
+    "+" => OperatorToken::Plus,
+    "-" => OperatorToken::Minus,
+};
+
+FactorExpr: Box<Expr> = {
+    <left:ExponentExpr> <rest:(FactorOp ExponentExpr)*> => {
+        rest.into_iter().fold(left, |l, (op, r)| {
+            Box::new(Expr::BinaryOp(l, op, r))
+        })
+    }
+};
+
+FactorOp: OperatorToken = {
+    "*" => OperatorToken::Mul,
+    "/" => OperatorToken::Div,
+    "%" => OperatorToken::Mod,
+};
+
+ExponentExpr: Box<Expr> = {
+    <left:UnaryExpr> <op:PowOp> <right:ExponentExpr> => Box::new(Expr::BinaryOp(left, op, right)),
+    UnaryExpr,
+};
+
+PowOp: OperatorToken = {
+    "^" => OperatorToken::Pow,
+};
+
+UnaryExpr: Box<Expr> = {
+    <op:UnaryOp> <expr:UnaryExpr> => Box::new(Expr::UnaryOp(op, expr)),
+    PrimaryExpr,
+};
+
+UnaryOp: OperatorToken = {
+    "!" => OperatorToken::Not,
+    "-" => OperatorToken::Neg,
+};
+
+PrimaryExpr: Box<Expr> = {
+    Num => Box::new(Expr::Number(<>)),
+    Str => Box::new(Expr::Str(<>)),
+    Identifier => Box::new(Expr::Identifier(<>)),
+    LParen <Expr> RParen => Box::new(*<>),
+    PrintExpr,
+    True => Box::new(Expr::Boolean(true)),
+    False => Box::new(Expr::Boolean(false)),
+};
+
+PrintExpr: Box<Expr> = {
+    Print LParen <Expr> RParen => Box::new(Expr::Print(<>)),
+};
+
+Semicolon: DelimiterToken = {
+    ";" => DelimiterToken::Semicolon,
+};
+
+RParen: DelimiterToken = {
+    ")" => DelimiterToken::Rparen,
+};
+
+LParen: DelimiterToken = {
+    "(" => DelimiterToken::Lparen,
+};
+
+RBrace: DelimiterToken = {
+    "}" => DelimiterToken::Rbrace,
+};
+
+LBrace: DelimiterToken = {
+    "{" => DelimiterToken::Lbrace,
+};
+
+Let: KeywordToken = {
+    "let" => KeywordToken::Let,
+};
+
+Else: KeywordToken = {
+    "else" => KeywordToken::Else,
+};
+
+Elif: KeywordToken = {
+    "elif" => KeywordToken::Elif,
+};
+
+In: KeywordToken = {
+    "in" => KeywordToken::In,
+};
+
+If: KeywordToken = {
+    "if" => KeywordToken::If,
+};
+
+While: KeywordToken = {
+    "while" => KeywordToken::While,
+};
+
+Print: KeywordToken = {
+    "print" => KeywordToken::Print,
+};
+
+True: KeywordToken = {
+    "true" => KeywordToken::True,
+};
+
+False: KeywordToken = {
+    "false" => KeywordToken::False,
+};
+
+Identifier: String = {
+    r"[A-Za-z][A-Za-z_0-9]*" => String::from_str(<>).unwrap(),
+};
+
+Num: i32 = {
+    r"[0-9]+(\.[0-9]+)?" => i32::from_str(<>).unwrap(),
+};
+
+Str: String = {
+    r#""([^"\\]|\\.)*""# => String::from_str(&<>[1..<>.len()-1]).unwrap(),
 };
