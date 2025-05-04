@@ -18,7 +18,10 @@ fn main() {
         }
 
         match parser.parse(&input) {
-            Ok(expr) => println!("= {}", expr.eval()),
+            Ok(expr) => {   
+                println!("= {}", expr.eval());
+                println!("AST: {:?}", expr);
+            }
             Err(err) => eprintln!("Error de sintaxis: {:?}", err),
         }
     }
