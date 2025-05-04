@@ -1,7 +1,6 @@
 use lalrpop_util::lalrpop_mod;
 mod ast;
-mod hulk_tokens;
-
+pub mod hulk_Tokens;
 lalrpop_mod!(pub parser);
 
 use std::io::{self, Write};

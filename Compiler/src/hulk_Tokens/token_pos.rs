@@ -1,11 +1,11 @@
 #[derive(Copy, Clone)]
-pub struct TokenPosition {
+pub struct TokenPos {
     pub start: usize,
     pub end: usize,
 }
 
-impl TokenPosition {
+impl TokenPos {
     pub fn new(start: usize, end: usize) -> Self {
-        TokenPosition { start, end }
+        TokenPos { start, end }
     }
 }

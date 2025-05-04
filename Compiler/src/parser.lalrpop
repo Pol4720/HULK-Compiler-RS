@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
 use crate::ast::Expr;
-use crate::hulk_tokens::*;
+ use crate::hulk_Tokens::hulk_operators::*;
+use crate::hulk_Tokens::hulk_keywords::*;
 
 grammar;
 
@@ -19,9 +20,9 @@ EqualEqualExpr: Box<Expr> = {
     }
 };
 
-EqualOp: OperatorToken = {
-    "==" => OperatorToken::Eq,
-    "!=" => OperatorToken::Neq,
+EqualOp: BinaryOperatorToken = {
+    "==" => BinaryOperatorToken::Eq,
+    "!=" => BinaryOperatorToken::Neq,
 };
 
 ComparisonExpr: Box<Expr> = {
@@ -32,11 +33,11 @@ ComparisonExpr: Box<Expr> = {
     }
 };
 
-ComparisonOp: OperatorToken = {
-    ">" => OperatorToken::Gt,
-    ">=" => OperatorToken::Gte,
-    "<" => OperatorToken::Lt,
-    "<=" => OperatorToken::Lte,
+ComparisonOp: BinaryOperatorToken = {
+    ">" => BinaryOperatorToken::Gt,
+    ">=" => BinaryOperatorToken::Gte,
+    "<" => BinaryOperatorToken::Lt,
+    "<=" => BinaryOperatorToken::Lte,
 };
 
 TermExpr: Box<Expr> = {
@@ -47,9 +48,9 @@ TermExpr: Box<Expr> = {
     }
 };
 
-TermOp: OperatorToken = {
-    "+" => OperatorToken::Plus,
-    "-" => OperatorToken::Minus,
+TermOp: BinaryOperatorToken = {
+    "+" => BinaryOperatorToken::Plus,
+    "-" => BinaryOperatorToken::Minus,
 };
 
 FactorExpr: Box<Expr> = {
@@ -60,10 +61,10 @@ FactorExpr: Box<Expr> = {
     }
 };
 
-FactorOp: OperatorToken = {
-    "*" => OperatorToken::Mul,
-    "/" => OperatorToken::Div,
-    "%" => OperatorToken::Mod,
+FactorOp: BinaryOperatorToken = {
+    "*" => BinaryOperatorToken::Mul,
+    "/" => BinaryOperatorToken::Div,
+    "%" => BinaryOperatorToken::Mod,
 };
 
 ExponentExpr: Box<Expr> = {
@@ -71,8 +72,8 @@ ExponentExpr: Box<Expr> = {
     UnaryExpr,
 };
 
-PowOp: OperatorToken = {
-    "^" => OperatorToken::Pow,
+PowOp: BinaryOperatorToken = {
+    "^" => BinaryOperatorToken::Pow,
 };
 
 UnaryExpr: Box<Expr> = {
@@ -80,19 +81,18 @@ UnaryExpr: Box<Expr> = {
     PrimaryExpr,
 };
 
-UnaryOp: OperatorToken = {
-    "!" => OperatorToken::Not,
-    "-" => OperatorToken::Neg,
+UnaryOp: UnaryOperator = {
+    "!" => UnaryOperator::LogicalNot,
+    "-" => UnaryOperator::Minus,
 };
 
 PrimaryExpr: Box<Expr> = {
-    Num => Box::new(Expr::Number(<>)),
-    Str => Box::new(Expr::Str(<>)),
+    NumberLiteral => Box::new(Expr::NumberLiteral(<>)),
+    BooleanLiteral => Box::new(Expr::BooleanLiteral(<>)),
+    StringLiteral => Box::new(Expr::StringLiteral(<>)),
     Identifier => Box::new(Expr::Identifier(<>)),
     LParen <Expr> RParen => Box::new(*<>),
     PrintExpr,
-    True => Box::new(Expr::Boolean(true)),
-    False => Box::new(Expr::Boolean(false)),
 };
 
 PrintExpr: Box<Expr> = {
@@ -147,22 +147,20 @@ Print: KeywordToken = {
     "print" => KeywordToken::Print,
 };
 
-True: KeywordToken = {
-    "true" => KeywordToken::True,
-};
-
-False: KeywordToken = {
-    "false" => KeywordToken::False,
-};
 
 Identifier: String = {
     r"[A-Za-z][A-Za-z_0-9]*" => String::from_str(<>).unwrap(),
 };
 
-Num: i32 = {
-    r"[0-9]+(\.[0-9]+)?" => i32::from_str(<>).unwrap(),
+NumberLiteral: f64 = {
+    r"[0-9]+(\.[0-9]+)?" => f64::from_str(<>).unwrap(),
 };
 
-Str: String = {
+BooleanLiteral: bool = {
+    "true" => true,
+    "false" => false,
+};
+
+StringLiteral: String = {
     r#""([^"\\]|\\.)*""# => String::from_str(&<>[1..<>.len()-1]).unwrap(),
 };
