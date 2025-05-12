@@ -9,6 +9,7 @@ pub enum BinaryOperatorToken {
     Neg,
     Not,
     Eq,
+    EqEq,
     Neq,
     Gt,
     Gte,
@@ -28,9 +29,11 @@ pub enum UnaryOperator {
 #[derive(Debug, PartialEq)]
 pub enum DelimiterToken {
     Semicolon,
+    Colon,
     Comma,
     Lparen,
     Rparen,
     Lbrace,
+    Arrow,
     Rbrace,
 }

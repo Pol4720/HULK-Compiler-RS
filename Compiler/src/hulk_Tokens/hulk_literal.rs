@@ -1,7 +1,8 @@
-use std::fmt::Display;
+use std::fmt::{self, Display, Formatter};
 
 use super::*;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct NumberLiteral {
     pub position: TokenPos,
     pub value: f64,
@@ -9,13 +10,20 @@ pub struct NumberLiteral {
 
 impl NumberLiteral {
     pub fn new(start: usize, end: usize, value: &str) -> Self {
-        NumberLiteral {
+        Self {
             position: TokenPos::new(start, end),
-            value: value.parse::<f64>().unwrap(),
+            value: value.parse().unwrap(),
         }
     }
 }
 
+impl Display for NumberLiteral {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct BooleanLiteral {
     pub position: TokenPos,
     pub value: bool,
@@ -23,13 +31,20 @@ pub struct BooleanLiteral {
 
 impl BooleanLiteral {
     pub fn new(start: usize, end: usize, value: &str) -> Self {
-        BooleanLiteral {
+        Self {
             position: TokenPos::new(start, end),
-            value: value.parse::<bool>().unwrap(),
+            value: value.parse().unwrap(),
         }
     }
 }
 
+impl Display for BooleanLiteral {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct StringLiteral {
     pub position: TokenPos,
     pub value: String,
@@ -37,9 +52,15 @@ pub struct StringLiteral {
 
 impl StringLiteral {
     pub fn new(start: usize, end: usize, value: &str) -> Self {
-        StringLiteral {
+        Self {
             position: TokenPos::new(start, end),
             value: value.to_string(),
         }
+    }
+}
+
+impl Display for StringLiteral {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
     }
 }

@@ -1,10 +1,30 @@
 use std::str::FromStr;
 
-use crate::ast::Expr;
- use crate::hulk_Tokens::hulk_operators::*;
-use crate::hulk_Tokens::hulk_keywords::*;
+use crate::hulk_tokens::{
+    hulk_operators::*, hulk_keywords::KeywordToken, hulk_literal::*, hulk_identifier::*, token_pos::*,
+};
+use crate::ast::{Expr, ExprKind, ProgramNode, FuncDef, Instruction, FunctionDef};
+use crate::hulk_tokens::hulk_ifExp::{IfExpr, ElseBranch};
 
 grammar;
+
+
+pub Program: ProgramNode = {
+    <v:(<Instruction> Semicolon)*> <last:Instruction?> => {
+        let mut vec = v;
+        if let Some(e) = last {
+            vec.push(e);
+        }
+        ProgramNode{ instructions: vec.into_iter().map(|b| *b).collect() }
+    }
+}
+
+Instruction: Box<Instruction> = {
+    FunctionFullDef => Box::new(Instruction::FunctionDef(FuncDef::FunctionFullDef(<>))),
+    FunctionArrowDef => Box::new(Instruction::FunctionDef(FuncDef::FunctionArrowDef(<>))),
+    Expr => Box::new(Instruction::Expression(<>))
+}
+
 
 pub Expressions_List: Vec<Box<Expr>> = {
     <v:(<Expr> Semicolon)*> => v
@@ -15,10 +35,110 @@ Expr: Box<Expr> = { EqualEqualExpr };
 EqualEqualExpr: Box<Expr> = {
     <left:ComparisonExpr> <rest:(EqualOp ComparisonExpr)*> => {
         rest.into_iter().fold(left, |l, (op, r)| {
-            Box::new(Expr::BinaryOp(l, op, r))
+            Box::new(Expr::new(ExprKind::BinaryOp(l, op, r)))
         })
     }
 };
+
+Function: KeywordToken = {
+    "function" => KeywordToken::Function,
+};
+
+Arrow: DelimiterToken = {
+    "=>" => DelimiterToken::Arrow,
+};
+
+IdentifierList: Vec<String> = {
+    <first:Identifier> <rest:(Comma Identifier)*> => {
+        let mut vec = vec![first];
+        for (_, id) in rest {
+            vec.push(id);
+        }
+        vec
+    }
+};
+
+FunctionArrowDef: FunctionDef = {
+    Function <name:Identifier> LParen <params:IdentifierList> RParen Arrow <body:Expr> => {
+        FunctionDef {
+            name,
+            params,
+            body,
+        }
+    },
+    Function <name:Identifier> LParen RParen Arrow <body:Expr> => {
+        FunctionDef {
+            name,
+            params: vec![],
+            body,
+        }
+    }
+};
+
+FunctionFullDef: FunctionDef = {
+    Function <name:Identifier> LParen <params:IdentifierList> RParen <body:CodeBlock> => {
+        FunctionDef {
+            name,
+            params,
+            body,
+        }
+    },
+    Function <name:Identifier> LParen RParen <body:CodeBlock> => {
+        FunctionDef {
+            name,
+            params: vec![],
+            body,
+        }
+    }
+};
+
+CodeBlock: Box<Expr> = {
+    LBrace <body:Expressions_List> RBrace => Box::new(Expr::new(ExprKind::CodeBlock(body))),
+}
+
+LetIn: Box<Expr> = {
+    Let <a:AssignmentList> In <body:PrimaryExpr> => Box::new(Expr::new(ExprKind::LetIn(a, body))),
+};
+
+Assignment: Box<Expr> = {
+    <id:Identifier> Assign <e:Expr> => Box::new(Expr::new(ExprKind::Assignment(id, e))),
+}
+
+AssignmentList: Vec<Box<Expr>> = {
+    <l:AssignmentList> "," <r:Assignment> => {
+        let mut l = l;
+        l.push(r);
+        l
+    },
+    <r:Assignment> => {
+        let mut v = Vec::new();
+        v.push(r);
+        v
+    },
+}
+
+
+IfExpr: Box<Expr> = {
+    <if_Keyword: IfKeyword> LParen <condition:Expr> RParen LBrace <then_branch:Expr> RBrace <else_branch:ElseBranchOpt> => {
+        Box::new(Expr::new(ExprKind::If(IfExpr::new(
+            if_Keyword,
+            condition,
+            then_branch,
+            else_branch,
+        ))))
+    }
+};
+
+ElseBranchOpt: Option<ElseBranch> = {
+    ElseBranch => Some(<>),
+    => None,
+};
+
+ElseBranch: ElseBranch = {
+    <elseKeyword:ElseKeyword> LBrace <body:Expr> RBrace => ElseBranch::new(elseKeyword, body)
+};
+
+
 
 EqualOp: BinaryOperatorToken = {
     "==" => BinaryOperatorToken::Eq,
@@ -28,7 +148,7 @@ EqualOp: BinaryOperatorToken = {
 ComparisonExpr: Box<Expr> = {
     <left:TermExpr> <rest:(ComparisonOp TermExpr)*> => {
         rest.into_iter().fold(left, |l, (op, r)| {
-            Box::new(Expr::BinaryOp(l, op, r))
+            Box::new(Expr::new(ExprKind::BinaryOp(l, op, r)))
         })
     }
 };
@@ -43,7 +163,7 @@ ComparisonOp: BinaryOperatorToken = {
 TermExpr: Box<Expr> = {
     <left:FactorExpr> <rest:(TermOp FactorExpr)*> => {
         rest.into_iter().fold(left, |l, (op, r)| {
-            Box::new(Expr::BinaryOp(l, op, r))
+            Box::new(Expr::new(ExprKind::BinaryOp(l, op, r)))
         })
     }
 };
@@ -56,7 +176,7 @@ TermOp: BinaryOperatorToken = {
 FactorExpr: Box<Expr> = {
     <left:ExponentExpr> <rest:(FactorOp ExponentExpr)*> => {
         rest.into_iter().fold(left, |l, (op, r)| {
-            Box::new(Expr::BinaryOp(l, op, r))
+            Box::new(Expr::new(ExprKind::BinaryOp(l, op, r)))
         })
     }
 };
@@ -68,7 +188,7 @@ FactorOp: BinaryOperatorToken = {
 };
 
 ExponentExpr: Box<Expr> = {
-    <left:UnaryExpr> <op:PowOp> <right:ExponentExpr> => Box::new(Expr::BinaryOp(left, op, right)),
+    <left:UnaryExpr> <op:PowOp> <right:ExponentExpr> => Box::new(Expr::new(ExprKind::BinaryOp(left, op, right))),
     UnaryExpr,
 };
 
@@ -77,76 +197,78 @@ PowOp: BinaryOperatorToken = {
 };
 
 UnaryExpr: Box<Expr> = {
-    <op:UnaryOp> <expr:UnaryExpr> => Box::new(Expr::UnaryOp(op, expr)),
+    <op:UnaryOp> <expr:UnaryExpr> => Box::new(Expr::new(ExprKind::UnaryOp(op, expr))),
     PrimaryExpr,
 };
 
 UnaryOp: UnaryOperator = {
     "!" => UnaryOperator::LogicalNot,
     "-" => UnaryOperator::Minus,
+    "+" => UnaryOperator::Plus,
 };
 
 PrimaryExpr: Box<Expr> = {
-    NumberLiteral => Box::new(Expr::NumberLiteral(<>)),
-    BooleanLiteral => Box::new(Expr::BooleanLiteral(<>)),
-    StringLiteral => Box::new(Expr::StringLiteral(<>)),
-    Identifier => Box::new(Expr::Identifier(<>)),
+    NumberLiteral => Box::new(Expr::new(ExprKind::Number(NumberLiteral { position: TokenPos { start: 0, end: 0 }, value: <> }))),
+    BooleanLiteral => Box::new(Expr::new(ExprKind::Boolean(BooleanLiteral { position: TokenPos { start: 0, end: 0 }, value: <> }))),
+    StringLiteral => Box::new(Expr::new(ExprKind::String(StringLiteral { position: TokenPos { start: 0, end: 0 }, value: <> }))),
+    Identifier => Box::new(Expr::new(ExprKind::Identifier(Identifier { position: TokenPos { start: 0, end: 0 }, id: <> }))),
     LParen <Expr> RParen => Box::new(*<>),
+    IfExpr,
     PrintExpr,
+    WhileLoop,
+    LetIn,
+    CodeBlock,
 };
 
 PrintExpr: Box<Expr> = {
-    Print LParen <Expr> RParen => Box::new(Expr::Print(<>)),
+    Print LParen <Expr> RParen => Box::new(Expr::new(ExprKind::Print(<>))),
 };
 
-Semicolon: DelimiterToken = {
-    ";" => DelimiterToken::Semicolon,
+
+ArgList: Vec<Box<Expr>> = {
+    // Handle non-empty arguments
+    <first:Expr> <rest:(<Comma> <Expr>)*> => {
+        let mut args = vec![first];
+        for (_, expr) in rest {
+            args.push(expr);
+        }
+        args
+    },
+    // Handle empty arguments (no parameters)
+    => Vec::new()
 };
 
-RParen: DelimiterToken = {
-    ")" => DelimiterToken::Rparen,
+WhileLoop: Box<Expr> = {
+    While LParen <condition:Expr> RParen <body:CodeBlock> => Box::new(Expr::new(ExprKind::WhileLoop(condition, body))),
 };
 
-LParen: DelimiterToken = {
-    "(" => DelimiterToken::Lparen,
+
+Semicolon: DelimiterToken = { ";" => DelimiterToken::Semicolon };
+RParen: DelimiterToken = { ")" => DelimiterToken::Rparen };
+LParen: DelimiterToken = { "(" => DelimiterToken::Lparen };
+RBrace: DelimiterToken = { "}" => DelimiterToken::Rbrace };
+LBrace: DelimiterToken = { "{" => DelimiterToken::Lbrace };
+Comma: DelimiterToken = { "," => DelimiterToken::Comma };
+
+Let: KeywordToken = { "let" => KeywordToken::Let };
+Elif: KeywordToken = { "elif" => KeywordToken::Elif };
+In: KeywordToken = { "in" => KeywordToken::In };
+While: KeywordToken = { "while" => KeywordToken::While };
+Print: KeywordToken = { "print" => KeywordToken::Print };
+
+Assign: BinaryOperatorToken = {
+    "=" => BinaryOperatorToken::Eq,
 };
 
-RBrace: DelimiterToken = {
-    "}" => DelimiterToken::Rbrace,
-};
-
-LBrace: DelimiterToken = {
-    "{" => DelimiterToken::Lbrace,
-};
-
-Let: KeywordToken = {
-    "let" => KeywordToken::Let,
-};
-
-Else: KeywordToken = {
-    "else" => KeywordToken::Else,
-};
-
-Elif: KeywordToken = {
-    "elif" => KeywordToken::Elif,
-};
-
-In: KeywordToken = {
-    "in" => KeywordToken::In,
-};
-
-If: KeywordToken = {
+IfKeyword: KeywordToken = {
     "if" => KeywordToken::If,
 };
 
-While: KeywordToken = {
-    "while" => KeywordToken::While,
-};
 
-Print: KeywordToken = {
-    "print" => KeywordToken::Print,
-};
 
+ElseKeyword: KeywordToken = {
+    "else" => KeywordToken::Else,
+};
 
 Identifier: String = {
     r"[A-Za-z][A-Za-z_0-9]*" => String::from_str(<>).unwrap(),

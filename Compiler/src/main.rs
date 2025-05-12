@@ -1,13 +1,13 @@
 use lalrpop_util::lalrpop_mod;
 mod ast;
-pub mod hulk_Tokens;
+pub mod hulk_tokens;
 lalrpop_mod!(pub parser);
 
 use std::io::{self, Write};
-use crate::parser::Expressions_ListParser;
+use crate::parser::ProgramParser;
 
 fn main() {
-    let parser = Expressions_ListParser::new();
+    let parser = ProgramParser::new();
     loop {
         print!("> ");
         io::stdout().flush().unwrap();
@@ -19,9 +19,9 @@ fn main() {
 
         match parser.parse(&input) {
             Ok(ast) => {
-            for expr in ast {
-                println!("{}", expr.to_tree(0)); // Mostrar el árbol con sangría
-                match expr.eval() {
+            for instr in ast.instructions {
+                println!("{}", instr.to_tree(0)); 
+                match instr.eval() {
                 Ok(result) => println!("Resultado: {}", result),
                 Err(err) => eprintln!("Error: {}", err),
                 }

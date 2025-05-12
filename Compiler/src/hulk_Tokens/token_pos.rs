@@ -1,4 +1,4 @@
-#[derive(Copy, Clone)]
+#[derive(Debug,Copy, Clone, PartialEq, Eq)]
 pub struct TokenPos {
     pub start: usize,
     pub end: usize,
