@@ -1,7 +1,14 @@
+
+
 use crate::hulk_tokens::hulk_operators::*;
+use crate::hulk_tokens::hulk_assignment::Assignment;
 use crate::hulk_tokens::hulk_literal::*;
 use crate::hulk_tokens::hulk_identifier::*;
 use crate::hulk_tokens::hulk_ifExp::*;
+use crate::hulk_tokens::hulk_binary_expr::*;
+use crate::hulk_tokens::hulk_unary_expr::*;
+use crate::hulk_tokens::hulk_let_in::*;
+use crate::hulk_tokens::hulk_whileloop::*;
 
 
 #[derive(Debug, Clone)]
@@ -18,6 +25,18 @@ impl ProgramNode {
         instructions.push(Instruction::Expression(expr));
         instructions.extend(post);
         ProgramNode { instructions }
+    }
+}
+
+impl ProgramNode {
+    pub fn to_tree(&self, indent: usize) -> String {
+        let padding = "  ".repeat(indent);
+        let instrs = self.instructions
+            .iter()
+            .map(|i| i.to_tree(indent + 1))
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!("{}Program\n{}", padding, instrs)
     }
 }
 
@@ -43,8 +62,6 @@ pub struct FunctionDef {
 }
 
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
     pub kind: ExprKind,
@@ -56,18 +73,18 @@ pub enum ExprKind {
     Boolean(BooleanLiteral),
     String(StringLiteral),
     Identifier(Identifier),
-    BinaryOp(Box<Expr>, BinaryOperatorToken, Box<Expr>),
-    UnaryOp(UnaryOperator, Box<Expr>),
+    BinaryOp(BinaryExpr),
+    UnaryOp(UnaryExpr),
     Print(Box<Expr>),
     If(IfExpr),
 
     FunctionCall(String, Vec<Box<Expr>>),
-    Assignment(String, Box<Expr>),
+    Assignment(Assignment),
     FunctionFullDef(FunctionDef),//cambiar
     FunctionArrowDef(FunctionDef),
-    LetIn(Vec<Box<Expr>>, Box<Expr>),
-    WhileLoop(Box<Expr>, Box<Expr>),
-    IfElse(Box<Expr>, Box<Expr>, Box<Expr>),
+    LetIn(LetIn),
+    WhileLoop(WhileLoop),
+    IfElse(IfExpr),
     CodeBlock(Vec<Box<Expr>>),
 }
 
@@ -80,10 +97,10 @@ impl Expr {
         match &self.kind {
             ExprKind::Number(n) => Ok(n.value),
             ExprKind::Boolean(b) => Ok(if b.value { 1.0 } else { 0.0 }),
-            ExprKind::BinaryOp(left, op, right) => {
-                let left_val = left.eval()?;
-                let right_val = right.eval()?;
-                match op {
+            ExprKind::BinaryOp(binary_expr) => {
+                let left_val = binary_expr.left.eval()?;
+                let right_val = binary_expr.right.eval()?;
+                match &binary_expr.operator {
                     BinaryOperatorToken::Plus => Ok(left_val + right_val),
                     BinaryOperatorToken::Minus => Ok(left_val - right_val),
                     BinaryOperatorToken::Mul => Ok(left_val * right_val),
@@ -105,9 +122,9 @@ impl Expr {
                     _ => Err("Operador no soportado".to_string()),
                 }
             }
-            ExprKind::UnaryOp(op, expr) => {
-                let val = expr.eval()?;
-                match op {
+            ExprKind::UnaryOp(unary_expr) => {
+                let val = unary_expr.operand.eval()?;
+                match &unary_expr.operator {
                     UnaryOperator::Plus => Ok(val),
                     UnaryOperator::Minus => Ok(-val),
                     UnaryOperator::LogicalNot => Ok((val == 0.0) as i64 as f64),
@@ -125,18 +142,18 @@ impl Expr {
             ExprKind::Boolean(b) => format!("{}BooleanLiteral({})", padding, b),
             ExprKind::String(s) => format!("{}StringLiteral(\"{}\")", padding, s),
             ExprKind::Identifier(id) => format!("{}Identifier({})", padding, id),
-            ExprKind::BinaryOp(left, op, right) => format!(
+            ExprKind::BinaryOp(binary_expr) => format!(
                 "{}BinaryOp({:?})\n{}\n{}",
                 padding,
-                op,
-                left.to_tree(indent + 1),
-                right.to_tree(indent + 1)
+                binary_expr.operator,
+                binary_expr.left.to_tree(indent + 1),
+                binary_expr.right.to_tree(indent + 1)
             ),
-            ExprKind::UnaryOp(op, expr) => format!(
+            ExprKind::UnaryOp(unary_expr) => format!(
                 "{}UnaryOp({:?})\n{}",
                 padding,
-                op,
-                expr.to_tree(indent + 1)
+                unary_expr.operator,
+                unary_expr.operand.to_tree(indent + 1)
             ),
             ExprKind::Print(expr) => format!(
                 "{}Print\n{}",
@@ -166,11 +183,25 @@ impl Expr {
                     .join("\n");
                 format!("{}FunctionCall({})\n{}", padding, name, args_str)
             }
-            ExprKind::Assignment(name, expr) => format!(
+            ExprKind::LetIn(let_in) => {
+                let assigns = let_in.assignment.iter()
+                    .map(|a| a.to_tree(indent + 2))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                format!(
+                    "{}LetIn\n{}Assignments:\n{}\n{}Body:\n{}",
+                    padding,
+                    padding,
+                    assigns,
+                    padding,
+                    let_in.body.to_tree(indent + 1)
+                )
+            }
+            ExprKind::Assignment(assign) => format!(
                 "{}Assignment({})\n{}",
                 padding,
-                name,
-                expr.to_tree(indent + 1)
+                assign.identifier,
+                assign.expression.to_tree(indent + 1)
             ),
             ExprKind::FunctionFullDef(func) => format!(
                 "{}FunctionFullDef({})\n{}Params: {:?}\n{}Body:\n{}",
@@ -190,38 +221,31 @@ impl Expr {
                 padding,
                 func.body.to_tree(indent + 1)
             ),
-            ExprKind::LetIn(assignments, body) => {
-                let assigns = assignments.iter()
-                    .map(|a| a.to_tree(indent + 2))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                format!(
-                    "{}LetIn\n{}Assignments:\n{}\n{}Body:\n{}",
-                    padding,
-                    padding,
-                    assigns,
-                    padding,
-                    body.to_tree(indent + 1)
-                )
-            }
-            ExprKind::WhileLoop(cond, body) => format!(
+
+            ExprKind::WhileLoop(while_loop) => format!(
                 "{}WhileLoop\n{}Condition:\n{}\n{}Body:\n{}",
                 padding,
                 padding,
-                cond.to_tree(indent + 1),
+                while_loop.condition.to_tree(indent + 1),
                 padding,
-                body.to_tree(indent + 1)
+                while_loop.body.to_tree(indent + 1)
             ),
-            ExprKind::IfElse(cond, then_branch, else_branch) => format!(
-                "{}IfElse\n{}Condition:\n{}\n{}Then:\n{}\n{}Else:\n{}",
-                padding,
-                padding,
-                cond.to_tree(indent + 1),
-                padding,
-                then_branch.to_tree(indent + 1),
-                padding,
-                else_branch.to_tree(indent + 1)
-            ),
+            ExprKind::IfElse(if_expr) => {
+                let else_branch = if let Some(else_branch) = &if_expr.else_branch {
+                    format!("\n{}Else:\n{}", padding, else_branch.body.to_tree(indent + 1))
+                } else {
+                    String::new()
+                };
+                format!(
+                    "{}IfElse\n{}Condition:\n{}\n{}Then:\n{}{}",
+                    padding,
+                    padding,
+                    if_expr.condition.to_tree(indent + 1),
+                    padding,
+                    if_expr.then_branch.to_tree(indent + 1),
+                    else_branch
+                )
+            },
             ExprKind::CodeBlock(exprs) => {
                 let exprs_str = exprs.iter()
                     .map(|e| e.to_tree(indent + 1))
@@ -232,6 +256,7 @@ impl Expr {
         }
     }
 }
+
 
 impl Instruction {
     pub fn to_tree(&self, indent: usize) -> String {

@@ -9,6 +9,24 @@ pub mod hulk_ifExp;
 pub use hulk_ifExp::IfExpr;
 pub use hulk_ifExp::ElseBranch;
 
+pub mod hulk_whileloop;
+pub use hulk_whileloop::WhileLoop;
+
+pub mod hulk_let_in;
+pub use hulk_let_in::LetIn;
+
+// pub mod hulk_block;
+// pub use hulk_block::Block;
+
+pub mod hulk_assignment;
+pub use hulk_assignment::Assignment;
+
+pub mod hulk_binary_expr;
+pub use hulk_binary_expr::BinaryExpr;
+
+pub mod hulk_unary_expr;
+pub use hulk_unary_expr::UnaryExpr;
+
 pub mod hulk_operators;
 pub use hulk_operators::BinaryOperatorToken;
 pub use hulk_operators::DelimiterToken;

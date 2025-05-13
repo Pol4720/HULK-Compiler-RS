@@ -19,16 +19,16 @@ fn main() {
 
         match parser.parse(&input) {
             Ok(ast) => {
-            for instr in ast.instructions {
-                println!("{}", instr.to_tree(0)); 
-                match instr.eval() {
-                Ok(result) => println!("Resultado: {}", result),
-                Err(err) => eprintln!("Error: {}", err),
+                println!("{}", ast.to_tree(0));
+                for instr in ast.instructions {
+                    match instr.eval() {
+                        Ok(result) => println!("Resultado: {}", result),
+                        Err(err) => eprintln!("Error: {}", err),
+                    }
                 }
             }
-            }
             Err(err) => {
-            eprintln!("Error de análisis: {}", err);
+                eprintln!("Error de análisis: {}", err);
             }
         }
     }
