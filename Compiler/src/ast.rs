@@ -1,5 +1,3 @@
-
-
 use crate::hulk_tokens::hulk_operators::*;
 use crate::hulk_tokens::hulk_assignment::Assignment;
 use crate::hulk_tokens::hulk_literal::*;
@@ -9,57 +7,8 @@ use crate::hulk_tokens::hulk_binary_expr::*;
 use crate::hulk_tokens::hulk_unary_expr::*;
 use crate::hulk_tokens::hulk_let_in::*;
 use crate::hulk_tokens::hulk_whileloop::*;
-
-
-#[derive(Debug, Clone)]
-pub struct ProgramNode {
-    pub instructions: Vec<Instruction>,
-}
-
-impl ProgramNode {
-    pub fn new(instructions: Vec<Instruction>) -> Self {
-        ProgramNode { instructions: instructions }
-    }
-    pub fn with_instructions(pre: Vec<Instruction>, expr: Box<Expr>, post: Vec<Instruction>) -> Self {
-        let mut instructions = pre;
-        instructions.push(Instruction::Expression(expr));
-        instructions.extend(post);
-        ProgramNode { instructions }
-    }
-}
-
-impl ProgramNode {
-    pub fn to_tree(&self, indent: usize) -> String {
-        let padding = "  ".repeat(indent);
-        let instrs = self.instructions
-            .iter()
-            .map(|i| i.to_tree(indent + 1))
-            .collect::<Vec<_>>()
-            .join("\n");
-        format!("{}Program\n{}", padding, instrs)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Instruction {
-//    Class(ClassDecl),
-   FunctionDef(FuncDef),
-//    Protocol(ProtocolDecl),
-   Expression(Box<Expr>)
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum FuncDef{
-    FunctionFullDef(FunctionDef),
-    FunctionArrowDef(FunctionDef),
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct FunctionDef {
-    pub name: String,
-    pub params: Vec<String>,
-    pub body: Box<Expr>,
-}
+use crate::hulk_tokens::Block;
+use crate::hulk_tokens::FunctionCall;
 
 
 #[derive(Debug, Clone, PartialEq)]
@@ -78,14 +27,11 @@ pub enum ExprKind {
     Print(Box<Expr>),
     If(IfExpr),
 
-    FunctionCall(String, Vec<Box<Expr>>),
+    FunctionCall(FunctionCall),
     Assignment(Assignment),
-    FunctionFullDef(FunctionDef),//cambiar
-    FunctionArrowDef(FunctionDef),
     LetIn(LetIn),
     WhileLoop(WhileLoop),
-    IfElse(IfExpr),
-    CodeBlock(Vec<Box<Expr>>),
+    CodeBlock(Block),
 }
 
 impl Expr {
@@ -176,12 +122,12 @@ impl Expr {
                     else_branch
                 )
             }
-            ExprKind::FunctionCall(name, args) => {
-                let args_str = args.iter()
+            ExprKind::FunctionCall(func_call) => {
+                let args_str = func_call.arguments.iter()
                     .map(|arg| arg.to_tree(indent + 2))
                     .collect::<Vec<_>>()
                     .join("\n");
-                format!("{}FunctionCall({})\n{}", padding, name, args_str)
+                format!("{}FunctionCall({})\n{}", padding, func_call.funct_name, args_str)
             }
             ExprKind::LetIn(let_in) => {
                 let assigns = let_in.assignment.iter()
@@ -203,24 +149,6 @@ impl Expr {
                 assign.identifier,
                 assign.expression.to_tree(indent + 1)
             ),
-            ExprKind::FunctionFullDef(func) => format!(
-                "{}FunctionFullDef({})\n{}Params: {:?}\n{}Body:\n{}",
-                padding,
-                func.name,
-                padding,
-                func.params,
-                padding,
-                func.body.to_tree(indent + 1)
-            ),
-            ExprKind::FunctionArrowDef(func) => format!(
-                "{}FunctionArrowDef({})\n{}Params: {:?}\n{}Body:\n{}",
-                padding,
-                func.name,
-                padding,
-                func.params,
-                padding,
-                func.body.to_tree(indent + 1)
-            ),
 
             ExprKind::WhileLoop(while_loop) => format!(
                 "{}WhileLoop\n{}Condition:\n{}\n{}Body:\n{}",
@@ -230,65 +158,13 @@ impl Expr {
                 padding,
                 while_loop.body.to_tree(indent + 1)
             ),
-            ExprKind::IfElse(if_expr) => {
-                let else_branch = if let Some(else_branch) = &if_expr.else_branch {
-                    format!("\n{}Else:\n{}", padding, else_branch.body.to_tree(indent + 1))
-                } else {
-                    String::new()
-                };
-                format!(
-                    "{}IfElse\n{}Condition:\n{}\n{}Then:\n{}{}",
-                    padding,
-                    padding,
-                    if_expr.condition.to_tree(indent + 1),
-                    padding,
-                    if_expr.then_branch.to_tree(indent + 1),
-                    else_branch
-                )
-            },
             ExprKind::CodeBlock(exprs) => {
-                let exprs_str = exprs.iter()
+                let exprs_str = exprs.expression_list.expressions.iter()
                     .map(|e| e.to_tree(indent + 1))
                     .collect::<Vec<_>>()
                     .join("\n");
                 format!("{}CodeBlock\n{}", padding, exprs_str)
             }
-        }
-    }
-}
-
-
-impl Instruction {
-    pub fn to_tree(&self, indent: usize) -> String {
-        match self {
-            Instruction::Expression(expr) => expr.to_tree(indent),
-            Instruction::FunctionDef(func_def) => format!(
-                "{}FunctionDef:\n{}",
-                "  ".repeat(indent),
-                match func_def {
-                    FuncDef::FunctionFullDef(f) => format!(
-                        "{}FullDef {}({:?})\n{}",
-                        "  ".repeat(indent + 1),
-                        f.name,
-                        f.params,
-                        f.body.to_tree(indent + 2)
-                    ),
-                    FuncDef::FunctionArrowDef(f) => format!(
-                        "{}ArrowDef {}({:?})\n{}",
-                        "  ".repeat(indent + 1),
-                        f.name,
-                        f.params,
-                        f.body.to_tree(indent + 2)
-                    ),
-                }
-            ),
-        }
-    }
-
-    pub fn eval(&self) -> Result<f64, String> {
-        match self {
-            Instruction::Expression(expr) => expr.eval(),
-            _ => Err("Solo se pueden evaluar expresiones.".to_string()),
         }
     }
 }

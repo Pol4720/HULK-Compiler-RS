@@ -1,8 +1,27 @@
-pub struct CodeBlock {
-    pub statements: Vec<Statement>,
+use crate::ast::Expr;
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ExpressionList {
+    pub expressions: Box<Vec<Expr>>,
 }
-impl CodeBlock {
-    pub fn new(statements: Vec<Statement>) -> Self {
-        CodeBlock { statements }
+
+impl ExpressionList {
+    pub fn new(expressions: Vec<Expr>) -> Self {
+        ExpressionList {
+            expressions: Box::new(expressions),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Block {
+    pub expression_list: Box<ExpressionList>,
+}
+
+impl Block {
+    pub fn new(expression_list: ExpressionList) -> Self {
+        Block {
+            expression_list: Box::new(expression_list)
+        }
     }
 }

@@ -4,9 +4,12 @@ use crate::hulk_tokens::{
     hulk_operators::*, hulk_keywords::KeywordToken, hulk_literal::*, hulk_identifier::*, token_pos::*,
     hulk_binary_expr::*, hulk_unary_expr::*, hulk_assignment::*, hulk_whileloop::*, hulk_let_in::*,
 };
-use crate::ast::{Expr, ExprKind, ProgramNode, FuncDef, Instruction, FunctionDef};
+use crate::hulk_tokens::hulk_program::{ProgramNode, Instruction};
+use crate::hulk_tokens::hulk_function_def::FunctionDef;
+use crate::hulk_tokens::hulk_code_block::ExpressionList;
+use crate::ast::{Expr, ExprKind};
 use crate::hulk_tokens::hulk_ifExp::{IfExpr, ElseBranch};
-
+use crate::hulk_tokens::hulk_code_block::Block;
 grammar;
 
 // ===================
@@ -26,17 +29,43 @@ pub Program: ProgramNode = {
 // Instrucciones
 // ===================
 Instruction: Box<Instruction> = {
-    FunctionFullDef => Box::new(Instruction::FunctionDef(FuncDef::FunctionFullDef(<>))),
-    FunctionArrowDef => Box::new(Instruction::FunctionDef(FuncDef::FunctionArrowDef(<>))),
-    Expr => Box::new(Instruction::Expression(<>))
+    FunctionFullDef => Box::new(Instruction::FunctionDef(<>)),
+    FunctionArrowDef => Box::new(Instruction::FunctionDef(<>)),
+    Expr => Box::new(Instruction::Expression(<>)),
 }
+
+FunctionArrowDef: FunctionDef = {
+    Function <name:Identifier> LParen <params:IdentifierList> RParen Arrow <body:Expr> => {
+        FunctionDef::new(name,params,body)
+    },
+    Function <name:Identifier> LParen RParen Arrow <body:Expr> => {
+        FunctionDef::new(name,vec![],body)
+    }
+};
+
+FunctionFullDef: FunctionDef = {
+    Function <name:Identifier> LParen <params:IdentifierList> RParen <body:CodeBlock> => {
+        FunctionDef::new(name,params,body)
+    },
+    Function <name:Identifier> LParen RParen <body:CodeBlock> => {
+        FunctionDef::new(name,vec![],body)
+    }
+};
 
 // ===================
 // Expresiones y listas
 // ===================
-pub Expressions_List: Vec<Box<Expr>> = {
-    <v:(<Expr> Semicolon)*> => v
+Expressions_List: ExpressionList = {
+    <v:(<Expr> Semicolon)*> <last:Expr?> => {
+        let mut vec = v;
+        if let Some(e) = last {
+            vec.push(e);
+        }
+        ExpressionList::new(vec.into_iter().map(|b| *b).collect())
+    }
 };
+
+
 
 Expr: Box<Expr> = { 
     AssignmentExpr,
@@ -177,29 +206,14 @@ IdentifierList: Vec<String> = {
     }
 };
 
-FunctionArrowDef: FunctionDef = {
-    Function <name:Identifier> LParen <params:IdentifierList> RParen Arrow <body:Expr> => {
-        FunctionDef { name, params, body }
-    },
-    Function <name:Identifier> LParen RParen Arrow <body:Expr> => {
-        FunctionDef { name, params: vec![], body }
-    }
-};
-
-FunctionFullDef: FunctionDef = {
-    Function <name:Identifier> LParen <params:IdentifierList> RParen <body:CodeBlock> => {
-        FunctionDef { name, params, body }
-    },
-    Function <name:Identifier> LParen RParen <body:CodeBlock> => {
-        FunctionDef { name, params: vec![], body }
-    }
-};
 
 // ===================
 // Bloques y listas de asignación
 // ===================
 CodeBlock: Box<Expr> = {
-    LBrace <body:Expressions_List> RBrace => Box::new(Expr::new(ExprKind::CodeBlock(body))),
+    LBrace <body:Expressions_List> RBrace => Box::new(Expr::new(ExprKind::CodeBlock(
+        Block::new(body)
+    ))),
 }
 
 AssignmentList: Vec<Assignment> = {

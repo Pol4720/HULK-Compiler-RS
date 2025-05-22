@@ -15,8 +15,18 @@ pub use hulk_whileloop::WhileLoop;
 pub mod hulk_let_in;
 pub use hulk_let_in::LetIn;
 
-// pub mod hulk_block;
-// pub use hulk_block::Block;
+pub mod hulk_program;
+pub use hulk_program::ProgramNode;
+pub use hulk_program::Instruction;
+
+pub mod hulk_code_block;
+pub use hulk_code_block::Block;
+
+pub mod hulk_function_def;
+pub use hulk_function_def::FunctionDef;
+
+pub mod hulk_function_call;
+pub use hulk_function_call::FunctionCall;
 
 pub mod hulk_assignment;
 pub use hulk_assignment::Assignment;
