@@ -1,5 +1,9 @@
 use super::hulk_identifier::Identifier;
-use crate::ast::Expr;
+use crate::hulk_tokens::hulk_expression::Expr;
+use crate::visitor::hulk_accept::Accept;
+use crate::visitor::hulk_visitor::Visitor;
+
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Assignment {
@@ -22,5 +26,12 @@ impl Assignment {
             self.identifier,
             self.expression.to_tree(indent + 1)
         )
+    }
+}
+
+
+impl Accept for Assignment {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+        visitor.visit_assignment(self)
     }
 }

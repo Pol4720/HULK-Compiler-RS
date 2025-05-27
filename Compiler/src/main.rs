@@ -1,10 +1,12 @@
 use lalrpop_util::lalrpop_mod;
-mod ast;
+use visitor::hulk_accept::Accept;
 pub mod hulk_tokens;
+pub mod visitor;
 lalrpop_mod!(pub parser);
 
 use std::io::{self, Write};
 use crate::parser::ProgramParser;
+use crate::visitor::hulk_ast_visitor_print::PreetyPrintVisitor;
 
 fn main() {
     let parser = ProgramParser::new();
@@ -19,7 +21,13 @@ fn main() {
 
         match parser.parse(&input) {
             Ok(ast) => {
-                println!("{}", ast.to_tree(0));
+                // 2. Usa el visitor para imprimir el AST bonito
+                let mut printer = PreetyPrintVisitor;
+                println!("{}", ast.accept(&mut printer));
+
+                // Si quieres, puedes dejar el to_tree para debug tradicional:
+                // println!("{}", ast.to_tree(0));
+
                 for instr in ast.instructions {
                     match instr.eval() {
                         Ok(result) => println!("Resultado: {}", result),

@@ -8,12 +8,20 @@ use crate::hulk_tokens::hulk_unary_expr::*;
 use crate::hulk_tokens::hulk_let_in::*;
 use crate::hulk_tokens::hulk_whileloop::*;
 use crate::hulk_tokens::Block;
+use crate::visitor::hulk_accept::Accept;
+use crate::visitor::hulk_visitor::Visitor;
 use crate::hulk_tokens::FunctionCall;
 
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
     pub kind: ExprKind,
+}
+
+impl Accept for Expr {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+        self.kind.accept(visitor)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -24,7 +32,6 @@ pub enum ExprKind {
     Identifier(Identifier),
     BinaryOp(BinaryExpr),
     UnaryOp(UnaryExpr),
-    Print(Box<Expr>),
     If(IfExpr),
 
     FunctionCall(FunctionCall),
@@ -33,6 +40,7 @@ pub enum ExprKind {
     WhileLoop(WhileLoop),
     CodeBlock(Block),
 }
+
 
 impl Expr {
     pub fn new(kind: ExprKind) -> Self {
@@ -101,11 +109,6 @@ impl Expr {
                 unary_expr.operator,
                 unary_expr.operand.to_tree(indent + 1)
             ),
-            ExprKind::Print(expr) => format!(
-                "{}Print\n{}",
-                padding,
-                expr.to_tree(indent + 1)
-            ),
             ExprKind::If(if_expr) => {
                 let else_branch = if let Some(else_branch) = &if_expr.else_branch {
                     format!("\n{}Else\n{}", padding, else_branch.body.to_tree(indent + 1))
@@ -165,6 +168,25 @@ impl Expr {
                     .join("\n");
                 format!("{}CodeBlock\n{}", padding, exprs_str)
             }
+        }
+    }
+}
+
+impl Accept for ExprKind {
+    fn accept<V: Visitor<T>,T>(&self, visitor: &mut V) -> T {
+        match self {
+            ExprKind::Number(node) => visitor.visit_number_literal(node),
+            ExprKind::Boolean(node) => visitor.visit_boolean_literal(node),
+            ExprKind::String(node) => visitor.visit_string_literal(node),
+            ExprKind::Identifier(node) => visitor.visit_identifier(node),
+            ExprKind::FunctionCall(node) => visitor.visit_function_call(node),
+            ExprKind::WhileLoop(node) => visitor.visit_while_loop(node),
+            ExprKind::CodeBlock(node) => visitor.visit_code_block(node),
+            ExprKind::BinaryOp(node) => visitor.visit_binary_expr(node),
+            ExprKind::UnaryOp(node) => visitor.visit_unary_expr(node),
+            ExprKind::If(node) => visitor.visit_if_else(node),
+            ExprKind::LetIn(node) => visitor.visit_let_in(node),
+            ExprKind::Assignment(node) => visitor.visit_assignment(node),
         }
     }
 }

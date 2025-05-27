@@ -1,4 +1,6 @@
-use crate::ast::Expr;
+use crate::hulk_tokens::hulk_expression::Expr;
+use crate::visitor::hulk_accept::Accept;
+use crate::visitor::hulk_visitor::Visitor;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ExpressionList {
@@ -13,6 +15,12 @@ impl ExpressionList {
     }
 }
 
+impl Accept for ExpressionList {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+        visitor.visit_expression_list(self)
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block {
     pub expression_list: Box<ExpressionList>,
@@ -23,5 +31,11 @@ impl Block {
         Block {
             expression_list: Box::new(expression_list)
         }
+    }
+}
+
+impl Accept for Block {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+        visitor.visit_code_block(self)
     }
 }

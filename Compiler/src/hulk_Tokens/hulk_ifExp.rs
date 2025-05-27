@@ -1,5 +1,7 @@
 use crate::hulk_tokens::hulk_keywords::KeywordToken;
-use crate::ast::Expr;
+use crate::hulk_tokens::hulk_expression::Expr;
+use crate::visitor::hulk_accept::Accept;
+use crate::visitor::hulk_visitor::Visitor;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct IfExpr {
@@ -15,6 +17,12 @@ impl IfExpr {
     }
 }
 
+impl Accept for IfExpr {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+        visitor.visit_if_else(self)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ElseBranch {
     pub else_keyword: KeywordToken,
@@ -24,5 +32,11 @@ pub struct ElseBranch {
 impl ElseBranch {
     pub fn new(else_keyword: KeywordToken, body: Box<Expr>) -> Self {
         ElseBranch { else_keyword, body }
+    }
+}
+
+impl Accept for ElseBranch {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+        visitor.visit_else_branch(self)
     }
 }

@@ -1,6 +1,6 @@
 use std::fmt::{self, Display, Formatter};
-
-use super::*;
+use crate::visitor::hulk_accept::Accept;
+use crate::visitor::hulk_visitor::Visitor;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NumberLiteral {
@@ -18,6 +18,12 @@ impl NumberLiteral {
 impl Display for NumberLiteral {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value)
+    }
+}
+
+impl Accept for NumberLiteral {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+        visitor.visit_number_literal(self)
     }
 }
 
@@ -40,6 +46,12 @@ impl Display for BooleanLiteral {
     }
 }
 
+impl Accept for BooleanLiteral {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+        visitor.visit_boolean_literal(self)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct StringLiteral {
     pub value: String,
@@ -56,5 +68,11 @@ impl StringLiteral {
 impl Display for StringLiteral {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value)
+    }
+}
+
+impl Accept for StringLiteral {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+        visitor.visit_string_literal(self)
     }
 }

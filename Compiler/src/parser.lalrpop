@@ -7,7 +7,7 @@ use crate::hulk_tokens::{
 use crate::hulk_tokens::hulk_program::{ProgramNode, Instruction};
 use crate::hulk_tokens::hulk_function_def::FunctionDef;
 use crate::hulk_tokens::hulk_code_block::ExpressionList;
-use crate::ast::{Expr, ExprKind};
+use crate::hulk_tokens::hulk_expression::{Expr, ExprKind};
 use crate::hulk_tokens::hulk_ifExp::{IfExpr, ElseBranch};
 use crate::hulk_tokens::hulk_code_block::Block;
 grammar;
@@ -179,7 +179,6 @@ PrimaryExpr: Box<Expr> = {
     Identifier => Box::new(Expr::new(ExprKind::Identifier(Identifier {  id: <> }))),
     LParen <Expr> RParen => Box::new(*<>),
     IfExpr,
-    PrintExpr,
     WhileLoop,
     LetIn,
     CodeBlock,
@@ -261,9 +260,6 @@ ElseBranch: ElseBranch = {
     <elseKeyword:ElseKeyword> LBrace <body:Expr> RBrace => ElseBranch::new(elseKeyword, body)
 };
 
-PrintExpr: Box<Expr> = {
-    Print LParen <Expr> RParen => Box::new(Expr::new(ExprKind::Print(<>))),
-};
 
 WhileLoop: Box<Expr> = {
     While LParen <condition:Expr> RParen <body:CodeBlock> => Box::new(Expr::new(ExprKind::WhileLoop(WhileLoop {
