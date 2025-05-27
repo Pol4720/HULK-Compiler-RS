@@ -1,0 +1,103 @@
+// TODO: Add semicolon \n option
+
+statement -> func_def 
+	| type_def
+	| const_def
+	| expression SEMICOLON
+
+-----------------------------------------------------------------
+
+const_def -> CONSTANT assignment
+
+-----------------------------------------------------------------
+
+func_def -> FUNCTION func_assign
+
+func_assign -> ID LPAREN param_list? RPAREN COLON ID func_body
+
+func_body -> block
+func_body -> ARROW expression SEMICOLON
+
+param_list -> param (, param)* 
+param -> ID COLON ID
+
+-----------------------------------------------------------------
+
+type_def -> TYPE ID (inherits ID)? type_def_body
+
+type_def_body -> LBRAC type_def_item RBRAC
+
+tpye_def_item -> (assignment | func_assign)
+
+-----------------------------------------------------------------
+
+emptyable_exp -> expression
+emptyable_exp -> EMPTY
+
+expression -> dassignment
+
+dassignment -> ID COLON_EQ expression
+dassignment -> logic_or
+
+logic_or -> logic_or OR logic_and
+logic_or -> logic_and
+
+logic_and -> logic_and AND equality
+logic_and -> equality
+
+equality ->  comparison (EQ | NEQ) comparison
+equality ->  comparison
+
+// ver si esto asocia de alguna manera
+comparison -> term (LEQ | GEQ | LE | GE) term
+comparison -> term
+
+term -> term (MINUS | PLUS) factor
+term -> factor
+
+factor -> factor (TIMES | DIV | MOD) power
+factor -> power
+
+power -> conc CARET power
+power -> conc
+
+//preguntar precedencia
+conc -> conc (AT | ATAT) atom 
+conc -> atom
+
+atom -> ID
+	| NUMBER
+	| STRING
+	| boolean
+	| call
+	| let_in_exp
+	| if_else_exp
+	| while_exp
+	| for_exp
+	| block
+	| group
+
+-----------------------------------------------------------------
+
+boolean -> TRUE | FALSE
+
+call -> ID LPAREN arg_list RPAREN
+
+let_in_exp -> LET assignment_list IN expression
+
+if_else_exp -> IF LPAREN expression RPAREN (ELIF LPAREN expression RPAREN expression)* ELSE expression 
+
+while_exp -> WHILE LPAREN expression RPAREN expression (ELSE expression)?
+
+for_exp -> FOR LPAREN expression RPAREN expression (ELSE expression)?
+
+block -> LBRACE (emptyable_exp SEMICOLON)* RBRACE
+
+group -> LPAREN expression RPAREN
+
+arg_list -> expression (, expression)*
+arg_list -> EMPTY
+
+assignment_list -> assignment (, assignment)*
+
+assignment -> ID EQUAL expression
