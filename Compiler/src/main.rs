@@ -1,7 +1,10 @@
 use lalrpop_util::lalrpop_mod;
-use visitor::hulk_accept::Accept;
+use semantic_visitor::hulk_semantic_visitor::SemanticVisitor;
+use visitor::hulk_visitor::Visitor;
 pub mod hulk_tokens;
 pub mod visitor;
+pub mod typings;
+pub mod semantic_visitor;
 lalrpop_mod!(pub parser);
 
 use std::io::{self, Write};
@@ -19,25 +22,23 @@ fn main() {
             break;
         }
 
-        match parser.parse(&input) {
-            Ok(ast) => {
-                // 2. Usa el visitor para imprimir el AST bonito
-                let mut printer = PreetyPrintVisitor;
-                println!("{}", ast.accept(&mut printer));
-
-                // Si quieres, puedes dejar el to_tree para debug tradicional:
-                // println!("{}", ast.to_tree(0));
-
-                for instr in ast.instructions {
-                    match instr.eval() {
-                        Ok(result) => println!("Resultado: {}", result),
-                        Err(err) => eprintln!("Error: {}", err),
-                    }
-                }
+        let parsed_expr = parser.parse(&input).unwrap();
+        let mut print_visitor = PreetyPrintVisitor;
+        let mut semantic_visitor = SemanticVisitor::new();
+        let res = semantic_visitor.analyze(&parsed_expr);
+        match res {
+            Ok(_) => {
+                println!("Parsed successfully!");
             }
-            Err(err) => {
-                eprintln!("Error de análisis: {}", err);
+            Err(errors) => {
+                println!("\x1b[31mErrors:");
+                for err in errors.iter() {
+                println!("{}", err.message());
+                }
+                println!("\x1b[0m");
             }
         }
-    }
+    println!("");
+    println!("\x1b[34m{}\x1b[0m", print_visitor.visit_program(&parsed_expr));
+}
 }

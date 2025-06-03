@@ -1,4 +1,5 @@
-use crate::{hulk_tokens::{Assignment, BinaryExpr, Block, BooleanLiteral, ElseBranch, ExpressionList, FunctionCall, FunctionDef, Identifier, IfExpr, LetIn, NumberLiteral, ProgramNode, StringLiteral, UnaryExpr, WhileLoop}, visitor::hulk_accept::Accept};
+use crate::{hulk_tokens::{Assignment, DestructiveAssignment ,BinaryExpr, ForExpr,Block, BooleanLiteral, ElseBranch, ExpressionList, FunctionCall, FunctionDef, Identifier, IfExpr, LetIn, NumberLiteral, ProgramNode, StringLiteral, UnaryExpr, WhileLoop}};
+use crate::visitor::hulk_accept::Accept;
 
 use super::hulk_visitor::Visitor;
 
@@ -30,7 +31,10 @@ impl Visitor<String> for PreetyPrintVisitor {
     }
 
     fn visit_function_def(&mut self, function_def: &FunctionDef) -> String {
-        let params = function_def.params.join(", ");
+        let params = function_def.params.iter()
+            .map(|param| param.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
         format!(
             "FunctionDef: {}({}) -> {{\n  {}\n}}",
             function_def.name,
@@ -110,4 +114,19 @@ impl Visitor<String> for PreetyPrintVisitor {
             .join("\n");
         format!("ExpressionList:\n{}", expressions)
     }
+    
+    fn visit_for_expr(&mut self, node: &ForExpr) -> String {
+        let variable = &node.variable;
+        let start = node.start.accept(self);
+        let end = node.end.accept(self);
+        let body = node.body.accept(self);
+        format!("for ({} in range({}, {})) {{\n{}\n}}", variable, start, end, body)
+    }
+    
+    fn visit_destructive_assignment(&mut self, node: &DestructiveAssignment) -> String {
+        let id = &node.identifier;
+        let expr = node.expression.accept(self);
+        format!("{} := {}", id, expr)
+    }
+    
 }

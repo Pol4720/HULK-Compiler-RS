@@ -7,7 +7,9 @@ use crate::hulk_tokens::hulk_binary_expr::*;
 use crate::hulk_tokens::hulk_unary_expr::*;
 use crate::hulk_tokens::hulk_let_in::*;
 use crate::hulk_tokens::hulk_whileloop::*;
+use crate::hulk_tokens::hulk_for_expr::ForExpr;
 use crate::hulk_tokens::Block;
+use crate::hulk_tokens::DestructiveAssignment;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
 use crate::hulk_tokens::FunctionCall;
@@ -38,7 +40,9 @@ pub enum ExprKind {
     Assignment(Assignment),
     LetIn(LetIn),
     WhileLoop(WhileLoop),
+    ForExp(ForExpr),
     CodeBlock(Block),
+    DestructiveAssign(DestructiveAssignment)
 }
 
 
@@ -88,88 +92,6 @@ impl Expr {
             _ => Err("Expresión no soportada".to_string()),
         }
     }
-
-    pub fn to_tree(&self, indent: usize) -> String {
-        let padding = "  ".repeat(indent);
-        match &self.kind {
-            ExprKind::Number(n) => format!("{}NumberLiteral({})", padding, n),
-            ExprKind::Boolean(b) => format!("{}BooleanLiteral({})", padding, b),
-            ExprKind::String(s) => format!("{}StringLiteral(\"{}\")", padding, s),
-            ExprKind::Identifier(id) => format!("{}Identifier({})", padding, id),
-            ExprKind::BinaryOp(binary_expr) => format!(
-                "{}BinaryOp({:?})\n{}\n{}",
-                padding,
-                binary_expr.operator,
-                binary_expr.left.to_tree(indent + 1),
-                binary_expr.right.to_tree(indent + 1)
-            ),
-            ExprKind::UnaryOp(unary_expr) => format!(
-                "{}UnaryOp({:?})\n{}",
-                padding,
-                unary_expr.operator,
-                unary_expr.operand.to_tree(indent + 1)
-            ),
-            ExprKind::If(if_expr) => {
-                let else_branch = if let Some(else_branch) = &if_expr.else_branch {
-                    format!("\n{}Else\n{}", padding, else_branch.body.to_tree(indent + 1))
-                } else {
-                    String::new()
-                };
-                format!(
-                    "{}If\n{}Condition\n{}\n{}Then\n{}{}",
-                    padding,
-                    padding,
-                    if_expr.condition.to_tree(indent + 1),
-                    padding,
-                    if_expr.then_branch.to_tree(indent + 1),
-                    else_branch
-                )
-            }
-            ExprKind::FunctionCall(func_call) => {
-                let args_str = func_call.arguments.iter()
-                    .map(|arg| arg.to_tree(indent + 2))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                format!("{}FunctionCall({})\n{}", padding, func_call.funct_name, args_str)
-            }
-            ExprKind::LetIn(let_in) => {
-                let assigns = let_in.assignment.iter()
-                    .map(|a| a.to_tree(indent + 2))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                format!(
-                    "{}LetIn\n{}Assignments:\n{}\n{}Body:\n{}",
-                    padding,
-                    padding,
-                    assigns,
-                    padding,
-                    let_in.body.to_tree(indent + 1)
-                )
-            }
-            ExprKind::Assignment(assign) => format!(
-                "{}Assignment({})\n{}",
-                padding,
-                assign.identifier,
-                assign.expression.to_tree(indent + 1)
-            ),
-
-            ExprKind::WhileLoop(while_loop) => format!(
-                "{}WhileLoop\n{}Condition:\n{}\n{}Body:\n{}",
-                padding,
-                padding,
-                while_loop.condition.to_tree(indent + 1),
-                padding,
-                while_loop.body.to_tree(indent + 1)
-            ),
-            ExprKind::CodeBlock(exprs) => {
-                let exprs_str = exprs.expression_list.expressions.iter()
-                    .map(|e| e.to_tree(indent + 1))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                format!("{}CodeBlock\n{}", padding, exprs_str)
-            }
-        }
-    }
 }
 
 impl Accept for ExprKind {
@@ -183,8 +105,10 @@ impl Accept for ExprKind {
             ExprKind::WhileLoop(node) => visitor.visit_while_loop(node),
             ExprKind::CodeBlock(node) => visitor.visit_code_block(node),
             ExprKind::BinaryOp(node) => visitor.visit_binary_expr(node),
+            ExprKind::ForExp(node) => visitor.visit_for_expr(node),
             ExprKind::UnaryOp(node) => visitor.visit_unary_expr(node),
             ExprKind::If(node) => visitor.visit_if_else(node),
+            ExprKind::DestructiveAssign(node) => visitor.visit_destructive_assignment(node),
             ExprKind::LetIn(node) => visitor.visit_let_in(node),
             ExprKind::Assignment(node) => visitor.visit_assignment(node),
         }

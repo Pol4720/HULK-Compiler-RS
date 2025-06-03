@@ -19,19 +19,9 @@ impl ProgramNode {
         instructions.extend(post);
         ProgramNode { instructions }
     }
+
 }
 
-impl ProgramNode {
-    pub fn to_tree(&self, indent: usize) -> String {
-        let padding = "  ".repeat(indent);
-        let instrs = self.instructions
-            .iter()
-            .map(|i| i.to_tree(indent + 1))
-            .collect::<Vec<_>>()
-            .join("\n");
-        format!("{}Program\n{}", padding, instrs)
-    }
-}
 
 impl Accept for ProgramNode {
     fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
@@ -50,20 +40,6 @@ pub enum Instruction {
 
 
 impl Instruction {
-    pub fn to_tree(&self, indent: usize) -> String {
-        match self {
-            Instruction::Expression(expr) => expr.to_tree(indent),
-            Instruction::FunctionDef(func_def) => format!(
-                "{}FunctionDef:\n{}FullDef {}({:?})\n{}",
-                "  ".repeat(indent),
-                "  ".repeat(indent + 1),
-                func_def.name,
-                func_def.params,
-                func_def.body.to_tree(indent + 2)
-            ),
-        }
-    }
-
     pub fn eval(&self) -> Result<f64, String> {
         match self {
             Instruction::Expression(expr) => expr.eval(),
@@ -71,6 +47,7 @@ impl Instruction {
         }
     }
 }
+
 impl Accept for Instruction {
     fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
         match self {

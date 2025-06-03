@@ -2,14 +2,18 @@ use std::str::FromStr;
 
 use crate::hulk_tokens::{
     hulk_operators::*, hulk_keywords::KeywordToken, hulk_literal::*, hulk_identifier::*, token_pos::*,
-    hulk_binary_expr::*, hulk_unary_expr::*, hulk_assignment::*, hulk_whileloop::*, hulk_let_in::*,
+    hulk_binary_expr::*, hulk_unary_expr::*, hulk_assignment::*, hulk_whileloop::*, hulk_let_in::*, hulk_for_expr::*,
 };
 use crate::hulk_tokens::hulk_program::{ProgramNode, Instruction};
 use crate::hulk_tokens::hulk_function_def::FunctionDef;
+use crate::hulk_tokens::hulk_function_call::FunctionCall;
 use crate::hulk_tokens::hulk_code_block::ExpressionList;
 use crate::hulk_tokens::hulk_expression::{Expr, ExprKind};
 use crate::hulk_tokens::hulk_ifExp::{IfExpr, ElseBranch};
+use crate::hulk_tokens::hulk_function_def::FunctionParams;
+use crate::hulk_tokens::DestructiveAssignment;
 use crate::hulk_tokens::hulk_code_block::Block;
+
 grammar;
 
 // ===================
@@ -21,7 +25,7 @@ pub Program: ProgramNode = {
         if let Some(e) = last {
             vec.push(e);
         }
-        ProgramNode{ instructions: vec.into_iter().map(|b| *b).collect() }
+        ProgramNode { instructions: vec.into_iter().map(|b| *b).collect() }
     }
 }
 
@@ -35,27 +39,32 @@ Instruction: Box<Instruction> = {
 }
 
 FunctionArrowDef: FunctionDef = {
-    Function <name:Identifier> LParen <params:IdentifierList> RParen Arrow <body:Expr> => {
-        FunctionDef::new(name,params,body)
+    Function <name:Identifier> LParen <params:IdentifierList> RParen DoubleDot <s:Signature> Arrow <body:Expr> => {
+        FunctionDef::new_expr(name, params, s, body)
     },
-    Function <name:Identifier> LParen RParen Arrow <body:Expr> => {
-        FunctionDef::new(name,vec![],body)
+    Function <name:Identifier> LParen RParen DoubleDot <s:Signature> Arrow <body:Expr> => {
+        FunctionDef::new_expr(name, vec![], s, body)
     }
 };
 
 FunctionFullDef: FunctionDef = {
-    Function <name:Identifier> LParen <params:IdentifierList> RParen <body:CodeBlock> => {
-        FunctionDef::new(name,params,body)
+    Function <name:Identifier> LParen <params:IdentifierList> RParen DoubleDot <s:Signature> <body:CodeBlock> => {
+        FunctionDef::new_expr(name, params, s, body)
     },
-    Function <name:Identifier> LParen RParen <body:CodeBlock> => {
-        FunctionDef::new(name,vec![],body)
+    Function <name:Identifier> LParen RParen DoubleDot <s:Signature> <body:CodeBlock> => {
+        FunctionDef::new_expr(name, vec![], s, body)
     }
 };
 
 // ===================
 // Expresiones y listas
 // ===================
-Expressions_List: ExpressionList = {
+Expr: Box<Expr> = { 
+    DestructiveAssignExpr,
+    LogicalOrExpr,
+};
+
+Exprs_List: ExpressionList = {
     <v:(<Expr> Semicolon)*> <last:Expr?> => {
         let mut vec = v;
         if let Some(e) = last {
@@ -65,11 +74,35 @@ Expressions_List: ExpressionList = {
     }
 };
 
+LogicalOrExpr: Box<Expr> = {
+    <left:LogicalOrExpr> <op:LogicalOrOp> <right:LogicalAndExpr> => {
+        Box::new(Expr::new(ExprKind::BinaryOp(BinaryExpr {
+            left,
+            operator: op,
+            right,
+        })))
+    },
+    LogicalAndExpr
+};
 
+LogicalAndExpr: Box<Expr> = {
+    <left:LogicalAndExpr> <op:LogicalAndOp> <right:EqualEqualExpr> => {
+        Box::new(Expr::new(ExprKind::BinaryOp(BinaryExpr {
+            left,
+            operator: op,
+            right,
+        })))
+    },
+    EqualEqualExpr
+};
 
-Expr: Box<Expr> = { 
-    AssignmentExpr,
-    EqualEqualExpr,
+DestructiveAssignExpr: Box<Expr> = {
+    <id:Identifier> DestructiveAssignOp <e:Expr> => {
+        Box::new(Expr::new(ExprKind::DestructiveAssign(DestructiveAssignment {
+            identifier: id,
+            expression: e,
+        })))
+    }
 };
 
 Assignment: Assignment = {
@@ -77,10 +110,6 @@ Assignment: Assignment = {
         identifier: Identifier { id },
         expression: e
     },
-}
-
-AssignmentExpr: Box<Expr> = {
-    <a:Assignment> => Box::new(Expr::new(ExprKind::Assignment(a))),
 }
 
 // ===================
@@ -97,7 +126,7 @@ EqualEqualExpr: Box<Expr> = {
 ComparisonExpr: Box<Expr> = {
     <left:TermExpr> <rest:(ComparisonOp TermExpr)*> => {
         rest.into_iter().fold(left, |left, (op, right)| {
-           Box::new(Expr::new(ExprKind::BinaryOp(BinaryExpr { left, operator: op, right })))
+            Box::new(Expr::new(ExprKind::BinaryOp(BinaryExpr { left, operator: op, right })))
         })
     }
 };
@@ -113,7 +142,7 @@ TermExpr: Box<Expr> = {
 FactorExpr: Box<Expr> = {
     <left:ExponentExpr> <rest:(FactorOp ExponentExpr)*> => {
         rest.into_iter().fold(left, |left, (op, right)| {
-             Box::new(Expr::new(ExprKind::BinaryOp(BinaryExpr { left, operator: op, right })))
+            Box::new(Expr::new(ExprKind::BinaryOp(BinaryExpr { left, operator: op, right })))
         })
     }
 };
@@ -173,15 +202,22 @@ UnaryOp: UnaryOperator = {
 };
 
 PrimaryExpr: Box<Expr> = {
+    WhileLoop,
+    ForExpr,
+    CodeBlock,
+    IfExpr,
+    <name:Identifier> LParen <args:ArgList> RParen => Box::new(Expr::new(ExprKind::FunctionCall(
+        FunctionCall {
+            funct_name: name,
+            arguments: args.into_iter().map(|b| *b).collect(),
+        }
+    ))),
+    LetIn,
+    LParen <Expr> RParen => Box::new(*<>),
     NumberLiteral => Box::new(Expr::new(ExprKind::Number(NumberLiteral { value: <> }))),
     BooleanLiteral => Box::new(Expr::new(ExprKind::Boolean(BooleanLiteral { value: <> }))),
     StringLiteral => Box::new(Expr::new(ExprKind::String(StringLiteral { value: <> }))),
-    Identifier => Box::new(Expr::new(ExprKind::Identifier(Identifier {  id: <> }))),
-    LParen <Expr> RParen => Box::new(*<>),
-    IfExpr,
-    WhileLoop,
-    LetIn,
-    CodeBlock,
+    Identifier => Box::new(Expr::new(ExprKind::Identifier(Identifier { id: <> }))),
 };
 
 // ===================
@@ -195,22 +231,21 @@ Arrow: DelimiterToken = {
     "=>" => DelimiterToken::Arrow,
 };
 
-IdentifierList: Vec<String> = {
-    <first:Identifier> <rest:(Comma Identifier)*> => {
-        let mut vec = vec![first];
-        for (_, id) in rest {
-            vec.push(id);
+IdentifierList: Vec<FunctionParams> = {
+    <first:Identifier> DoubleDot <s:Signature> <rest:(Comma Identifier DoubleDot Signature)*> => {
+        let mut vec = vec![FunctionParams::new(first, s)];
+        for (_, id, _, signature) in rest {
+            vec.push(FunctionParams::new(id, signature));
         }
         vec
     }
 };
 
-
 // ===================
 // Bloques y listas de asignación
 // ===================
 CodeBlock: Box<Expr> = {
-    LBrace <body:Expressions_List> RBrace => Box::new(Expr::new(ExprKind::CodeBlock(
+    LBrace <body:Exprs_List> RBrace => Box::new(Expr::new(ExprKind::CodeBlock(
         Block::new(body)
     ))),
 }
@@ -260,12 +295,33 @@ ElseBranch: ElseBranch = {
     <elseKeyword:ElseKeyword> LBrace <body:Expr> RBrace => ElseBranch::new(elseKeyword, body)
 };
 
-
 WhileLoop: Box<Expr> = {
     While LParen <condition:Expr> RParen <body:CodeBlock> => Box::new(Expr::new(ExprKind::WhileLoop(WhileLoop {
         condition,
         body,
     }))),
+};
+
+ForExpr: Box<Expr> = {
+    For LParen <id:Identifier> In <call:PrimaryExpr> RParen <body:PrimaryExpr> => {
+        if let ExprKind::FunctionCall(ref func_call) = (*call).kind {
+            if func_call.funct_name == "range" && func_call.arguments.len() == 2 {
+                let mut args = func_call.arguments.clone();
+                let start = args.remove(0);
+                let end = args.remove(0);
+                Box::new(Expr::new(ExprKind::ForExp(ForExpr {
+                    variable: id,
+                    start: Box::new(start),
+                    end: Box::new(end),
+                    body: body,
+                })))
+            } else {
+                panic!("For loop must use `range` with exactly two arguments");
+            }
+        } else {
+            panic!("For loop iterable must be a `range` function call");
+        }
+    }
 };
 
 // ===================
@@ -291,15 +347,29 @@ LParen: DelimiterToken = { "(" => DelimiterToken::Lparen };
 RBrace: DelimiterToken = { "}" => DelimiterToken::Rbrace };
 LBrace: DelimiterToken = { "{" => DelimiterToken::Lbrace };
 Comma: DelimiterToken = { "," => DelimiterToken::Comma };
+DoubleDot: DelimiterToken = { ":" => DelimiterToken::Doubledot };
+
+LogicalAndOp: BinaryOperatorToken = {
+    "&" => BinaryOperatorToken::And,
+};
+
+LogicalOrOp: BinaryOperatorToken = {
+    "|" => BinaryOperatorToken::Or,
+};
 
 Let: KeywordToken = { "let" => KeywordToken::Let };
 Elif: KeywordToken = { "elif" => KeywordToken::Elif };
 In: KeywordToken = { "in" => KeywordToken::In };
 While: KeywordToken = { "while" => KeywordToken::While };
+For: KeywordToken = { "for" => KeywordToken::For };
 Print: KeywordToken = { "print" => KeywordToken::Print };
 
 IfKeyword: KeywordToken = { "if" => KeywordToken::If };
 ElseKeyword: KeywordToken = { "else" => KeywordToken::Else };
+
+DestructiveAssignOp: BinaryOperatorToken = {
+    ":=" => BinaryOperatorToken::DotEqual
+};
 
 Identifier: String = {
     r"[A-Za-z][A-Za-z_0-9]*" => String::from_str(<>).unwrap(),
@@ -317,3 +387,7 @@ BooleanLiteral: bool = {
 StringLiteral: String = {
     r#""([^"\\]|\\.)*""# => String::from_str(&<>[1..<>.len()-1]).unwrap(),
 };
+
+Signature: String = {
+    r"[A-Za-z][A-Za-z_0-9]*" => String::from_str(<>).unwrap(),
+}

@@ -16,6 +16,10 @@ pub enum BinaryOperatorToken {
     Gte,
     Lt,
     Lte,
+    Concat,
+    And,
+    Or,
+    DotEqual
 }
 
 
@@ -24,6 +28,7 @@ pub enum UnaryOperator {
     Plus,
     Minus,
     LogicalNot,
+
 }
 
 
@@ -31,6 +36,7 @@ pub enum UnaryOperator {
 pub enum DelimiterToken {
     Semicolon,
     Colon,
+    Doubledot,
     Comma,
     Lparen,
     Rparen,

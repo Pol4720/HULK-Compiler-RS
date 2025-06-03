@@ -1,12 +1,25 @@
 pub mod token_pos;
 pub use token_pos::TokenPos;
 
+pub mod hulk_expression;
+pub use hulk_expression::Expr;
+
+
 pub mod hulk_keywords;
 pub use hulk_keywords::KeywordToken;
+
+pub mod hulk_for_expr;
+pub use hulk_for_expr::ForExpr;
 
 pub mod hulk_ifExp;
 pub use hulk_ifExp::IfExpr;
 pub use hulk_ifExp::ElseBranch;
+
+pub mod hulk_function_info;
+pub use hulk_function_info::HulkFunctionInfo;
+
+pub mod hulk_destructive_assign;
+pub use hulk_destructive_assign::DestructiveAssignment;
 
 pub mod hulk_whileloop;
 pub use hulk_whileloop::WhileLoop;
@@ -31,8 +44,6 @@ pub use hulk_function_call::FunctionCall;
 pub mod hulk_assignment;
 pub use hulk_assignment::Assignment;
 
-pub mod hulk_expression;
-pub use hulk_expression::Expr;
 
 pub mod hulk_binary_expr;
 pub use hulk_binary_expr::BinaryExpr;
