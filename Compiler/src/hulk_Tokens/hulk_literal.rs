@@ -21,11 +21,6 @@ impl Display for NumberLiteral {
     }
 }
 
-impl Accept for NumberLiteral {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
-        visitor.visit_number_literal(self)
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BooleanLiteral {
@@ -43,12 +38,6 @@ impl BooleanLiteral {
 impl Display for BooleanLiteral {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value)
-    }
-}
-
-impl Accept for BooleanLiteral {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
-        visitor.visit_boolean_literal(self)
     }
 }
 
@@ -71,8 +60,3 @@ impl Display for StringLiteral {
     }
 }
 
-impl Accept for StringLiteral {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
-        visitor.visit_string_literal(self)
-    }
-}

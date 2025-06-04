@@ -18,5 +18,7 @@ pub trait Visitor<T> {
     fn visit_string_literal(&mut self, node: &StringLiteral) -> T;
     fn visit_binary_expr(&mut self, node: &BinaryExpr) -> T;
     fn visit_unary_expr(&mut self, node: &UnaryExpr) -> T;
+    fn visit_for_expr(&mut self, node: &ForExpr) -> T;
+    fn visit_destructive_assignment(&mut self, node: &DestructiveAssignment) -> T;
 
 }

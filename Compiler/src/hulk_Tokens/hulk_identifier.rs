@@ -1,6 +1,4 @@
 use std::fmt;
-use crate::visitor::hulk_accept::Accept;
-use crate::visitor::hulk_visitor::Visitor;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier {
@@ -19,12 +17,5 @@ impl Identifier {
 impl fmt::Display for Identifier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.id)
-    }
-}
-
-
-impl Accept for Identifier {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
-        visitor.visit_identifier(self)
     }
 }

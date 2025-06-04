@@ -17,11 +17,6 @@ impl IfExpr {
     }
 }
 
-impl Accept for IfExpr {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
-        visitor.visit_if_else(self)
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ElseBranch {

@@ -17,17 +17,6 @@ impl Assignment {
     }
 }
 
-impl Assignment {
-    pub fn to_tree(&self, indent: usize) -> String {
-        let padding = "  ".repeat(indent);
-        format!(
-            "{}Assignment({})\n{}",
-            padding,
-            self.identifier,
-            self.expression.to_tree(indent + 1)
-        )
-    }
-}
 
 
 impl Accept for Assignment {

@@ -22,9 +22,3 @@ impl LetIn {
         LetIn { let_token, assignment, in_keyword, body }
     }
 }
-
-impl Accept for LetIn {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
-        visitor.visit_let_in(self)
-    }
-}

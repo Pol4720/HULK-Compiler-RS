@@ -1,26 +1,44 @@
-use crate::hulk_tokens::hulk_expression::Expr;
-use crate::visitor::hulk_accept::Accept;
-use crate::visitor::hulk_visitor::Visitor;
+use std::fmt;
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct FunctionDef{
+use crate::hulk_tokens::hulk_expression::Expr;
+
+#[derive(Debug, PartialEq,Clone)]
+pub struct FunctionParams {
     pub name: String,
-    pub params: Vec<String>,
-    pub body: Box<Expr>,
+    pub signature: String,
 }
 
-impl FunctionDef {
-    pub fn new(name: String, params: Vec<String>, expr: Box<Expr>) -> Self {
-        FunctionDef {
+impl FunctionParams {
+    pub fn new(name: String, signature: String) -> Self {
+        FunctionParams {
             name,
-            params,
-            body: expr,
+            signature,
         }
     }
 }
 
-impl Accept for FunctionDef {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
-        visitor.visit_function_def(self)
+impl fmt::Display for FunctionParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Adjust this to print your parameters as needed
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct FunctionDef {
+    pub name: String,
+    pub params: Vec<FunctionParams>,
+    pub return_type: String,
+    pub body: Box<Expr>,
+}
+
+impl FunctionDef {
+    pub fn new_expr(name: String, params: Vec<FunctionParams>, return_type: String, expr: Box<Expr>) -> Self {
+        FunctionDef {
+            name,
+            params,
+            return_type,
+            body: expr,
+        }
     }
 }
