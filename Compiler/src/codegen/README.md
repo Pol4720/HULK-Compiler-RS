@@ -212,25 +212,7 @@ choco install llvm
 
 ---
 
-## ✨ Extensiones futuras
 
-- Soporte para funciones, control de flujo (`if`, `while`, `for`).
-- Emisión de código de máquina con `TargetMachine`.
-- Integración con passes de optimización de LLVM.
-- Exportación a archivos `.ll` y `.bc`.
-
----
-
-## 👥 Contribuciones
-
-Para contribuir a la fase de generación de código:
-
-- Revisa este README y el módulo `codegen/`.
-- Agrega tu nodo AST y su implementación de `CodegenNode`.
-- Escribe pruebas usando `inkwell` y su motor JIT.
-- Haz pull requests bien documentados.
-
----
 
 ## 📚 Recursos recomendados
 
@@ -243,7 +225,7 @@ Para contribuir a la fase de generación de código:
 
 ## 🧠 Licencia
 
-MIT – haz lo que quieras, pero da crédito. ❤️
+Richard. ❤️
 
 
 
