@@ -5,6 +5,7 @@ edition = "2024"
 build = "build.rs"
 
 [dependencies]
+inkwell = "0.6.0"
 lalrpop-util = { version = "0.22.1", features = ["lexer"] }
 
 [build-dependencies]
