@@ -1,4 +1,6 @@
 use crate::hulk_tokens::hulk_expression::Expr;
+use crate::codegen::traits::Codegen;
+use crate::codegen::context::CodegenContext;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ExpressionList {
@@ -13,6 +15,12 @@ impl ExpressionList {
     }
 }
 
+impl Codegen for ExpressionList {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for ExpressionList
+        String::new()
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block {
@@ -24,5 +32,12 @@ impl Block {
         Block {
             expression_list: Box::new(expression_list)
         }
+    }
+}
+
+impl Codegen for Block {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for Block
+        String::new()
     }
 }

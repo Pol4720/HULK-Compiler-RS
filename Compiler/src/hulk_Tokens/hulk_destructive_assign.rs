@@ -1,4 +1,6 @@
 use crate ::hulk_tokens::hulk_expression::Expr;
+use crate::codegen::traits::Codegen;
+use crate::codegen::context::CodegenContext;
 
 #[derive(Debug, PartialEq,Clone)]
 pub struct DestructiveAssignment {
@@ -12,5 +14,12 @@ impl DestructiveAssignment {
             identifier,
             expression: Box::new(expression),
         }
+    }
+}
+
+impl Codegen for DestructiveAssignment {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for DestructiveAssignment
+        String::new()
     }
 }

@@ -1,6 +1,8 @@
 use std::fmt;
 
 use crate::hulk_tokens::hulk_expression::Expr;
+use crate::codegen::traits::Codegen;
+use crate::codegen::context::CodegenContext;
 
 #[derive(Debug, PartialEq,Clone)]
 pub struct FunctionParams {
@@ -40,5 +42,19 @@ impl FunctionDef {
             return_type,
             body: expr,
         }
+    }
+}
+
+impl Codegen for FunctionParams {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for FunctionParams
+        String::new()
+    }
+}
+
+impl Codegen for FunctionDef {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for FunctionDef
+        String::new()
     }
 }

@@ -1,3 +1,5 @@
+use crate::codegen::traits::Codegen;
+use crate::codegen::context::CodegenContext;
 use crate::hulk_tokens::hulk_expression::Expr;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
@@ -54,5 +56,19 @@ impl Accept for Instruction {
             Instruction::Expression(expr) => expr.accept(visitor),
             Instruction::FunctionDef(func_def) => visitor.visit_function_def(func_def)
         }
+    }
+}
+
+impl Codegen for ProgramNode {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for ProgramNode
+        String::new()
+    }
+}
+
+impl Codegen for Instruction {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for Instruction
+        String::new()
     }
 }

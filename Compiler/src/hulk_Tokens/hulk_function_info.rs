@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use crate::typings::types_node::TypeNode;
+use crate::codegen::traits::Codegen;
+use crate::codegen::context::CodegenContext;
 
 #[derive(Debug, Clone)]
 pub struct HulkFunctionInfo {
@@ -15,5 +17,12 @@ impl HulkFunctionInfo {
             argument_types,
             return_type,
         }
+    }
+}
+
+impl Codegen for HulkFunctionInfo {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for HulkFunctionInfo
+        String::new()
     }
 }

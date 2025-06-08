@@ -13,6 +13,8 @@ use crate::hulk_tokens::DestructiveAssignment;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
 use crate::hulk_tokens::FunctionCall;
+use crate::codegen::traits::Codegen;
+use crate::codegen::context::CodegenContext;
 
 
 #[derive(Debug, Clone, PartialEq)]
@@ -112,5 +114,19 @@ impl Accept for ExprKind {
             ExprKind::LetIn(node) => visitor.visit_let_in(node),
             ExprKind::Assignment(node) => visitor.visit_assignment(node),
         }
+    }
+}
+
+impl Codegen for Expr {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for Expr
+        String::new()
+    }
+}
+
+impl Codegen for ExprKind {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for ExprKind
+        String::new()
     }
 }

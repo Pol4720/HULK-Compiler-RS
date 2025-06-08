@@ -2,6 +2,8 @@ use crate::hulk_tokens::hulk_keywords::KeywordToken;
 use crate::hulk_tokens::hulk_expression::Expr;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
+use crate::codegen::traits::Codegen;
+use crate::codegen::context::CodegenContext;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct IfExpr {
@@ -33,5 +35,19 @@ impl ElseBranch {
 impl Accept for ElseBranch {
     fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
         visitor.visit_else_branch(self)
+    }
+}
+
+impl Codegen for IfExpr {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for IfExpr
+        String::new()
+    }
+}
+
+impl Codegen for ElseBranch {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        // TODO: Implement codegen for ElseBranch
+        String::new()
     }
 }
