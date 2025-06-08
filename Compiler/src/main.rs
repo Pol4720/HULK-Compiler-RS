@@ -1,21 +1,23 @@
 use lalrpop_util::lalrpop_mod;
 use semantic_visitor::hulk_semantic_visitor::SemanticVisitor;
 use visitor::hulk_visitor::Visitor;
+
 pub mod hulk_tokens;
 pub mod visitor;
 pub mod typings;
 pub mod semantic_visitor;
+pub mod codegen;
+
 lalrpop_mod!(pub parser);
 
 use std::io::{self, Write};
 use crate::parser::ProgramParser;
 use crate::visitor::hulk_ast_visitor_print::PreetyPrintVisitor;
-
-use inkwell::context::Context;
-use codegen::generator::CodeGenerator;
+use crate::codegen::CodeGenerator;
 
 fn main() {
     let parser = ProgramParser::new();
+
     loop {
         print!("> ");
         io::stdout().flush().unwrap();
@@ -25,33 +27,39 @@ fn main() {
             break;
         }
 
-        let parsed_expr = parser.parse(&input).unwrap();
-        let mut print_visitor = PreetyPrintVisitor;
-        let mut semantic_visitor = SemanticVisitor::new();
-        let res = semantic_visitor.analyze(&parsed_expr);
-        match res {
-            Ok(_) => {
-                println!("Parsed successfully!");
-                println!("");
-                println!("\x1b[34m{}\x1b[0m", print_visitor.visit_program(&parsed_expr));
+        // Parse input
+        let parsed_expr = match parser.parse(&input) {
+            Ok(ast) => ast,
+            Err(e) => {
+                eprintln!("\x1b[31mError de parsing: {:?}\x1b[0m", e);
+                continue;
+            }
+        };
 
-                // --- INTEGRACIÓN CODEGEN ---
-                // Solo ejecutar codegen si el análisis semántico fue exitoso
-                let context = Context::create();
-                let mut generator = CodeGenerator::new("hulk_module", &context);
-                match generator.generate(&parsed_expr) {
-                    Ok(_) => generator.print_ir(), // Muestra el LLVM IR generado
-                    Err(e) => eprintln!("Error en codegen: {}", e),
-                }
-                // --- FIN CODEGEN ---
+        // Pretty print del AST
+        let mut print_visitor = PreetyPrintVisitor;
+        println!("\n\x1b[34m{}\x1b[0m", print_visitor.visit_program(&parsed_expr));
+
+        // Análisis semántico
+        let mut semantic_visitor = SemanticVisitor::new();
+        match semantic_visitor.analyze(&parsed_expr) {
+            Ok(_) => {
+                println!("Análisis semántico exitoso.");
             }
             Err(errors) => {
-                println!("\x1b[31mErrors:");
+                println!("\x1b[31mErrores semánticos:");
                 for err in errors.iter() {
                     println!("{}", err.message());
                 }
                 println!("\x1b[0m");
+                continue;
             }
         }
-}
+
+        // Codegen y ejecución
+        println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
+        CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
+
+        println!("\n");
+    }
 }
