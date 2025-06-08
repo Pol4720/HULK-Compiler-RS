@@ -11,6 +11,9 @@ use std::io::{self, Write};
 use crate::parser::ProgramParser;
 use crate::visitor::hulk_ast_visitor_print::PreetyPrintVisitor;
 
+use inkwell::context::Context;
+use codegen::generator::CodeGenerator;
+
 fn main() {
     let parser = ProgramParser::new();
     loop {
@@ -29,16 +32,26 @@ fn main() {
         match res {
             Ok(_) => {
                 println!("Parsed successfully!");
+                println!("");
+                println!("\x1b[34m{}\x1b[0m", print_visitor.visit_program(&parsed_expr));
+
+                // --- INTEGRACIÓN CODEGEN ---
+                // Solo ejecutar codegen si el análisis semántico fue exitoso
+                let context = Context::create();
+                let mut generator = CodeGenerator::new("hulk_module", &context);
+                match generator.generate(&parsed_expr) {
+                    Ok(_) => generator.print_ir(), // Muestra el LLVM IR generado
+                    Err(e) => eprintln!("Error en codegen: {}", e),
+                }
+                // --- FIN CODEGEN ---
             }
             Err(errors) => {
                 println!("\x1b[31mErrors:");
                 for err in errors.iter() {
-                println!("{}", err.message());
+                    println!("{}", err.message());
                 }
                 println!("\x1b[0m");
             }
         }
-    println!("");
-    println!("\x1b[34m{}\x1b[0m", print_visitor.visit_program(&parsed_expr));
 }
 }
