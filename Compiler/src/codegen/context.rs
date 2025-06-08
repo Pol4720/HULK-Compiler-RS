@@ -1,25 +1,28 @@
-use inkwell::{builder::Builder, context::Context, execution_engine::ExecutionEngine, module::Module};
+use std::collections::HashMap;
 
-pub struct LLVMContext<'ctx> {
-    pub context: &'ctx Context,
-    pub module: Module<'ctx>,
-    pub builder: Builder<'ctx>,
-    pub engine: ExecutionEngine<'ctx>,
+pub struct CodegenContext {
+    pub code: String,
+    pub temp_counter: usize,
+    pub symbol_table: HashMap<String, String>, // nombre -> registro
 }
 
-impl<'ctx> LLVMContext<'ctx> {
-    pub fn new(name: &str, context: &'ctx Context) -> Self {
-        let module = context.create_module(name);
-        let builder = context.create_builder();
-        let engine = module
-            .create_jit_execution_engine(inkwell::OptimizationLevel::Default)
-            .expect("Failed to create execution engine");
-
+impl CodegenContext {
+    pub fn new() -> Self {
         Self {
-            context,
-            module,
-            builder,
-            engine,
+            code: String::new(),
+            temp_counter: 0,
+            symbol_table: HashMap::new(),
         }
+    }
+
+    pub fn generate_temp(&mut self) -> String {
+        let temp = format!("%t{}", self.temp_counter);
+        self.temp_counter += 1;
+        temp
+    }
+
+    pub fn emit(&mut self, line: &str) {
+        self.code.push_str(line);
+        self.code.push('\n');
     }
 }

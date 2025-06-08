@@ -1,34 +1,35 @@
-use super::{context::LLVMContext, traits::CodegenNode, value_map::ValueMap};
-use inkwell::context::Context;
+use crate::codegen::{
+    context::CodegenContext,
+    traits::Codegen as CodegenTrait,
+    writer::write_to_file,
+    llvm_runner::run_llvm_ir,
+};
 
-pub struct CodeGenerator<'ctx> {
-    llvm: LLVMContext<'ctx>,
-    values: ValueMap<'ctx>,
-}
+pub struct CodeGenerator;
 
-impl<'ctx> CodeGenerator<'ctx> {
-    pub fn new(module_name: &str, context: &'ctx Context) -> Self {
-        let llvm = LLVMContext::new(module_name, context);
-        Self {
-            llvm,
-            values: ValueMap::default(),
-        }
-    }
+impl CodeGenerator {
+    pub fn generate_and_run<T: CodegenTrait>(node: &T, filename: &str) {
+        let mut ctx = CodegenContext::new();
 
-    pub fn generate<T: CodegenNode<'ctx>>(
-        &mut self,
-        root: &T,
-    ) -> Result<(), String> {
-        root.codegen(&mut self.llvm, &mut self.values)?;
-        Ok(())
-    }
+        // Header básico LLVM
+        ctx.emit("declare i32 @printf(i8*, ...)");
+        ctx.emit("@format = private constant [4 x i8] c\"%d\\0A\\00\"");
+        ctx.emit("");
+        ctx.emit("define i32 @main() {");
 
-    pub fn print_ir(&self) {
-        self.llvm.module.print_to_stderr();
-    }
+        let result_reg = node.codegen(&mut ctx);
+        ctx.emit(&format!(
+            "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format, i32 0, i32 0), i32 {})",
+            result_reg
+        ));
+        ctx.emit("  ret i32 0");
+        ctx.emit("}");
 
-    pub fn emit_machine_code(&self) -> Result<Vec<u8>, String> {
-        // NOTE: This is a placeholder. Real machine code emission requires platform-specific logic.
-        Err("Machine code emission not implemented.".into())
+
+        //  Aquí imprimimos el código LLVM generado
+        println!("\n\x1b[35m--- LLVM IR Generado ---\x1b[0m\n{}\n\x1b[35m-------------------------\x1b[0m", ctx.code);
+
+        write_to_file(&ctx.code, filename);
+        run_llvm_ir(filename);
     }
 }
