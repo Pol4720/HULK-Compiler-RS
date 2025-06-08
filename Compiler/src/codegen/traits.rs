@@ -1,10 +1,6 @@
-use super::{context::LLVMContext, value_map::ValueMap};
-use inkwell::values::BasicValueEnum;
+use crate::codegen::context::CodegenContext;
 
-pub trait CodegenNode<'ctx> {
-    fn codegen(
-        &self,
-        llvm: &mut LLVMContext<'ctx>,
-        values: &mut ValueMap<'ctx>,
-    ) -> Result<BasicValueEnum<'ctx>, String>;
+pub trait Codegen {
+    /// Genera LLVM IR para el nodo y devuelve el registro del valor generado
+    fn codegen(&self, context: &mut CodegenContext) -> String;
 }
