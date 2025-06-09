@@ -1,20 +1,24 @@
 use std::str::FromStr;
 
-use crate::hulk_tokens::{
-    hulk_operators::*, hulk_keywords::KeywordToken, hulk_literal::*, hulk_identifier::*, token_pos::*,
-    hulk_binary_expr::*, hulk_unary_expr::*, hulk_assignment::*, hulk_whileloop::*, hulk_let_in::*, hulk_for_expr::*,
+use crate::hulk_ast_nodes::{
+    hulk_literal::*, hulk_identifier::*, hulk_binary_expr::*, hulk_unary_expr::*, hulk_assignment::*, hulk_whileloop::*, hulk_let_in::*, hulk_for_expr::*,
 };
-use crate::hulk_tokens::hulk_program::{ProgramNode, Instruction};
-use crate::hulk_tokens::hulk_function_def::FunctionDef;
-use crate::hulk_tokens::hulk_function_call::FunctionCall;
-use crate::hulk_tokens::hulk_code_block::ExpressionList;
-use crate::hulk_tokens::hulk_expression::{Expr, ExprKind};
-use crate::hulk_tokens::hulk_ifExp::{IfExpr, ElseBranch};
-use crate::hulk_tokens::hulk_function_def::FunctionParams;
-use crate::hulk_tokens::DestructiveAssignment;
-use crate::hulk_tokens::hulk_code_block::Block;
+use crate::hulk_tokens::{
+    hulk_operators::*, hulk_keywords::KeywordToken, token_pos::*,
+};
+use crate::hulk_ast_nodes::hulk_program::{ProgramNode, Instruction};
+use crate::hulk_ast_nodes::hulk_function_def::FunctionDef;
+use crate::hulk_ast_nodes::hulk_function_call::FunctionCall;
+use crate::hulk_ast_nodes::hulk_code_block::ExpressionList;
+use crate::hulk_ast_nodes::hulk_expression::{Expr, ExprKind};
+use crate::hulk_ast_nodes::hulk_ifExp::{IfExpr, ElseBranch};
+use crate::hulk_ast_nodes::hulk_function_def::FunctionParams;
+use crate::hulk_ast_nodes::DestructiveAssignment;
+use crate::hulk_ast_nodes::hulk_code_block::Block;
 
 grammar;
+
+//logico comparacion y aritmeticos
 
 // ===================
 // Programa principal
@@ -276,7 +280,7 @@ LetIn: Box<Expr> = {
 };
 
 IfExpr: Box<Expr> = {
-    <if_Keyword: IfKeyword> LParen <condition:Expr> RParen LBrace <then_branch:Expr> RBrace <else_branch:ElseBranchOpt> => {
+    <if_Keyword: IfKeyword> LParen <condition:Expr> RParen LBrace <then_branch:PrimaryExpr> RBrace <else_branch:ElseBranchOpt> => {
         Box::new(Expr::new(ExprKind::If(IfExpr::new(
             if_Keyword,
             condition,
@@ -292,7 +296,7 @@ ElseBranchOpt: Option<ElseBranch> = {
 };
 
 ElseBranch: ElseBranch = {
-    <elseKeyword:ElseKeyword> LBrace <body:Expr> RBrace => ElseBranch::new(elseKeyword, body)
+    <elseKeyword:ElseKeyword> LBrace <body:PrimaryExpr> RBrace => ElseBranch::new(elseKeyword, body)
 };
 
 WhileLoop: Box<Expr> = {

@@ -4,6 +4,7 @@ use visitor::hulk_visitor::Visitor;
 pub mod hulk_tokens;
 pub mod visitor;
 pub mod typings;
+pub mod hulk_ast_nodes;
 pub mod semantic_visitor;
 lalrpop_mod!(pub parser);
 

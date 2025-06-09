@@ -15,6 +15,7 @@ pub enum KeywordToken {
     Protocol,
     Continue,
     Import,
+    Type,
     For,
 }
 
@@ -30,6 +31,7 @@ impl Display for KeywordToken {
             KeywordToken::Function => write!(f, "function"),
             KeywordToken::Class => write!(f, "class"),
             KeywordToken::Protocol => write!(f, "protocol"),
+            KeywordToken::Type => write!(f, "type"),
             KeywordToken::Return => write!(f, "return"),
             KeywordToken::Break => write!(f, "break"),
             KeywordToken::Continue => write!(f, "continue"),

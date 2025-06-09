@@ -1,6 +1,4 @@
-use crate::hulk_tokens::*;
-
-
+use crate::hulk_ast_nodes::*;
 pub trait Visitor<T> {
     fn visit_program(&mut self, node: &ProgramNode) -> T;
     fn visit_function_def(&mut self, node: &FunctionDef) -> T;
@@ -20,5 +18,4 @@ pub trait Visitor<T> {
     fn visit_unary_expr(&mut self, node: &UnaryExpr) -> T;
     fn visit_for_expr(&mut self, node: &ForExpr) -> T;
     fn visit_destructive_assignment(&mut self, node: &DestructiveAssignment) -> T;
-
 }

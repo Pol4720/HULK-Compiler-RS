@@ -1,4 +1,4 @@
-use crate ::hulk_tokens::hulk_expression::Expr;
+use crate ::hulk_ast_nodes::hulk_expression::Expr;
 
 #[derive(Debug, PartialEq,Clone)]
 pub struct DestructiveAssignment {

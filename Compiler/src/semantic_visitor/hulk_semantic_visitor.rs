@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{hulk_tokens::{BinaryExpr, Block, DestructiveAssignment,BooleanLiteral, ForExpr, FunctionCall, FunctionDef, HulkFunctionInfo, Identifier, IfExpr, LetIn, NumberLiteral, ProgramNode, StringLiteral, UnaryExpr, WhileLoop}, typings::{types_AST::{HulkTypesInfo, TypeAST}, types_node::TypeNode}, visitor::{hulk_accept::Accept, hulk_visitor::Visitor}};
+use crate::{hulk_ast_nodes::{BinaryExpr, Block, DestructiveAssignment,BooleanLiteral, ForExpr, FunctionCall, FunctionDef, HulkFunctionInfo, Identifier, IfExpr, LetIn, NumberLiteral, ProgramNode, StringLiteral, UnaryExpr, WhileLoop}, typings::{types_AST::{HulkTypesInfo, TypeAST}, types_node::TypeNode}, visitor::{hulk_accept::Accept, hulk_visitor::Visitor}};
 use crate::hulk_tokens::hulk_operators::BinaryOperatorToken;
 use crate::hulk_tokens::hulk_operators::UnaryOperator;
 use super::{hulk_scope::Scope, hulk_semantic_error::SemanticError};
@@ -123,6 +123,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
     }
 
     fn visit_number_literal(&mut self, _node: &NumberLiteral) -> TypeNode {
+        
         self.get_type(&HulkTypesInfo::Number)
     }
 
@@ -208,6 +209,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
             BinaryOperatorToken::Lt |
             BinaryOperatorToken::Lte |
             BinaryOperatorToken::Eq |
+            BinaryOperatorToken::Neq |
             BinaryOperatorToken::Neg => {
                 if left_type == self.get_type(&HulkTypesInfo::Number) && right_type == self.get_type(&HulkTypesInfo::Number) {
                     self.get_type(&HulkTypesInfo::Boolean)
@@ -320,7 +322,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
         last_type
     }
     
-    fn visit_expression_list(&mut self, node: &crate::hulk_tokens::ExpressionList) -> TypeNode {
+    fn visit_expression_list(&mut self, node: &crate::hulk_ast_nodes::ExpressionList) -> TypeNode {
         let mut last_type = self.get_type(&HulkTypesInfo::Unknown);
         for expr in &**node.expressions {
             last_type = expr.accept(self);
@@ -328,7 +330,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
         last_type
     }
     
-    fn visit_assignment(&mut self, node: &crate::hulk_tokens::Assignment) -> TypeNode {
+    fn visit_assignment(&mut self, node: &crate::hulk_ast_nodes::Assignment) -> TypeNode {
         let expr_type = node.expression.accept(self);
         if self.current_scope.variables.contains_key(&node.identifier.id) {
             self.new_error(SemanticError::RedefinitionOfVariable(node.identifier.id.clone()));
@@ -338,7 +340,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
         expr_type
     }
     
-    fn visit_else_branch(&mut self, node: &crate::hulk_tokens::ElseBranch) -> TypeNode {
+    fn visit_else_branch(&mut self, node: &crate::hulk_ast_nodes::ElseBranch) -> TypeNode {
         node.body.accept(self)
     }
 }

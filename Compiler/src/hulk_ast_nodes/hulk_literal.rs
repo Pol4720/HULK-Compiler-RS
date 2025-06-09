@@ -1,6 +1,4 @@
 use std::fmt::{self, Display, Formatter};
-use crate::visitor::hulk_accept::Accept;
-use crate::visitor::hulk_visitor::Visitor;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NumberLiteral {

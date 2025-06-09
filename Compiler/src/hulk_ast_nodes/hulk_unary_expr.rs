@@ -1,5 +1,5 @@
-use crate::hulk_tokens::hulk_expression::Expr;
-use super::hulk_operators::UnaryOperator;
+use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_tokens::hulk_operators::UnaryOperator;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnaryExpr {

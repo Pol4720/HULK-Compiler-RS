@@ -1,4 +1,4 @@
-use crate::{hulk_tokens::{Assignment, DestructiveAssignment ,BinaryExpr, ForExpr,Block, BooleanLiteral, ElseBranch, ExpressionList, FunctionCall, FunctionDef, Identifier, IfExpr, LetIn, NumberLiteral, ProgramNode, StringLiteral, UnaryExpr, WhileLoop}};
+use crate::{hulk_ast_nodes::{Assignment, DestructiveAssignment ,BinaryExpr, ForExpr,Block, BooleanLiteral, ElseBranch, ExpressionList, FunctionCall, FunctionDef, Identifier, IfExpr, LetIn, NumberLiteral, ProgramNode, StringLiteral, UnaryExpr, WhileLoop}};
 use crate::visitor::hulk_accept::Accept;
 
 use super::hulk_visitor::Visitor;

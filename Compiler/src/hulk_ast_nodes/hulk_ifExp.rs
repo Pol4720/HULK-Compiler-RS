@@ -1,5 +1,5 @@
 use crate::hulk_tokens::hulk_keywords::KeywordToken;
-use crate::hulk_tokens::hulk_expression::Expr;
+use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
 
