@@ -18,10 +18,17 @@ impl CodeGenerator {
         ctx.emit("define i32 @main() {");
 
         let result_reg = node.codegen(&mut ctx);
-        ctx.emit(&format!(
+
+        if !result_reg.is_empty() {
+            ctx.emit(&format!(
             "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format, i32 0, i32 0), i32 {})",
             result_reg
-        ));
+            ));
+        } else {
+            // Si no hay resultado, imprime 0 para evitar error de LLVM
+            ctx.emit("  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format, i32 0, i32 0), i32 0)");
+        }
+
         ctx.emit("  ret i32 0");
         ctx.emit("}");
 
