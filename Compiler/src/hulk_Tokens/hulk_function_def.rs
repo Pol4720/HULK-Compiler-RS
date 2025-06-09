@@ -57,7 +57,7 @@ impl Codegen for FunctionParams {
         // Almacena el argumento en el espacio local
         context.emit(&format!("  store i32 {}, i32* {}", arg_name, alloca_reg));
         // Registra el parámetro en la tabla de símbolos
-        context.register_variable(&self.name, alloca_reg);
+        context.register_variable(&self.name, alloca_reg.clone());
         alloca_reg
     }
 }

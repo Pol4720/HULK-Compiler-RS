@@ -1,10 +1,10 @@
-use crate::hulk_tokens::hulk_expression::Expr;
+use crate::codegen::context::CodegenContext;
+use crate::codegen::traits::Codegen;
 use crate::hulk_tokens::hulk_assignment::Assignment;
+use crate::hulk_tokens::hulk_expression::Expr;
 use crate::hulk_tokens::hulk_keywords::KeywordToken;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
-use crate::codegen::traits::Codegen;
-use crate::codegen::context::CodegenContext;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LetIn {
@@ -18,10 +18,15 @@ impl LetIn {
     pub fn new(
         let_token: KeywordToken,
         assignment: Vec<Assignment>,
-        in_keyword: KeywordToken, 
-        body: Box<Expr>
+        in_keyword: KeywordToken,
+        body: Box<Expr>,
     ) -> Self {
-        LetIn { let_token, assignment, in_keyword, body }
+        LetIn {
+            let_token,
+            assignment,
+            in_keyword,
+            body,
+        }
     }
 }
 
@@ -31,8 +36,8 @@ impl Codegen for LetIn {
         let mut previous_bindings: Vec<(String, Option<String>)> = vec![];
 
         for assignment in &self.assignment {
-            let name = assignment.identifier.clone();
-            let value_expr = &assignment.value;
+            let name = assignment.identifier.id.clone();
+            let value_expr = &assignment.expression;
 
             let value_reg = value_expr.codegen(context);
 

@@ -22,7 +22,8 @@ impl fmt::Display for Identifier {
 impl Codegen for Identifier {
     fn codegen(&self, context: &mut CodegenContext) -> String {
         // Busca el puntero de la variable en la tabla de símbolos
-        if let Some(ptr) = context.symbol_table.get(&self.id) {
+        let ptr = context.symbol_table.get(&self.id).cloned();
+        if let Some(ptr) = ptr {
             let result_reg = context.generate_temp();
             // Asume tipo i32 (ajustar si soportas otros tipos)
             let line = format!("  {} = load i32, i32* {}", result_reg, ptr);
