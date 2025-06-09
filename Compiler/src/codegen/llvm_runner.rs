@@ -1,12 +1,59 @@
 use std::process::Command;
+use std::env;
 
 pub fn run_llvm_ir(filename: &str) {
-    let status = Command::new("lli")
-        .arg(filename)
-        .status()
-        .expect("Falló la ejecución con lli");
+    let (output, clang_args): (&str, Vec<&str>) = if cfg!(target_os = "windows") {
+        (
+            "output.exe",
+            vec![
+                filename,
+                "-o", "output.exe",
+                "-fuse-ld=lld",
+                "--target=x86_64-w64-windows-gnu",
+            ],
+        )
+    } else if cfg!(target_os = "macos") {
+        (
+            "output_macos",
+            vec![
+                filename,
+                "-o", "output_macos",
+                "-fuse-ld=lld",
+                "--target=x86_64-apple-darwin",
+            ],
+        )
+    } else {
+        // Assume Linux
+        (
+            "output_linux",
+            vec![
+                filename,
+                "-o", "output_linux",
+                "-fuse-ld=lld",
+                "--target=x86_64-pc-linux-gnu",
+            ],
+        )
+    };
 
-    if !status.success() {
-        eprintln!("Ejecución fallida con código: {:?}", status);
+    if !Command::new("clang")
+        .args(&clang_args)
+        .status()
+        .map_or(false, |s| s.success())
+    {
+        eprintln!("Falló la compilación con clang");
+        return;
+    }
+
+    let exec_cmd = if cfg!(target_os = "windows") {
+        output.to_string()
+    } else {
+        format!("./{}", output)
+    };
+
+    if !Command::new(exec_cmd)
+        .status()
+        .map_or(false, |s| s.success())
+    {
+        eprintln!("Falló la ejecución del ejecutable generado");
     }
 }
