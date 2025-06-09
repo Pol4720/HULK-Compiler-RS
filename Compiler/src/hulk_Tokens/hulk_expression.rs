@@ -1,21 +1,20 @@
-use crate::hulk_tokens::hulk_operators::*;
-use crate::hulk_tokens::hulk_assignment::Assignment;
-use crate::hulk_tokens::hulk_literal::*;
-use crate::hulk_tokens::hulk_identifier::*;
-use crate::hulk_tokens::hulk_ifExp::*;
-use crate::hulk_tokens::hulk_binary_expr::*;
-use crate::hulk_tokens::hulk_unary_expr::*;
-use crate::hulk_tokens::hulk_let_in::*;
-use crate::hulk_tokens::hulk_whileloop::*;
-use crate::hulk_tokens::hulk_for_expr::ForExpr;
+use crate::codegen::context::CodegenContext;
+use crate::codegen::traits::Codegen;
 use crate::hulk_tokens::Block;
 use crate::hulk_tokens::DestructiveAssignment;
+use crate::hulk_tokens::FunctionCall;
+use crate::hulk_tokens::hulk_assignment::Assignment;
+use crate::hulk_tokens::hulk_binary_expr::*;
+use crate::hulk_tokens::hulk_for_expr::ForExpr;
+use crate::hulk_tokens::hulk_identifier::*;
+use crate::hulk_tokens::hulk_ifExp::*;
+use crate::hulk_tokens::hulk_let_in::*;
+use crate::hulk_tokens::hulk_literal::*;
+use crate::hulk_tokens::hulk_operators::*;
+use crate::hulk_tokens::hulk_unary_expr::*;
+use crate::hulk_tokens::hulk_whileloop::*;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
-use crate::hulk_tokens::FunctionCall;
-use crate::codegen::traits::Codegen;
-use crate::codegen::context::CodegenContext;
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
@@ -44,9 +43,8 @@ pub enum ExprKind {
     WhileLoop(WhileLoop),
     ForExp(ForExpr),
     CodeBlock(Block),
-    DestructiveAssign(DestructiveAssignment)
+    DestructiveAssign(DestructiveAssignment),
 }
-
 
 impl Expr {
     pub fn new(kind: ExprKind) -> Self {
@@ -97,7 +95,7 @@ impl Expr {
 }
 
 impl Accept for ExprKind {
-    fn accept<V: Visitor<T>,T>(&self, visitor: &mut V) -> T {
+    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
         match self {
             ExprKind::Number(node) => visitor.visit_number_literal(node),
             ExprKind::Boolean(node) => visitor.visit_boolean_literal(node),
@@ -119,14 +117,27 @@ impl Accept for ExprKind {
 
 impl Codegen for Expr {
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // TODO: Implement codegen for Expr
-        String::new()
+        self.kind.codegen(context)
     }
 }
 
 impl Codegen for ExprKind {
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // TODO: Implement codegen for ExprKind
-        String::new()
+        match self {
+            ExprKind::Number(n) => n.codegen(context),
+            ExprKind::Boolean(b) => b.codegen(context),
+            ExprKind::String(s) => s.codegen(context),
+            ExprKind::Identifier(id) => id.codegen(context),
+            ExprKind::BinaryOp(bin) => bin.codegen(context),
+            ExprKind::UnaryOp(un) => un.codegen(context),
+            ExprKind::If(ifexp) => ifexp.codegen(context),
+            ExprKind::FunctionCall(call) => call.codegen(context),
+            ExprKind::Assignment(assign) => assign.codegen(context),
+            ExprKind::LetIn(letin) => letin.codegen(context),
+            ExprKind::WhileLoop(whileloop) => whileloop.codegen(context),
+            ExprKind::ForExp(forexp) => forexp.codegen(context),
+            ExprKind::CodeBlock(block) => block.codegen(context),
+            ExprKind::DestructiveAssign(destruct) => destruct.codegen(context),
+        }
     }
 }

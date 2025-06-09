@@ -1,6 +1,6 @@
-use std::fmt;
-use crate::codegen::traits::Codegen;
 use crate::codegen::context::CodegenContext;
+use crate::codegen::traits::Codegen;
+use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier {
@@ -9,11 +9,8 @@ pub struct Identifier {
 
 impl Identifier {
     pub fn new(id: &str) -> Self {
-        Self {
-            id: id.to_string(),
-        }
+        Self { id: id.to_string() }
     }
-
 }
 
 impl fmt::Display for Identifier {
@@ -24,7 +21,16 @@ impl fmt::Display for Identifier {
 
 impl Codegen for Identifier {
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // TODO: Implement codegen for Identifier
-        String::new()
+        // Busca el puntero de la variable en la tabla de símbolos
+        let ptr = context.symbol_table.get(&self.id).cloned();
+        if let Some(ptr) = ptr {
+            let result_reg = context.generate_temp();
+            // Asume tipo i32 (ajustar si soportas otros tipos)
+            let line = format!("  {} = load i32, i32* {}", result_reg, ptr);
+            context.emit(&line);
+            result_reg
+        } else {
+            panic!("Variable '{}' no definida en el contexto", self.id);
+        }
     }
 }
