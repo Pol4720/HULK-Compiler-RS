@@ -21,6 +21,12 @@ impl CodegenContext {
         temp
     }
 
+    pub fn generate_label(&mut self, base: &str) -> String {
+        let label = format!("{}{}", base, self.temp_count);
+        self.temp_count += 1;
+        label
+    }
+
     pub fn emit(&mut self, line: &str) {
         self.code.push_str(line);
         self.code.push('\n');
