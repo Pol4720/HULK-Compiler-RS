@@ -1,5 +1,5 @@
 use std::process::Command;
-use std::env;
+// use std::env;
 
 pub fn run_llvm_ir(filename: &str) {
     let (output, clang_args): (&str, Vec<&str>) = if cfg!(target_os = "windows") {
@@ -7,7 +7,8 @@ pub fn run_llvm_ir(filename: &str) {
             "output.exe",
             vec![
                 filename,
-                "-o", "output.exe",
+                "-o",
+                "output.exe",
                 "-fuse-ld=lld",
                 "--target=x86_64-w64-windows-gnu",
             ],
@@ -17,7 +18,8 @@ pub fn run_llvm_ir(filename: &str) {
             "output_macos",
             vec![
                 filename,
-                "-o", "output_macos",
+                "-o",
+                "output_macos",
                 "-fuse-ld=lld",
                 "--target=x86_64-apple-darwin",
             ],
@@ -28,7 +30,8 @@ pub fn run_llvm_ir(filename: &str) {
             "output_linux",
             vec![
                 filename,
-                "-o", "output_linux",
+                "-o",
+                "output_linux",
                 "-fuse-ld=lld",
                 "--target=x86_64-pc-linux-gnu",
             ],
