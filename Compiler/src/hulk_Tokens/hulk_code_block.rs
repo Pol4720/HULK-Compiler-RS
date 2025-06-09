@@ -1,6 +1,6 @@
-use crate::hulk_tokens::hulk_expression::Expr;
-use crate::codegen::traits::Codegen;
 use crate::codegen::context::CodegenContext;
+use crate::codegen::traits::Codegen;
+use crate::hulk_tokens::hulk_expression::Expr;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ExpressionList {
@@ -17,8 +17,11 @@ impl ExpressionList {
 
 impl Codegen for ExpressionList {
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // TODO: Implement codegen for ExpressionList
-        String::new()
+        let mut last_reg = String::new();
+        for expr in self.expressions.iter() {
+            last_reg = expr.codegen(context);
+        }
+        last_reg
     }
 }
 
@@ -30,14 +33,18 @@ pub struct Block {
 impl Block {
     pub fn new(expression_list: ExpressionList) -> Self {
         Block {
-            expression_list: Box::new(expression_list)
+            expression_list: Box::new(expression_list),
         }
     }
 }
 
 impl Codegen for Block {
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // TODO: Implement codegen for Block
-        String::new()
+        let exprs = &self.expression_list.expressions;
+        let mut last_reg = String::new();
+        for expr in exprs.iter() {
+            last_reg = expr.codegen(context);
+        }
+        last_reg
     }
 }
