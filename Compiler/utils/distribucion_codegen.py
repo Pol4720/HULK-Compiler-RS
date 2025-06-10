@@ -23,7 +23,7 @@ NODOS_DIFICULTAD = {
     "hulk_expression.rs": 2,
     "hulk_keywords.rs": 1,
     "hulk_for_expr.rs": 3,
-    "hulk_ifExp.rs": 3,
+    "hulk_if_exp.rs": 3,
     "hulk_function_info.rs": 2,
     "hulk_destructive_assign.rs": 2,
     "hulk_whileloop.rs": 3,
@@ -43,7 +43,7 @@ NODOS_DIFICULTAD = {
 # Similitudes manuales (pares de nodos similares)
 SIMILARES = [
     ("hulk_binary_expr.rs", "hulk_unary_expr.rs"),
-    ("hulk_if_expr.rs", "hulk_ifExp.rs"),
+    ("hulk_if_expr.rs", "hulk_if_exp.rs"),
     ("hulk_while_loop.rs", "hulk_whileloop.rs"),
     ("hulk_for_loop.rs", "hulk_for_expr.rs"),
     ("hulk_assignment.rs", "hulk_destructive_assign.rs"),
@@ -60,6 +60,7 @@ SIMILARES = [
 
 PROGRAMADORES = ["Richard", "Abraham"]
 
+
 def listar_nodos():
     nodos = []
     for fname in os.listdir(TOKENS_DIR):
@@ -70,6 +71,7 @@ def listar_nodos():
         if k not in nodos:
             nodos.append(k)
     return sorted(nodos)
+
 
 def buscar_implementaciones():
     implementados = set()
@@ -82,11 +84,15 @@ def buscar_implementaciones():
                     implementados.add(m.group(1))
     return implementados
 
+
 def nodo_a_struct(nodo):
     # Convierte hulk_binary_expr.rs -> BinaryExpr
     base = nodo.replace("hulk_", "").replace(".rs", "")
     partes = base.split("_")
-    return "".join([p.capitalize() for p in partes]) + ("Expr" if "expr" in base and not base.endswith("expr") else "")
+    return "".join([p.capitalize() for p in partes]) + (
+        "Expr" if "expr" in base and not base.endswith("expr") else ""
+    )
+
 
 def distribuir_nodos(nodos):
     # Emparejar similares primero
@@ -118,6 +124,7 @@ def distribuir_nodos(nodos):
         suma[p] += dificultad[n]
     return asignacion
 
+
 def main():
     nodos = listar_nodos()
     implementados = buscar_implementaciones()
@@ -134,6 +141,7 @@ def main():
             hecho = check if struct in implementados else cross
             print(f"  - {nodo:<22} ({struct:<18}) {hecho}")
     print("\nLeyenda: [OK] Implementado   [NO] Pendiente")
+
 
 if __name__ == "__main__":
     main()

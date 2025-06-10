@@ -1,8 +1,6 @@
-use std::fmt::{self, Display, Formatter};
-use crate::visitor::hulk_accept::Accept;
-use crate::visitor::hulk_visitor::Visitor;
-use crate::codegen::traits::Codegen;
 use crate::codegen::context::CodegenContext;
+use crate::codegen::traits::Codegen;
+use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NumberLiteral {
@@ -39,7 +37,6 @@ impl Codegen for NumberLiteral {
         result_reg
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BooleanLiteral {
@@ -130,4 +127,3 @@ impl Codegen for StringLiteral {
         ptr_reg // Devuelve el nombre del registro con la dirección del string
     }
 }
-
