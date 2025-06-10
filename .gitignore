@@ -5,3 +5,5 @@
 *.toc
 *.out
 Compiler/target
+
+*.ll
