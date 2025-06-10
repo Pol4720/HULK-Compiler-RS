@@ -36,8 +36,6 @@ impl Codegen for UnaryExpr {
                 // Operador + unario: simplemente copia el valor
                 format!("  {} = add i32 0, {}", result_reg, operand_reg)
             }
-            // Puedes agregar más operadores aquí si los tienes definidos
-            _ => panic!("Operador unario no soportado en Codegen"),
         };
 
         // Emite la instrucción LLVM IR

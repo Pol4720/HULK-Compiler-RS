@@ -1,7 +1,6 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::typings::types_node::TypeNode;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct HulkFunctionInfo {
