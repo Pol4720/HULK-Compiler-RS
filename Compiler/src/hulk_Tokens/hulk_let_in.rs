@@ -3,8 +3,6 @@ use crate::codegen::traits::Codegen;
 use crate::hulk_tokens::hulk_assignment::Assignment;
 use crate::hulk_tokens::hulk_expression::Expr;
 use crate::hulk_tokens::hulk_keywords::KeywordToken;
-use crate::visitor::hulk_accept::Accept;
-use crate::visitor::hulk_visitor::Visitor;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LetIn {

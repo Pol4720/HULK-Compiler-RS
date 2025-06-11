@@ -7,7 +7,7 @@ use crate::hulk_tokens::hulk_assignment::Assignment;
 use crate::hulk_tokens::hulk_binary_expr::*;
 use crate::hulk_tokens::hulk_for_expr::ForExpr;
 use crate::hulk_tokens::hulk_identifier::*;
-use crate::hulk_tokens::hulk_ifExp::*;
+use crate::hulk_tokens::hulk_if_exp::*;
 use crate::hulk_tokens::hulk_let_in::*;
 use crate::hulk_tokens::hulk_literal::*;
 use crate::hulk_tokens::hulk_operators::*;
@@ -86,7 +86,6 @@ impl Expr {
                     UnaryOperator::Plus => Ok(val),
                     UnaryOperator::Minus => Ok(-val),
                     UnaryOperator::LogicalNot => Ok((val == 0.0) as i64 as f64),
-                    _ => Err("Operador unario no soportado".to_string()),
                 }
             }
             _ => Err("Expresión no soportada".to_string()),

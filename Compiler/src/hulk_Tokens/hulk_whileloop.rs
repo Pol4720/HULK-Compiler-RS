@@ -35,7 +35,7 @@ impl Codegen for WhileLoop {
 
         // Etiqueta del cuerpo
         context.emit(&format!("{}:", body_label));
-        let body_reg = self.body.codegen(context);
+        let _body_reg = self.body.codegen(context);
         // Al terminar el cuerpo, vuelve a evaluar la condición
         context.emit(&format!("  br label %{}", start_label));
 
