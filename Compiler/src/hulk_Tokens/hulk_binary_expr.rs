@@ -1,7 +1,7 @@
 use super::hulk_operators::*;
-use crate::hulk_tokens::hulk_expression::Expr;
-use crate::codegen::traits::Codegen;
 use crate::codegen::context::CodegenContext;
+use crate::codegen::traits::Codegen;
+use crate::hulk_tokens::hulk_expression::Expr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BinaryExpr {
@@ -12,7 +12,11 @@ pub struct BinaryExpr {
 
 impl BinaryExpr {
     pub fn new(left: Box<Expr>, operator: BinaryOperatorToken, right: Box<Expr>) -> Self {
-        BinaryExpr { left, operator, right }
+        BinaryExpr {
+            left,
+            operator,
+            right,
+        }
     }
 }
 
@@ -54,20 +58,92 @@ impl Codegen for BinaryExpr {
 
         // Selecciona la operación LLVM correspondiente
         let op_ir = match self.operator {
-            BinaryOperatorToken::Plus => if op_type == "double" { "fadd" } else { "add" },
-            BinaryOperatorToken::Minus => if op_type == "double" { "fsub" } else { "sub" },
-            BinaryOperatorToken::Mul => if op_type == "double" { "fmul" } else { "mul" },
-            BinaryOperatorToken::Div => if op_type == "double" { "fdiv" } else { "sdiv" },
-            BinaryOperatorToken::Mod => if op_type == "double" { "frem" } else { "srem" },
-            BinaryOperatorToken::Eq | BinaryOperatorToken::EqEq => if op_type == "double" { "fcmp oeq" } else { "icmp eq" },
-            BinaryOperatorToken::Neq => if op_type == "double" { "fcmp one" } else { "icmp ne" },
-            BinaryOperatorToken::Lt => if op_type == "double" { "fcmp olt" } else { "icmp slt" },
-            BinaryOperatorToken::Gt => if op_type == "double" { "fcmp ogt" } else { "icmp sgt" },
-            BinaryOperatorToken::Lte => if op_type == "double" { "fcmp ole" } else { "icmp sle" },
-            BinaryOperatorToken::Gte => if op_type == "double" { "fcmp oge" } else { "icmp sge" },
+            BinaryOperatorToken::Plus => {
+                if op_type == "double" {
+                    "fadd"
+                } else {
+                    "add"
+                }
+            }
+            BinaryOperatorToken::Minus => {
+                if op_type == "double" {
+                    "fsub"
+                } else {
+                    "sub"
+                }
+            }
+            BinaryOperatorToken::Mul => {
+                if op_type == "double" {
+                    "fmul"
+                } else {
+                    "mul"
+                }
+            }
+            BinaryOperatorToken::Div => {
+                if op_type == "double" {
+                    "fdiv"
+                } else {
+                    "sdiv"
+                }
+            }
+            BinaryOperatorToken::Mod => {
+                if op_type == "double" {
+                    "frem"
+                } else {
+                    "srem"
+                }
+            }
+            BinaryOperatorToken::Eq | BinaryOperatorToken::EqEq => {
+                if op_type == "double" {
+                    "fcmp oeq"
+                } else {
+                    "icmp eq"
+                }
+            }
+            BinaryOperatorToken::Neq => {
+                if op_type == "double" {
+                    "fcmp one"
+                } else {
+                    "icmp ne"
+                }
+            }
+            BinaryOperatorToken::Lt => {
+                if op_type == "double" {
+                    "fcmp olt"
+                } else {
+                    "icmp slt"
+                }
+            }
+            BinaryOperatorToken::Gt => {
+                if op_type == "double" {
+                    "fcmp ogt"
+                } else {
+                    "icmp sgt"
+                }
+            }
+            BinaryOperatorToken::Lte => {
+                if op_type == "double" {
+                    "fcmp ole"
+                } else {
+                    "icmp sle"
+                }
+            }
+            BinaryOperatorToken::Gte => {
+                if op_type == "double" {
+                    "fcmp oge"
+                } else {
+                    "icmp sge"
+                }
+            }
             BinaryOperatorToken::And => "and",
             BinaryOperatorToken::Or => "or",
-            BinaryOperatorToken::Pow => if op_type == "double" { "pow" } else { "pow" },
+            BinaryOperatorToken::Pow => {
+                if op_type == "double" {
+                    "pow"
+                } else {
+                    "pow"
+                }
+            }
             BinaryOperatorToken::Concat => "concat",
             BinaryOperatorToken::DotEqual => panic!("Operador 'DotEqual' no soportado en Codegen"),
             BinaryOperatorToken::Neg => panic!("Operador 'Neg' no soportado en Codegen"),
@@ -78,27 +154,52 @@ impl Codegen for BinaryExpr {
             "pow" => {
                 if op_type == "double" {
                     // Llama a la función externa de potencia double (debes declarar 'llvm.pow.f64' en tu IR)
-                    format!("  {} = call double @llvm.pow.f64(double {}, double {})", result_reg, left_reg, right_reg)
+                    format!(
+                        "  {} = call double @llvm.pow.f64(double {}, double {})",
+                        result_reg, left_reg, right_reg
+                    )
                 } else {
                     // Llama a la función externa de potencia entera
-                    format!("  {} = call i32 @llvm.powi.i32(i32 {}, i32 {})", result_reg, left_reg, right_reg)
+                    format!(
+                        "  {} = call i32 @llvm.powi.i32(i32 {}, i32 {})",
+                        result_reg, left_reg, right_reg
+                    )
                 }
             }
             "concat" => {
-                format!("  {} = call i8* @hulk_str_concat(i8* {}, i8* {})", result_reg, left_reg, right_reg)
+                format!(
+                    "  {} = call i8* @hulk_str_concat(i8* {}, i8* {})",
+                    result_reg, left_reg, right_reg
+                )
             }
             op if op.starts_with("icmp") => {
-                format!("  {} = {} {} {}, {}", result_reg, op, op_type, left_reg, right_reg)
+                format!(
+                    "  {} = {} {} {}, {}",
+                    result_reg, op, op_type, left_reg, right_reg
+                )
             }
             op if op.starts_with("fcmp") => {
-                format!("  {} = {} double {}, {}", result_reg, op, left_reg, right_reg)
+                format!(
+                    "  {} = {} double {}, {}",
+                    result_reg, op, left_reg, right_reg
+                )
             }
             _ => {
-                format!("  {} = {} {} {}, {}", result_reg, op_ir, op_type, left_reg, right_reg)
+                format!(
+                    "  {} = {} {} {}, {}",
+                    result_reg, op_ir, op_type, left_reg, right_reg
+                )
             }
         };
 
         context.emit(&line);
+        // Guardar el tipo del resultado para printf
+        context
+            .symbol_table
+            .insert(format!("{}__type", result_reg), op_type.to_string());
+        context
+            .symbol_table
+            .insert("__last_type__".to_string(), op_type.to_string());
         result_reg
     }
 }
