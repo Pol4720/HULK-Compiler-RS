@@ -1,3 +1,42 @@
+// //!
+// # parser.lalrpop
+
+// Este archivo define la gramática principal del lenguaje Hulk usando LALRPOP para el compilador Hulk.
+
+// ## Propósito
+
+// - Especifica la sintaxis del lenguaje Hulk, incluyendo declaraciones, expresiones, tipos, funciones, bloques, operadores y estructuras de control.
+// - Traduce el código fuente en un AST (Árbol de Sintaxis Abstracta) usando las estructuras definidas en los módulos de nodos del compilador.
+// - Permite la integración directa con el sistema de tipos, el análisis semántico y la generación de código.
+
+// ## Características principales
+
+// - **Programa principal:** Regla `Program` que representa la raíz del AST, compuesta por una lista de instrucciones.
+// - **Instrucciones:** Soporte para definiciones de tipos (`type`), funciones (`function`), y expresiones.
+// - **Definición de tipos:** Permite herencia, atributos y métodos dentro de bloques de tipo.
+// - **Funciones:** Soporta funciones con cuerpo de bloque o de expresión, parámetros tipados y firmas.
+// - **Expresiones:** Incluye expresiones aritméticas, lógicas, de comparación, llamadas a función, acceso a miembros, instanciación de tipos, bloques, literales, y control de flujo (`if`, `let-in`, `while`, `for`).
+// - **Operadores:** Define precedencia y reglas para operadores binarios y unarios, incluyendo operadores personalizados como `@` para concatenación y `:=` para asignación destructiva.
+// - **Bloques y listas:** Soporta bloques de código y listas de expresiones o asignaciones.
+// - **Tokens y literales:** Define cómo se reconocen identificadores, literales numéricos, booleanos y de cadena, así como todos los delimitadores y palabras clave del lenguaje.
+
+// ## Ejemplo de uso
+
+// Un fragmento de código Hulk como:
+
+// ```hulk
+// type Point(x: Number, y: Number) {
+//     name := "origin";
+//     move(dx: Number, dy: Number) => {
+//         x := x + dx;
+//         y := y + dy;
+//     }
+// };
+
+// let p = new Point(0, 0) in p.move(1, 2);
+// ````
+
+
 use std::str::FromStr;
 use either::Either;
 

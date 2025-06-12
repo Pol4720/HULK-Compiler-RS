@@ -1,3 +1,9 @@
+//! # Expr y ExprKind AST Nodes
+//!
+//! Este módulo define los nodos de expresión (`Expr` y `ExprKind`) del AST para el compilador Hulk.
+//! Permite representar y manipular cualquier tipo de expresión del lenguaje, incluyendo literales, operaciones, llamadas a función, bloques, etc.
+//! Provee integración con el visitor pattern, evaluación directa y generación de código LLVM IR.
+
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::Block;
@@ -19,17 +25,31 @@ use crate::visitor::hulk_visitor::Visitor;
 use crate::hulk_ast_nodes::hulk_function_access::FunctionAccess;
 use crate::hulk_ast_nodes::hulk_member_access::MemberAccess;
 
+/// Nodo de expresión general del AST.
+/// 
+/// Contiene un `ExprKind` que determina el tipo específico de la expresión.
+/// 
+/// Ejemplos: literales, operaciones binarias, llamadas a función, bloques, etc.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
     pub kind: ExprKind,
 }
 
 impl Accept for Expr {
+    /// Permite que el nodo acepte un visitor.
     fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         self.kind.accept(visitor)
     }
 }
 
+/// Enum que representa todos los tipos de expresiones posibles en el lenguaje Hulk.
+/// 
+/// - Literales: `Number`, `Boolean`, `String`
+/// - Identificadores y operaciones: `Identifier`, `BinaryOp`, `UnaryOp`
+/// - Control de flujo: `If`, `WhileLoop`, `ForExp`, `CodeBlock`
+/// - Asignaciones: `Assignment`, `DestructiveAssign`, `LetIn`
+/// - Llamadas y acceso: `FunctionCall`, `FunctionAccess`, `MemberAccess`
+/// - Instanciación de tipos: `NewTypeInstance`
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
     Number(NumberLiteral),
@@ -39,7 +59,6 @@ pub enum ExprKind {
     BinaryOp(BinaryExpr),
     UnaryOp(UnaryExpr),
     If(IfExpr),
-
     FunctionCall(FunctionCall),
     Assignment(Assignment),
     LetIn(LetIn),
@@ -47,17 +66,20 @@ pub enum ExprKind {
     ForExp(ForExpr),
     CodeBlock(Block),
     DestructiveAssign(DestructiveAssignment),
-
     NewTypeInstance(NewTypeInstance),
     FunctionAccess(FunctionAccess),
     MemberAccess(MemberAccess),
 }
 
 impl Expr {
+    /// Crea una nueva expresión a partir de un `ExprKind`.
     pub fn new(kind: ExprKind) -> Self {
         Expr { kind }
     }
 
+    /// Evalúa la expresión si es posible (solo para expresiones aritméticas y booleanas simples).
+    /// 
+    /// Retorna el resultado como `f64` o un error si la expresión no es evaluable directamente.
     pub fn eval(&self) -> Result<f64, String> {
         match &self.kind {
             ExprKind::Number(n) => Ok(n.value),
@@ -101,6 +123,7 @@ impl Expr {
 }
 
 impl Accept for ExprKind {
+    /// Permite que el nodo acepte un visitor.
     fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         match self {
             ExprKind::Number(node) => visitor.visit_number_literal(node),
@@ -125,12 +148,14 @@ impl Accept for ExprKind {
 }
 
 impl Codegen for Expr {
+    /// Genera el código LLVM IR para la expresión.
     fn codegen(&self, context: &mut CodegenContext) -> String {
         self.kind.codegen(context)
     }
 }
 
 impl Codegen for ExprKind {
+    /// Genera el código LLVM IR para el tipo específico de expresión.
     fn codegen(&self, context: &mut CodegenContext) -> String {
         match self {
             ExprKind::Number(n) => n.codegen(context),

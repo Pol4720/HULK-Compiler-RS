@@ -1,4 +1,15 @@
+//! # KeywordToken Enum
+//!
+//! Este módulo define el enum `KeywordToken` para el compilador Hulk.
+//! Representa todas las palabras clave reservadas del lenguaje Hulk, como `if`, `let`, `while`, `function`, etc.
+//! Es utilizado en el análisis léxico y sintáctico para identificar y manejar correctamente las palabras clave del lenguaje.
+
 use std::fmt::Display;
+
+/// Enum que representa las palabras clave reservadas del lenguaje Hulk.
+/// 
+/// - Cada variante corresponde a una palabra clave específica del lenguaje.
+/// - Se utiliza en el lexer y parser para distinguir instrucciones y estructuras de control.
 #[derive(Debug,Clone,Copy,PartialEq,Eq)]
 pub enum KeywordToken {
     Print,
@@ -22,6 +33,7 @@ pub enum KeywordToken {
 }
 
 impl Display for KeywordToken {
+    /// Permite mostrar la palabra clave como string.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             KeywordToken::Let => write!(f, "let"),

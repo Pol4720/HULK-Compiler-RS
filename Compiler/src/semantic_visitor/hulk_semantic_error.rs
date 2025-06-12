@@ -1,7 +1,35 @@
+//! # SemanticError Enum
+//!
+//! Este módulo define el enum `SemanticError` para el compilador Hulk.
+//! Representa los posibles errores semánticos que pueden ocurrir durante el análisis semántico del AST.
+//! Incluye errores como división por cero, identificadores indefinidos, operaciones inválidas, redefiniciones, errores de tipos y más.
+//! Provee un método para obtener un mensaje de error legible para cada caso.
+
 use crate::hulk_tokens::hulk_operators::{BinaryOperatorToken, UnaryOperator};
 use crate::typings::types_node::TypeNode;
 
-
+/// Enum que representa los errores semánticos posibles durante el análisis del AST.
+/// 
+/// - `DivisionByZero`: intento de dividir por cero.
+/// - `UndefinedIdentifier`: uso de un identificador no declarado.
+/// - `InvalidConditionType`: tipo inválido en una condición.
+/// - `InvalidBinaryOperation`: operación binaria inválida entre tipos.
+/// - `InvalidUnaryOperation`: operación unaria inválida.
+/// - `RedefinitionOfFunction`: redefinición de una función.
+/// - `UndeclaredFunction`: uso de una función no declarada.
+/// - `UnknownError`: error semántico genérico.
+/// - `InvalidArgumentsCount`: número incorrecto de argumentos en llamada a función.
+/// - `InvalidTypeArgument`: tipo de argumento incorrecto.
+/// - `InvalidFunctionReturn`: tipo de retorno incorrecto en función.
+/// - `RedefinitionOfVariable`: redefinición de variable.
+/// - `UndefinedType`: uso de un tipo no declarado.
+/// - `ParamNameAlreadyExist`: nombre de parámetro repetido.
+/// - `RedefinitionOfType`: redefinición de tipo.
+/// - `CicleDetected`: ciclo de herencia o dependencia.
+/// - `InvalidTypeArgumentCount`: número incorrecto de argumentos de tipo.
+/// - `InvalidTypeFunctionAccess`: acceso a función inexistente en un tipo.
+/// - `InvalidTypePropertyAccess`: acceso a propiedad privada.
+/// - `InvalidTypeProperty`: acceso a propiedad inexistente.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SemanticError {
     DivisionByZero,
@@ -27,6 +55,7 @@ pub enum SemanticError {
 }
 
 impl SemanticError {
+    /// Devuelve un mensaje de error legible para el usuario según el tipo de error semántico.
     pub fn message(&self) -> String {
         match self {
             SemanticError::DivisionByZero => "Error: Division by zero is not allowed".to_string(),

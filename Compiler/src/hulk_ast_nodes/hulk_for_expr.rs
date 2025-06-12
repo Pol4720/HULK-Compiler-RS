@@ -1,9 +1,24 @@
+//! # ForExpr AST Node
+//!
+//! Este módulo define el nodo de expresión de bucle `for` (`ForExpr`) del AST para el compilador Hulk.
+//! Permite representar y generar código para bucles tipo `for`, donde una variable toma valores en un rango.
+//! Incluye la estructura, métodos asociados y la generación de código LLVM IR.
+
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::codegen::traits::Codegen;
 use crate::codegen::context::CodegenContext;
 use crate::typings::types_node::TypeNode;
 
-#[derive(Debug, PartialEq,Clone)]
+/// Representa una expresión de bucle `for` en el AST.
+/// 
+/// Por ejemplo: `for i = 1 to 10 { ... }`
+/// 
+/// - `variable`: nombre de la variable de control del bucle.
+/// - `start`: expresión que representa el valor inicial.
+/// - `end`: expresión que representa el valor final.
+/// - `body`: cuerpo del bucle (expresión a ejecutar en cada iteración).
+/// - `_type`: tipo inferido o declarado del bucle (opcional).
+#[derive(Debug, PartialEq, Clone)]
 pub struct ForExpr {
     pub variable: String,
     pub start: Box<Expr>,
@@ -13,6 +28,13 @@ pub struct ForExpr {
 }
 
 impl ForExpr {
+    /// Crea una nueva expresión de bucle `for`.
+    ///
+    /// # Arguments
+    /// * `variable` - Nombre de la variable de control.
+    /// * `start` - Expresión de valor inicial.
+    /// * `end` - Expresión de valor final.
+    /// * `body` - Cuerpo del bucle.
     pub fn new(variable: String, start: Expr, end: Expr, body: Expr) -> Self {
         ForExpr {
             variable,
@@ -22,12 +44,19 @@ impl ForExpr {
             _type: None,
         }
     }
+
+    /// Establece el tipo de la expresión del bucle.
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
     }
 }
 
 impl Codegen for ForExpr {
+    /// Genera el código LLVM IR para la expresión de bucle `for`.
+    ///
+    /// Crea las etiquetas y el flujo de control necesarios para implementar el bucle,
+    /// inicializa la variable, evalúa la condición, ejecuta el cuerpo y realiza la actualización.
+    /// El bucle no produce un valor, por lo que retorna `"void"`.
     fn codegen(&self, context: &mut CodegenContext) -> String {
          // Genera valores de inicio y fin
          let start_val = self.start.codegen(context);

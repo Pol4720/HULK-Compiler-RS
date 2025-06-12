@@ -1,3 +1,9 @@
+//! # IfExpr y ElseBranch AST Nodes
+//!
+//! Este módulo define los nodos de expresión condicional `IfExpr` y `ElseBranch` del AST para el compilador Hulk.
+//! Permite representar expresiones condicionales tipo `if-else`, incluyendo la condición, las ramas y el tipo inferido.
+//! Incluye la estructura, métodos asociados, integración con el visitor pattern y la generación de código LLVM IR.
+
 use crate::hulk_tokens::hulk_keywords::KeywordToken;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::visitor::hulk_accept::Accept;
@@ -6,6 +12,18 @@ use crate::codegen::traits::Codegen;
 use crate::codegen::context::CodegenContext;
 use crate::typings::types_node::TypeNode;
 
+/// Representa una expresión condicional `if` en el AST.
+/// 
+/// Por ejemplo:
+/// ```hulk
+/// if (condición) { ... } else { ... }
+/// ```
+/// 
+/// - `if_keyword`: token de palabra clave `if`.
+/// - `condition`: expresión booleana de condición.
+/// - `then_branch`: rama a ejecutar si la condición es verdadera.
+/// - `else_branch`: rama a ejecutar si la condición es falsa (opcional).
+/// - `_type`: tipo inferido o declarado de la expresión (opcional).
 #[derive(Debug, Clone, PartialEq)]
 pub struct IfExpr {
     pub if_keyword: KeywordToken,
@@ -16,16 +34,28 @@ pub struct IfExpr {
 }
 
 impl IfExpr {
+    /// Crea una nueva expresión condicional `if`.
+    ///
+    /// # Arguments
+    /// * `if_keyword` - Token de palabra clave `if`.
+    /// * `condition` - Expresión de condición.
+    /// * `then_branch` - Rama `then`.
+    /// * `else_branch` - Rama `else` (opcional).
     pub fn new(if_keyword: KeywordToken, condition: Box<Expr>, then_branch: Box<Expr>, else_branch: Option<ElseBranch>) -> Self {
         IfExpr { if_keyword, condition, then_branch, else_branch, _type: None }
     }
 
+    /// Establece el tipo de la expresión condicional.
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
     }
 }
 
-
+/// Representa la rama `else` de una expresión condicional en el AST.
+/// 
+/// - `else_keyword`: token de palabra clave `else`.
+/// - `body`: expresión a ejecutar si la condición es falsa.
+/// - `_type`: tipo inferido o declarado de la rama (opcional).
 #[derive(Debug, Clone, PartialEq)]
 pub struct ElseBranch {
     pub else_keyword: KeywordToken,
@@ -34,22 +64,33 @@ pub struct ElseBranch {
 }
 
 impl ElseBranch {
+    /// Crea una nueva rama `else`.
+    ///
+    /// # Arguments
+    /// * `else_keyword` - Token de palabra clave `else`.
+    /// * `body` - Expresión de la rama `else`.
     pub fn new(else_keyword: KeywordToken, body: Box<Expr>) -> Self {
         ElseBranch { else_keyword, body, _type: None }
     }
 
+    /// Establece el tipo de la rama `else`.
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
     }
 }
 
 impl Accept for ElseBranch {
+    /// Permite que el nodo acepte un visitor.
     fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         visitor.visit_else_branch(self)
     }
 }
 
 impl Codegen for IfExpr {
+    /// Genera el código LLVM IR para la expresión condicional `if`.
+    ///
+    /// Crea las etiquetas y el flujo de control necesarios para implementar la condición,
+    /// ejecuta las ramas y utiliza una instrucción `phi` para seleccionar el resultado.
     fn codegen(&self, context: &mut CodegenContext) -> String {
         let cond_val = self.condition.codegen(context);
 
@@ -98,6 +139,7 @@ impl Codegen for IfExpr {
 }
 
 impl Codegen for ElseBranch {
+    /// Genera el código LLVM IR para la rama `else`.
     fn codegen(&self, context: &mut CodegenContext) -> String {
         self.body.codegen(context)
     }

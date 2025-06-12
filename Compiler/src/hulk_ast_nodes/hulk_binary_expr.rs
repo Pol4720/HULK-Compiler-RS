@@ -1,9 +1,22 @@
+//! # BinaryExpr AST Node
+//!
+//! Este módulo define el nodo de expresión binaria (`BinaryExpr`) del AST para el compilador Hulk.
+//! Incluye la estructura, métodos asociados, integración con el visitor pattern y generación de código LLVM IR.
+
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::typings::types_node::TypeNode;
 use crate::hulk_tokens::hulk_operators::BinaryOperatorToken;
 
+/// Representa una expresión binaria en el AST.
+/// 
+/// Por ejemplo: `a + b`, `x > 5`, `foo && bar`
+/// 
+/// - `left`: expresión del lado izquierdo.
+/// - `operator`: operador binario.
+/// - `right`: expresión del lado derecho.
+/// - `_type`: tipo inferido o declarado de la expresión (opcional).
 #[derive(Debug, Clone, PartialEq)]
 pub struct BinaryExpr {
     pub left: Box<Expr>,
@@ -11,16 +24,30 @@ pub struct BinaryExpr {
     pub right: Box<Expr>,
     pub _type: Option<TypeNode>,
 }
+
 impl BinaryExpr {
+    /// Crea una nueva expresión binaria.
+    ///
+    /// # Arguments
+    /// * `left` - Expresión del lado izquierdo.
+    /// * `operator` - Operador binario.
+    /// * `right` - Expresión del lado derecho.
     pub fn new(left: Box<Expr>, operator: BinaryOperatorToken, right: Box<Expr>) -> Self {
         BinaryExpr { left, operator, right, _type: None }
     }
 
+    /// Establece el tipo de la expresión binaria.
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
     }
 }
+
 impl Codegen for BinaryExpr {
+    /// Genera el código LLVM IR para la expresión binaria.
+    ///
+    /// Convierte los operandos a `double` si es necesario, selecciona la instrucción LLVM adecuada
+    /// según el operador y el tipo, y emite la instrucción correspondiente.
+    /// Guarda el tipo del resultado en el symbol table para su uso posterior (por ejemplo, en printf).
     fn codegen(&self, context: &mut CodegenContext) -> String {
         // Función auxiliar para obtener el tipo LLVM de un registro (i32 o double)
         fn get_llvm_type(expr: &Expr) -> &'static str {

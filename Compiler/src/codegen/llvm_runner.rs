@@ -20,7 +20,6 @@ pub fn run_llvm_ir(filename: &str) {
                 filename,
                 "-o",
                 "output_macos",
-                "-fuse-ld=lld",
                 "--target=x86_64-apple-darwin",
             ],
         )

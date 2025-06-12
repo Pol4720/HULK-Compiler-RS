@@ -4,6 +4,9 @@ pub use hulk_expression::Expr;
 pub mod hulk_for_expr;
 pub use hulk_for_expr::ForExpr;
 
+pub mod hulk_types_info;
+pub use hulk_types_info::HulkTypesInfo;
+
 pub mod hulk_member_access;
 pub use hulk_member_access::MemberAccess;
 

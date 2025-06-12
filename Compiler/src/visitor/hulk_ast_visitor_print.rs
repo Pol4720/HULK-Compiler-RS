@@ -1,9 +1,27 @@
-use crate::{hulk_ast_nodes::{Assignment, DestructiveAssignment ,BinaryExpr, ForExpr,Block, BooleanLiteral, ElseBranch, ExpressionList, FunctionCall, FunctionDef, Identifier, IfExpr, LetIn, NumberLiteral, ProgramNode, StringLiteral, UnaryExpr, WhileLoop, HulkTypeNode}};
-use crate::visitor::hulk_accept::Accept;
+//! # PreetyPrintVisitor
+//!
+//! Este módulo define el visitor `PreetyPrintVisitor` para el compilador Hulk.
+//! Implementa el trait `Visitor<String>` para recorrer el AST y generar una representación legible (pretty print) de cada nodo.
+//! Es útil para depuración, visualización y pruebas del árbol de sintaxis abstracta generado por el parser.
+//!
+//! ## Características principales
+//! - Recorre todos los nodos relevantes del AST de Hulk.
+//! - Genera una cadena formateada que describe la estructura y los valores de cada nodo.
+//! - Soporta expresiones, declaraciones, bloques, funciones, tipos, ciclos, condicionales, literales, asignaciones y más.
+//! - Permite visualizar el árbol de sintaxis de manera jerárquica y comprensible.
 
+use crate::{
+    hulk_ast_nodes::{
+        Assignment, DestructiveAssignment, BinaryExpr, ForExpr, Block, BooleanLiteral, ElseBranch,
+        ExpressionList, FunctionCall, FunctionDef, Identifier, IfExpr, LetIn, NumberLiteral,
+        ProgramNode, StringLiteral, UnaryExpr, WhileLoop, HulkTypeNode,
+    },
+    visitor::hulk_accept::Accept,
+};
 
 use super::hulk_visitor::Visitor;
 
+/// Visitor que recorre el AST y genera una representación legible de cada nodo.
 pub struct PreetyPrintVisitor;
 
 impl Visitor<String> for PreetyPrintVisitor {
@@ -133,7 +151,7 @@ impl Visitor<String> for PreetyPrintVisitor {
 fn visit_type_def(&mut self, node: &mut HulkTypeNode) -> String {
     let type_name = node.type_name.clone();
         let type_params: Vec<String> = node.parameters.iter()
-            .map(|param| format!("{}: {}", param.name, param.signature))
+            .map(|param| format!("{}: {}", param.name, param.param_type))
             .collect();
 
     let members: Vec<String> = node.methods.iter_mut().map(|(_, method)| {

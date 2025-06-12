@@ -1,8 +1,19 @@
+//! # Literales AST Nodes
+//!
+//! Este módulo define los nodos de literales (`NumberLiteral`, `BooleanLiteral`, `StringLiteral`) del AST para el compilador Hulk.
+//! Permite representar valores literales numéricos, booleanos y de cadena en el AST, así como su generación de código LLVM IR.
+
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use std::fmt::{self, Display, Formatter};
 use crate::typings::types_node::TypeNode;
 
+/// Representa un literal numérico en el AST.
+/// 
+/// Por ejemplo: `42`, `3.14`
+/// 
+/// - `value`: valor numérico.
+/// - `_type`: tipo inferido o declarado del literal (opcional).
 #[derive(Debug, Clone, PartialEq)]
 pub struct NumberLiteral {
     pub value: f64,
@@ -10,12 +21,14 @@ pub struct NumberLiteral {
 }
 
 impl NumberLiteral {
+    /// Crea un nuevo literal numérico a partir de un string.
     pub fn new(value: &str) -> Self {
         Self {
             value: value.parse().unwrap(),
             _type: None, 
         }
     }
+    /// Establece el tipo del literal numérico.
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
     }
@@ -27,24 +40,25 @@ impl Display for NumberLiteral {
     }
 }
 
-
 impl Codegen for NumberLiteral {
+    /// Genera el código LLVM IR para el literal numérico.
+    ///
+    /// Usa una instrucción `fadd double 0.0, valor` para asignar el valor a un registro temporal.
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // Genera un nuevo registro temporal
         let result_reg = context.generate_temp();
-
-        // LLVM requiere literales double con formato decimal o exponencial
         let formatted = format!("{:.16E}", self.value);
-
-        // Emite la instrucción: fadd double 0.0, literal
-        // para asignar el valor a un registro (truco común para literales float)
         let line = format!("  {} = fadd double 0.0, {}", result_reg, formatted);
         context.emit(&line);
-
         result_reg
     }
 }
 
+/// Representa un literal booleano en el AST.
+/// 
+/// Por ejemplo: `true`, `false`
+/// 
+/// - `value`: valor booleano.
+/// - `_type`: tipo inferido o declarado del literal (opcional).
 #[derive(Debug, Clone, PartialEq)]
 pub struct BooleanLiteral {
     pub value: bool,
@@ -52,12 +66,14 @@ pub struct BooleanLiteral {
 }
 
 impl BooleanLiteral {
+    /// Crea un nuevo literal booleano a partir de un string.
     pub fn new(value: &str) -> Self {
         Self {
             value: value.parse().unwrap(),
             _type: None,
         }
     }
+    /// Establece el tipo del literal booleano.
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
     }
@@ -70,22 +86,24 @@ impl Display for BooleanLiteral {
 }
 
 impl Codegen for BooleanLiteral {
+    /// Genera el código LLVM IR para el literal booleano.
+    ///
+    /// Convierte el valor a 1 o 0 y lo asigna a un registro temporal usando `add i1 0, valor`.
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // Convierte true/false a 1/0
         let llvm_bool = if self.value { "1" } else { "0" };
-
-        // Crea un nuevo registro temporal
         let result_reg = context.generate_temp();
-
-        // Emite una instrucción de mov para asignar el literal al registro
-        // LLVM no tiene una instrucción de "mov", usamos `add 0, x` como truco
         let line = format!("  {} = add i1 0, {}", result_reg, llvm_bool);
         context.emit(&line);
-
         result_reg
     }
 }
 
+/// Representa un literal de cadena en el AST.
+/// 
+/// Por ejemplo: `"hola mundo"`
+/// 
+/// - `value`: valor de la cadena.
+/// - `_type`: tipo inferido o declarado del literal (opcional).
 #[derive(Debug, Clone, PartialEq)]
 pub struct StringLiteral {
     pub value: String,
@@ -93,13 +111,14 @@ pub struct StringLiteral {
 }
 
 impl StringLiteral {
+    /// Crea un nuevo literal de cadena a partir de un string.
     pub fn new(value: &str) -> Self {
         Self {
             value: value.to_string(),
             _type: None,
         }
-
     }
+    /// Establece el tipo del literal de cadena.
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type)
     }
@@ -111,9 +130,10 @@ impl Display for StringLiteral {
     }
 }
 
-
-
 impl Codegen for StringLiteral {
+    /// Genera el código LLVM IR para el literal de cadena.
+    ///
+    /// Escapa caracteres especiales, define una constante global y obtiene un puntero a la cadena.
     fn codegen(&self, context: &mut CodegenContext) -> String {
         // Escape comillas, saltos de línea, etc.
         let escaped = self
