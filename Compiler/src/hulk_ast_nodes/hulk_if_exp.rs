@@ -24,14 +24,60 @@ use crate::typings::types_node::TypeNode;
 /// - `then_branch`: rama a ejecutar si la condición es verdadera.
 /// - `else_branch`: rama a ejecutar si la condición es falsa (opcional).
 /// - `_type`: tipo inferido o declarado de la expresión (opcional).
+
+#[derive(Debug,Clone,PartialEq)]
+pub enum ElseOrElif {
+    Else(ElseBranch),
+    Elif(ElifBranch),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ElifBranch {
+    pub elif_keyword: KeywordToken,
+    pub condition: Box<Expr>,
+    pub body: Box<Expr>,
+    pub next: Option<Box<ElseOrElif>>, // Puede encadenar otro `elif` o `else`
+    pub _type: Option<TypeNode>,
+}
+
+impl ElifBranch {
+    pub fn new(
+        elif_keyword: KeywordToken,
+        condition: Box<Expr>,
+        body: Box<Expr>,
+        next: Option<Box<ElseOrElif>>,
+    ) -> Self {
+        ElifBranch {
+            elif_keyword,
+            condition,
+            body,
+            next,
+            _type: None,
+        }
+    }
+
+    pub fn set_expression_type(&mut self, _type: TypeNode) {
+        self._type = Some(_type);
+    }
+}
+
+impl Accept for ElifBranch {
+    fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
+        visitor.visit_elif_branch(self)
+    }
+}
+
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct IfExpr {
     pub if_keyword: KeywordToken,
     pub condition: Box<Expr>,
     pub then_branch: Box<Expr>,
-    pub else_branch: Option<ElseBranch>,
+    pub else_branch: Option<ElseOrElif>,
     pub _type: Option<TypeNode>
 }
+
+
 
 impl IfExpr {
     /// Crea una nueva expresión condicional `if`.
@@ -41,7 +87,7 @@ impl IfExpr {
     /// * `condition` - Expresión de condición.
     /// * `then_branch` - Rama `then`.
     /// * `else_branch` - Rama `else` (opcional).
-    pub fn new(if_keyword: KeywordToken, condition: Box<Expr>, then_branch: Box<Expr>, else_branch: Option<ElseBranch>) -> Self {
+    pub fn new(if_keyword: KeywordToken, condition: Box<Expr>, then_branch: Box<Expr>, else_branch: Option<ElseOrElif>) -> Self {
         IfExpr { if_keyword, condition, then_branch, else_branch, _type: None }
     }
 
@@ -98,7 +144,7 @@ impl Codegen for IfExpr {
         let else_label = context.generate_label("else");
         let merge_label = context.generate_label("ifend");
 
-        let result_reg = context.generate_temp(); // Para el resultado del `if` como expresión
+        let result_reg = context.generate_temp();
 
         // Br condicional
         context.emit(&format!(
@@ -113,13 +159,27 @@ impl Codegen for IfExpr {
 
         // Else block
         context.emit(&format!("{}:", else_label));
-        let else_val = if let Some(else_branch) = &self.else_branch {
+        let else_val = match &self.else_branch {
+            Some(ElseOrElif::Else(else_branch)) => {
             else_branch.codegen(context)
-        } else {
+            }
+            Some(ElseOrElif::Elif(elif_branch)) => {
+            // Construye un nuevo IfExpr a partir del ElifBranch y llama a su codegen
+            let new_if = IfExpr {
+                if_keyword: elif_branch.elif_keyword.clone(),
+                condition: elif_branch.condition.clone(),
+                then_branch: elif_branch.body.clone(),
+                else_branch: elif_branch.next.as_ref().map(|b| (**b).clone()),
+                _type: elif_branch._type.clone(),
+            };
+            new_if.codegen(context)
+            }
+            None => {
             // Por defecto, `0` si no hay rama else
             let tmp = context.generate_temp();
             context.emit(&format!("  {} = add i32 0, 0", tmp));
             tmp
+            }
         };
         context.emit(&format!("  br label %{}", merge_label));
 
@@ -144,3 +204,56 @@ impl Codegen for ElseBranch {
         self.body.codegen(context)
     }
 }
+
+//En caso de q no pinche codegen de if con elif.
+
+// impl Codegen for ElifBranch {
+//     fn codegen(&self, context: &mut CodegenContext) -> String {
+//         let cond_val = self.condition.codegen(context);
+
+//         let then_label = context.generate_label("elif_then");
+//         let else_label = context.generate_label("elif_else");
+//         let merge_label = context.generate_label("elif_end");
+
+//         let result_reg = context.generate_temp();
+
+//         // Br condicional
+//         context.emit(&format!(
+//             "  br i1 {}, label %{}, label %{}",
+//             cond_val, then_label, else_label
+//         ));
+
+//         // Then block
+//         context.emit(&format!("{}:", then_label));
+//         let then_val = self.body.codegen(context);
+//         context.emit(&format!("  br label %{}", merge_label));
+
+//         // Else block (puede ser otro elif o else)
+//         context.emit(&format!("{}:", else_label));
+//         let else_val = match &self.next {
+//             Some(next) => match &**next {
+//                 ElseOrElif::Else(else_branch) => else_branch.codegen(context),
+//                 ElseOrElif::Elif(elif_branch) => elif_branch.codegen(context),
+//             },
+//             None => {
+//                 let tmp = context.generate_temp();
+//                 context.emit(&format!("  {} = add i32 0, 0", tmp));
+//                 tmp
+//             }
+//         };
+//         context.emit(&format!("  br label %{}", merge_label));
+
+//         // Merge block
+//         context.emit(&format!("{}:", merge_label));
+//         context.emit(&format!(
+//             "  {} = phi i32 [ {}, %{} ], [ {}, %{} ]",
+//             result_reg,
+//             then_val,
+//             then_label,
+//             else_val,
+//             else_label
+//         ));
+
+//         result_reg
+//     }
+// }

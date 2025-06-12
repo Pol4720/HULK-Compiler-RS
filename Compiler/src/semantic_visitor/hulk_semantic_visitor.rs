@@ -617,7 +617,14 @@ impl Visitor<TypeNode> for SemanticVisitor {
         }
         let then_type = node.then_branch.accept(self);
         let else_type = if let Some(else_branch) = &mut node.else_branch {
-            else_branch.accept(self)
+            match else_branch {
+                crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif::Else(else_node) => {
+                    self.visit_else_branch(else_node)
+                }
+                crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif::Elif(elif_node) => {
+                    self.visit_elif_branch(elif_node)
+                }
+            }
         } else {
             self.get_type(&HulkTypesInfo::Unknown)
         };
@@ -637,19 +644,21 @@ impl Visitor<TypeNode> for SemanticVisitor {
         }
     }
 
+    fn visit_elif_branch(&mut self, node: &mut crate::hulk_ast_nodes::hulk_if_exp::ElifBranch) -> TypeNode {
+        node.body.accept(self)
+    }
+
+    fn visit_else_branch(&mut self, node: &mut crate::hulk_ast_nodes::ElseBranch) -> TypeNode {
+        node.body.accept(self)
+    }
+
     fn visit_let_in(&mut self, node: &mut LetIn) -> TypeNode {
         self.build_scope();
         for assig in node.assignment.iter_mut() {
             let expr_type = assig.expression.accept(self);
-            if let Some(_) = self.current_scope.variables.get(&assig.identifier.id) {
-                self.new_error(SemanticError::RedefinitionOfVariable(
-                    assig.identifier.id.clone(),
-                ));
-            } else {
                 self.current_scope
                     .variables
-                    .insert(assig.identifier.id.clone(), expr_type.type_name);
-            }
+                    .insert(assig.identifier.id.clone(), expr_type.type_name);         
         }
         let return_type = node.body.accept(self);
         self.pop_scope();
@@ -695,9 +704,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
         expr_type
     }
 
-    fn visit_else_branch(&mut self, node: &mut crate::hulk_ast_nodes::ElseBranch) -> TypeNode {
-        node.body.accept(self)
-    }
+
 
     fn visit_type_def(&mut self, node: &mut HulkTypeNode) -> TypeNode {
         self.build_scope();

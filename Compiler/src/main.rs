@@ -70,7 +70,16 @@ fn main() {
 
     
     let a = "
-       2 + 2 - 2 * 2 / 2;
+        if (true) {
+            2;
+        }
+        elif (false){
+            3;
+        }
+        else{ 
+            2;
+        };
+
     ";
     let inp = "
     function SumLet(a: Number , b: Number): Object {
@@ -128,8 +137,8 @@ fn main() {
     let x = SumLet( 5, 5) in x ;
     ";
 
-    let input_hulk = fs::read_to_string("/Users/mauriciosundejimenez/Hulk-Project/HULK-Compiler-RS/script.hulk")
-        .expect("Failed to read input file");
+    // let input_hulk = fs::read_to_string("/Users/mauriciosundejimenez/Hulk-Project/HULK-Compiler-RS/script.hulk")
+    //     .expect("Failed to read input file");
 
     // loop {
         print!("> ");
@@ -140,7 +149,7 @@ fn main() {
         //     break;
         // }
 
-        let mut parsed_expr = parser.parse(&input_hulk).unwrap();
+        let mut parsed_expr = parser.parse(&a).unwrap();
         let mut print_visitor = PreetyPrintVisitor;
         let mut semantic_visitor = SemanticVisitor::new();
         let res = semantic_visitor.check(&mut parsed_expr);
@@ -165,9 +174,9 @@ fn main() {
         ast_file.write_all(ast_str.as_bytes()).expect("No se pudo escribir en ast.txt");
 
         // Codegen y ejecución
-        println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
-        CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
+        // println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
+        // CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
 
-        println!("\n");
+        // println!("\n");
     // }
 }
