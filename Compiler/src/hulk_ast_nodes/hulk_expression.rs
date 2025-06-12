@@ -6,6 +6,7 @@
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
+use crate::hulk_ast_nodes::hulk_print_expr::PrintExpr;
 use crate::hulk_ast_nodes::Block;
 use crate::hulk_ast_nodes::DestructiveAssignment;
 use crate::hulk_ast_nodes::FunctionCall;
@@ -59,6 +60,7 @@ pub enum ExprKind {
     BinaryOp(BinaryExpr),
     UnaryOp(UnaryExpr),
     If(IfExpr),
+    Print(PrintExpr),
     FunctionCall(FunctionCall),
     Assignment(Assignment),
     LetIn(LetIn),
@@ -143,6 +145,7 @@ impl Accept for ExprKind {
             ExprKind::NewTypeInstance(node) => visitor.visit_new_type_instance(node),
             ExprKind::FunctionAccess(node) => visitor.visit_function_access(node),
             ExprKind::MemberAccess(node) => visitor.visit_member_access(node),
+            ExprKind::Print(node) => visitor.visit_print_expr(node),
         }
     }
 }
@@ -175,6 +178,7 @@ impl Codegen for ExprKind {
             ExprKind::NewTypeInstance(new_type_instance) => todo!(),
             ExprKind::FunctionAccess(function_access) => todo!(),
             ExprKind::MemberAccess(member_access) => todo!(),
+            ExprKind::Print(print) => todo!(),
         }
     }
 }

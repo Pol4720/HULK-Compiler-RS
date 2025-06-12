@@ -1,6 +1,9 @@
 pub mod hulk_expression;
 pub use hulk_expression::Expr;
 
+pub mod hulk_print_expr;
+pub use hulk_print_expr::PrintExpr;
+
 pub mod hulk_for_expr;
 pub use hulk_for_expr::ForExpr;
 

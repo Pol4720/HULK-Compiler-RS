@@ -33,6 +33,7 @@ use super::{hulk_scope::Scope, hulk_semantic_error::SemanticError};
 use crate::hulk_tokens::hulk_operators::BinaryOperatorToken;
 use crate::hulk_tokens::hulk_operators::UnaryOperator;
 use crate::hulk_ast_nodes::hulk_types_info::HulkTypesInfo;
+use crate::hulk_ast_nodes::hulk_print_expr::PrintExpr;
 use crate::{
     hulk_ast_nodes::{
         BinaryExpr, Block, BooleanLiteral, DestructiveAssignment, Expr, ForExpr, FunctionAccess,
@@ -874,4 +875,11 @@ impl Visitor<TypeNode> for SemanticVisitor {
             self.get_type(&HulkTypesInfo::Unknown)
         }
     }
+    
+    fn visit_print_expr(&mut self, node: &mut crate::hulk_ast_nodes::hulk_print_expr::PrintExpr) -> TypeNode {
+        let expr_type = node.expr.accept(self);
+        node.set_expression_type(expr_type.clone());
+        expr_type
+    }
+    
 }
