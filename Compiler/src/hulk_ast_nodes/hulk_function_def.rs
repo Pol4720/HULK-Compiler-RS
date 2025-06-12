@@ -2,7 +2,8 @@ use std::fmt;
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::hulk_tokens::hulk_expression::Expr;
+use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::typings::types_node::TypeNode;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunctionParams {
@@ -29,21 +30,22 @@ pub struct FunctionDef {
     pub params: Vec<FunctionParams>,
     pub return_type: String,
     pub body: Box<Expr>,
+    pub _type: Option<TypeNode>,
 }
 
 impl FunctionDef {
-    pub fn new_expr(
-        name: String,
-        params: Vec<FunctionParams>,
-        return_type: String,
-        expr: Box<Expr>,
-    ) -> Self {
+    pub fn new_expr(name: String, params: Vec<FunctionParams>, return_type: String, expr: Box<Expr>) -> Self {
         FunctionDef {
             name,
             params,
             return_type,
             body: expr,
+            _type: None,
         }
+    }
+
+    pub fn set_expression_type(&mut self, _type: TypeNode) {
+        self._type = Some(_type);
     }
 }
 

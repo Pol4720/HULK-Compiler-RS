@@ -1,20 +1,23 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::hulk_tokens::Block;
-use crate::hulk_tokens::DestructiveAssignment;
-use crate::hulk_tokens::FunctionCall;
-use crate::hulk_tokens::hulk_assignment::Assignment;
-use crate::hulk_tokens::hulk_binary_expr::*;
-use crate::hulk_tokens::hulk_for_expr::ForExpr;
-use crate::hulk_tokens::hulk_identifier::*;
-use crate::hulk_tokens::hulk_if_exp::*;
-use crate::hulk_tokens::hulk_let_in::*;
-use crate::hulk_tokens::hulk_literal::*;
+use crate::hulk_ast_nodes::Block;
+use crate::hulk_ast_nodes::DestructiveAssignment;
+use crate::hulk_ast_nodes::FunctionCall;
+use crate::hulk_ast_nodes::hulk_assignment::Assignment;
+use crate::hulk_ast_nodes::hulk_binary_expr::*;
+use crate::hulk_ast_nodes::hulk_for_expr::ForExpr;
+use crate::hulk_ast_nodes::hulk_identifier::*;
+use crate::hulk_ast_nodes::hulk_if_exp::*;
+use crate::hulk_ast_nodes::hulk_let_in::*;
+use crate::hulk_ast_nodes::hulk_literal::*;
 use crate::hulk_tokens::hulk_operators::*;
-use crate::hulk_tokens::hulk_unary_expr::*;
-use crate::hulk_tokens::hulk_whileloop::*;
+use crate::hulk_ast_nodes::hulk_unary_expr::*;
+use crate::hulk_ast_nodes::hulk_whileloop::*;
+use crate::hulk_ast_nodes::NewTypeInstance;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
+use crate::hulk_ast_nodes::hulk_function_access::FunctionAccess;
+use crate::hulk_ast_nodes::hulk_member_access::MemberAccess;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
@@ -22,7 +25,7 @@ pub struct Expr {
 }
 
 impl Accept for Expr {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+    fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         self.kind.accept(visitor)
     }
 }
@@ -44,6 +47,10 @@ pub enum ExprKind {
     ForExp(ForExpr),
     CodeBlock(Block),
     DestructiveAssign(DestructiveAssignment),
+
+    NewTypeInstance(NewTypeInstance),
+    FunctionAccess(FunctionAccess),
+    MemberAccess(MemberAccess),
 }
 
 impl Expr {
@@ -94,7 +101,7 @@ impl Expr {
 }
 
 impl Accept for ExprKind {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+    fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         match self {
             ExprKind::Number(node) => visitor.visit_number_literal(node),
             ExprKind::Boolean(node) => visitor.visit_boolean_literal(node),
@@ -110,6 +117,9 @@ impl Accept for ExprKind {
             ExprKind::DestructiveAssign(node) => visitor.visit_destructive_assignment(node),
             ExprKind::LetIn(node) => visitor.visit_let_in(node),
             ExprKind::Assignment(node) => visitor.visit_assignment(node),
+            ExprKind::NewTypeInstance(node) => visitor.visit_new_type_instance(node),
+            ExprKind::FunctionAccess(node) => visitor.visit_function_access(node),
+            ExprKind::MemberAccess(node) => visitor.visit_member_access(node),
         }
     }
 }
@@ -137,6 +147,9 @@ impl Codegen for ExprKind {
             ExprKind::ForExp(forexp) => forexp.codegen(context),
             ExprKind::CodeBlock(block) => block.codegen(context),
             ExprKind::DestructiveAssign(destruct) => destruct.codegen(context),
+            ExprKind::NewTypeInstance(new_type_instance) => todo!(),
+            ExprKind::FunctionAccess(function_access) => todo!(),
+            ExprKind::MemberAccess(member_access) => todo!(),
         }
     }
 }

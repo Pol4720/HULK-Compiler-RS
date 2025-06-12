@@ -1,12 +1,12 @@
 [package]
-name = "simple_calc"
+name = "Hulk_Compiler"
 version = "0.1.0"
 edition = "2024"
 build = "build.rs"
 
 [dependencies]
 lalrpop-util = { version = "0.22.1", features = ["lexer"] }
-
+either = "1.9"
 
 [build-dependencies]
 lalrpop = "0.22.1"

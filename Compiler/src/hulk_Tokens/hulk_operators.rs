@@ -28,7 +28,6 @@ pub enum UnaryOperator {
     Plus,
     Minus,
     LogicalNot,
-
 }
 
 
@@ -42,5 +41,6 @@ pub enum DelimiterToken {
     Rparen,
     Lbrace,
     Arrow,
+    DotAccess,
     Rbrace,
 }

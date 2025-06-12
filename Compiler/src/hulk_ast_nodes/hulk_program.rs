@@ -1,8 +1,9 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::hulk_tokens::hulk_expression::Expr;
+use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
+use crate::hulk_ast_nodes::hulk_type_def::HulkTypeNode;
 
 use super::FunctionDef;
 
@@ -13,15 +14,9 @@ pub struct ProgramNode {
 
 impl ProgramNode {
     pub fn new(instructions: Vec<Instruction>) -> Self {
-        ProgramNode {
-            instructions: instructions,
-        }
+        ProgramNode { instructions: instructions }
     }
-    pub fn with_instructions(
-        pre: Vec<Instruction>,
-        expr: Box<Expr>,
-        post: Vec<Instruction>,
-    ) -> Self {
+    pub fn with_instructions(pre: Vec<Instruction>, expr: Box<Expr>, post: Vec<Instruction>) -> Self {
         let mut instructions = pre;
         instructions.push(Instruction::Expression(expr));
         instructions.extend(post);
@@ -30,17 +25,17 @@ impl ProgramNode {
 }
 
 impl Accept for ProgramNode {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+    fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         visitor.visit_program(self)
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum Instruction {
-    //    Class(ClassDecl),
+    TypeDef(HulkTypeNode),
     FunctionDef(FunctionDef),
-    //    Protocol(ProtocolDecl),
-    Expression(Box<Expr>),
+//    Protocol(ProtocolDecl),
+   Expression(Box<Expr>)
 }
 
 impl Instruction {
@@ -53,13 +48,15 @@ impl Instruction {
 }
 
 impl Accept for Instruction {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+    fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         match self {
             Instruction::Expression(expr) => expr.accept(visitor),
             Instruction::FunctionDef(func_def) => visitor.visit_function_def(func_def),
+            Instruction::TypeDef(type_node) => visitor.visit_type_def(type_node),
         }
     }
 }
+
 
 impl Codegen for ProgramNode {
     fn codegen(&self, context: &mut CodegenContext) -> String {
@@ -76,6 +73,10 @@ impl Codegen for Instruction {
         match self {
             Instruction::FunctionDef(func_def) => func_def.codegen(context),
             Instruction::Expression(expr) => expr.codegen(context),
+            Instruction::TypeDef(_type_node) => {
+                // You can implement codegen for TypeDef here if needed
+                String::new()
+            }
         }
     }
 }

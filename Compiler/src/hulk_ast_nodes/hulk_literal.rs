@@ -1,17 +1,23 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use std::fmt::{self, Display, Formatter};
+use crate::typings::types_node::TypeNode;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NumberLiteral {
     pub value: f64,
+    pub _type: Option<TypeNode>,
 }
 
 impl NumberLiteral {
     pub fn new(value: &str) -> Self {
         Self {
             value: value.parse().unwrap(),
+            _type: None, 
         }
+    }
+    pub fn set_expression_type(&mut self, _type: TypeNode) {
+        self._type = Some(_type);
     }
 }
 
@@ -20,6 +26,7 @@ impl Display for NumberLiteral {
         write!(f, "{}", self.value)
     }
 }
+
 
 impl Codegen for NumberLiteral {
     fn codegen(&self, context: &mut CodegenContext) -> String {
@@ -41,13 +48,18 @@ impl Codegen for NumberLiteral {
 #[derive(Debug, Clone, PartialEq)]
 pub struct BooleanLiteral {
     pub value: bool,
+    pub _type: Option<TypeNode>,
 }
 
 impl BooleanLiteral {
     pub fn new(value: &str) -> Self {
         Self {
             value: value.parse().unwrap(),
+            _type: None,
         }
+    }
+    pub fn set_expression_type(&mut self, _type: TypeNode) {
+        self._type = Some(_type);
     }
 }
 
@@ -77,13 +89,19 @@ impl Codegen for BooleanLiteral {
 #[derive(Debug, Clone, PartialEq)]
 pub struct StringLiteral {
     pub value: String,
+    pub _type: Option<TypeNode>,
 }
 
 impl StringLiteral {
     pub fn new(value: &str) -> Self {
         Self {
             value: value.to_string(),
+            _type: None,
         }
+
+    }
+    pub fn set_expression_type(&mut self, _type: TypeNode) {
+        self._type = Some(_type)
     }
 }
 
@@ -92,6 +110,8 @@ impl Display for StringLiteral {
         write!(f, "{}", self.value)
     }
 }
+
+
 
 impl Codegen for StringLiteral {
     fn codegen(&self, context: &mut CodegenContext) -> String {

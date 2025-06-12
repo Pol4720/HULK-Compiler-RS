@@ -1,32 +1,32 @@
-use super::hulk_operators::*;
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::hulk_tokens::hulk_expression::Expr;
+use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::typings::types_node::TypeNode;
+use crate::hulk_tokens::hulk_operators::BinaryOperatorToken;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BinaryExpr {
     pub left: Box<Expr>,
     pub operator: BinaryOperatorToken,
     pub right: Box<Expr>,
+    pub _type: Option<TypeNode>,
 }
-
 impl BinaryExpr {
     pub fn new(left: Box<Expr>, operator: BinaryOperatorToken, right: Box<Expr>) -> Self {
-        BinaryExpr {
-            left,
-            operator,
-            right,
-        }
+        BinaryExpr { left, operator, right, _type: None }
+    }
+
+    pub fn set_expression_type(&mut self, _type: TypeNode) {
+        self._type = Some(_type);
     }
 }
-
 impl Codegen for BinaryExpr {
     fn codegen(&self, context: &mut CodegenContext) -> String {
         // Función auxiliar para obtener el tipo LLVM de un registro (i32 o double)
         fn get_llvm_type(expr: &Expr) -> &'static str {
             match &expr.kind {
-                crate::hulk_tokens::hulk_expression::ExprKind::Number(_) => "double",
-                crate::hulk_tokens::hulk_expression::ExprKind::Boolean(_) => "i1",
+                crate::hulk_ast_nodes::hulk_expression::ExprKind::Number(_) => "double",
+                crate::hulk_ast_nodes::hulk_expression::ExprKind::Boolean(_) => "i1",
                 _ => "i32", // Por defecto, asume i32 para identificadores y otros
             }
         }

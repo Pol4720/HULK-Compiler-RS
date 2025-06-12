@@ -2,6 +2,7 @@ use lalrpop_util::lalrpop_mod;
 use semantic_visitor::hulk_semantic_visitor::SemanticVisitor;
 use visitor::hulk_visitor::Visitor;
 
+pub mod hulk_ast_nodes;
 pub mod hulk_tokens;
 pub mod visitor;
 pub mod typings;
@@ -17,7 +18,6 @@ use crate::codegen::CodeGenerator;
 
 fn main() {
     let parser = ProgramParser::new();
-
     loop {
         print!("> ");
         io::stdout().flush().unwrap();
@@ -27,34 +27,24 @@ fn main() {
             break;
         }
 
-        // Parse input
-        let parsed_expr = match parser.parse(&input) {
-            Ok(ast) => ast,
-            Err(e) => {
-                eprintln!("\x1b[31mError de parsing: {:?}\x1b[0m", e);
-                continue;
-            }
-        };
-
-        // Pretty print del AST
+        let mut parsed_expr = parser.parse(&input).unwrap();
         let mut print_visitor = PreetyPrintVisitor;
-        println!("\n\x1b[34m{}\x1b[0m", print_visitor.visit_program(&parsed_expr));
-
-        // Análisis semántico
         let mut semantic_visitor = SemanticVisitor::new();
-        match semantic_visitor.analyze(&parsed_expr) {
+        let res = semantic_visitor.analyze(&mut parsed_expr);
+        match res {
             Ok(_) => {
-                println!("Análisis semántico exitoso.");
+                println!("Parsed successfully And zero semantic errors!");
             }
             Err(errors) => {
-                println!("\x1b[31mErrores semánticos:");
+                println!("\x1b[31mErrors:");
                 for err in errors.iter() {
-                    println!("{}", err.message());
+                println!("{}", err.message());
                 }
                 println!("\x1b[0m");
-                continue;
             }
         }
+        println!("");
+        println!("\x1b[34m{}\x1b[0m", print_visitor.visit_program(&mut parsed_expr));
 
         // Codegen y ejecución
         println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
