@@ -16,7 +16,9 @@ pub enum KeywordToken {
     Continue,
     Import,
     Type,
+    Inherits,
     For,
+    New,
 }
 
 impl Display for KeywordToken {
@@ -33,11 +35,13 @@ impl Display for KeywordToken {
             KeywordToken::Protocol => write!(f, "protocol"),
             KeywordToken::Type => write!(f, "type"),
             KeywordToken::Return => write!(f, "return"),
+            KeywordToken::Inherits => write!(f, "inherits"),
             KeywordToken::Break => write!(f, "break"),
             KeywordToken::Continue => write!(f, "continue"),
             KeywordToken::Import => write!(f, "import"),
             KeywordToken::For => write!(f, "for"),
             KeywordToken::Elif => write!(f, "elif"),
+            KeywordToken::New => write!(f, "new"),
         }
     }
 }

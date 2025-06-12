@@ -1,4 +1,5 @@
 use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_ast_nodes::HulkTypeNode;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
 
@@ -19,12 +20,11 @@ impl ProgramNode {
         instructions.extend(post);
         ProgramNode { instructions }
     }
-
 }
 
 
 impl Accept for ProgramNode {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+    fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         visitor.visit_program(self)
     }
 }
@@ -32,8 +32,8 @@ impl Accept for ProgramNode {
 
 #[derive(Debug, Clone)]
 pub enum Instruction {
-//    Class(ClassDecl),
-   FunctionDef(FunctionDef),
+    TypeDef(HulkTypeNode),
+    FunctionDef(FunctionDef),
 //    Protocol(ProtocolDecl),
    Expression(Box<Expr>)
 }
@@ -49,10 +49,11 @@ impl Instruction {
 }
 
 impl Accept for Instruction {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+    fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         match self {
             Instruction::Expression(expr) => expr.accept(visitor),
-            Instruction::FunctionDef(func_def) => visitor.visit_function_def(func_def)
+            Instruction::FunctionDef(func_def) => visitor.visit_function_def(func_def),
+            Instruction::TypeDef(type_node) => visitor.visit_type_def(type_node),
         }
     }
 }

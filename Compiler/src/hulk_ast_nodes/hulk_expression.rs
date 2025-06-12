@@ -9,7 +9,10 @@ use crate::hulk_ast_nodes::hulk_unary_expr::*;
 use crate::hulk_ast_nodes::hulk_whileloop::*;
 use crate::hulk_ast_nodes::Block;
 use crate::hulk_ast_nodes::DestructiveAssignment;
+use crate::hulk_ast_nodes::FunctionAccess;
 use crate::hulk_ast_nodes::FunctionCall;
+use crate::hulk_ast_nodes::MemberAccess;
+use crate::hulk_ast_nodes::NewTypeInstance;
 use crate::hulk_tokens::hulk_operators::*;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
@@ -21,7 +24,7 @@ pub struct Expr {
 }
 
 impl Accept for Expr {
-    fn accept<V: Visitor<T>, T>(&self, visitor: &mut V) -> T {
+    fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         self.kind.accept(visitor)
     }
 }
@@ -42,7 +45,11 @@ pub enum ExprKind {
     WhileLoop(WhileLoop),
     ForExp(ForExpr),
     CodeBlock(Block),
-    DestructiveAssign(DestructiveAssignment)
+    DestructiveAssign(DestructiveAssignment),
+
+    NewTypeInstance(NewTypeInstance),
+    FunctionAccess(FunctionAccess),
+    MemberAccess(MemberAccess),
 }
 
 
@@ -95,7 +102,7 @@ impl Expr {
 }
 
 impl Accept for ExprKind {
-    fn accept<V: Visitor<T>,T>(&self, visitor: &mut V) -> T {
+    fn accept<V: Visitor<T>,T>(&mut self, visitor: &mut V) -> T {
         match self {
             ExprKind::Number(node) => visitor.visit_number_literal(node),
             ExprKind::Boolean(node) => visitor.visit_boolean_literal(node),
@@ -111,6 +118,9 @@ impl Accept for ExprKind {
             ExprKind::DestructiveAssign(node) => visitor.visit_destructive_assignment(node),
             ExprKind::LetIn(node) => visitor.visit_let_in(node),
             ExprKind::Assignment(node) => visitor.visit_assignment(node),
+            ExprKind::NewTypeInstance(node) => visitor.visit_new_type_instance(node),
+            ExprKind::FunctionAccess(node) => visitor.visit_function_access(node),
+            ExprKind::MemberAccess(node) => visitor.visit_member_access(node),
         }
     }
 }

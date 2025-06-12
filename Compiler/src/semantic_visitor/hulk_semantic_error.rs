@@ -1,5 +1,4 @@
-use crate::hulk_tokens::hulk_operators::BinaryOperatorToken;
-use crate::hulk_tokens::hulk_operators::UnaryOperator;
+use crate::hulk_tokens::hulk_operators::{BinaryOperatorToken, UnaryOperator};
 use crate::typings::types_node::TypeNode;
 
 
@@ -14,10 +13,17 @@ pub enum SemanticError {
     UndeclaredFunction(String),
     UnknownError(String),
     InvalidArgumentsCount(usize,usize,String),
-    InvalidTypeArgument(TypeNode,TypeNode,usize,String),
+    InvalidTypeArgument(String,String,String,usize,String),
     InvalidFunctionReturn(TypeNode,TypeNode,String),
     RedefinitionOfVariable(String),
-    UndefinedType(String)
+    UndefinedType(String),
+    ParamNameAlreadyExist(String,String,String),
+    RedefinitionOfType(String),
+    CicleDetected(String),
+    InvalidTypeArgumentCount(usize,usize,String),
+    InvalidTypeFunctionAccess(String,String),
+    InvalidTypePropertyAccess(String,String),
+    InvalidTypeProperty(String, String),
 }
 
 impl SemanticError {
@@ -54,8 +60,8 @@ impl SemanticError {
             SemanticError::InvalidArgumentsCount(curr_arg_count,func_arg_count,func_name) => {
                 format!("Error: function call to {}, expected {} arguments, found {}.",func_name,func_arg_count,curr_arg_count)
             }
-            SemanticError::InvalidTypeArgument(curr_type,func_arg_type,arg_pos ,func_name ) => {
-                format!("Error: function {} receives {} on argument {} but {} was found.",func_name,func_arg_type.type_name,arg_pos + 1,curr_type.type_name)
+            SemanticError::InvalidTypeArgument(stmt,curr_type,arg_type,arg_pos ,stmt_name ) => {
+                format!("Error: {} {} receives {} on argument {} but {} was found.",stmt,stmt_name,arg_type,arg_pos + 1,curr_type)
             }
             SemanticError::InvalidFunctionReturn(body_type,func_return ,func_name ) => {
                 format!("Error: function {} returns {} but function's body returns {}",func_name,func_return.type_name,body_type.type_name)
@@ -65,6 +71,27 @@ impl SemanticError {
             }
             SemanticError::UndefinedType(type_name) => {
                 format!("Error: type {} is not defined.", type_name)
+            }
+            SemanticError::ParamNameAlreadyExist(param_name, stmt_name, stmt) => {
+                format!("Error: parameter name {} already exists in the context of {} {}.", param_name, stmt, stmt_name )
+            }
+            SemanticError::RedefinitionOfType(type_name) => {
+                format!("Error: type {} already defined in this context.", type_name)
+            }
+            SemanticError::CicleDetected(cycle_node) => {
+                format!("Error: Cicle detected on type {}", cycle_node)
+            }
+            SemanticError::InvalidTypeArgumentCount(curr_arg_count, expected_arg_count, type_name) => {
+                format!("Error: type {} expected {} arguments, found {}.", type_name, expected_arg_count, curr_arg_count)
+            }
+            SemanticError::InvalidTypeFunctionAccess(type_name, function_name) => {
+                format!("Error: type {} does not have a function named {}.", type_name, function_name)
+            }
+            SemanticError::InvalidTypePropertyAccess(type_name, property_name) => {
+                format!("Error: can not access property {} of type {} because properties are private.", property_name, type_name)
+            }
+            SemanticError::InvalidTypeProperty(type_name, property_name) => {
+                format!("Error: type {} does not have a property named {}.", type_name, property_name)
             }
         }
     }

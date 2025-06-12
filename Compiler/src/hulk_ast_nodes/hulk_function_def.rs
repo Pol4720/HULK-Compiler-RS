@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::{hulk_ast_nodes::hulk_expression::Expr, typings::types_node::TypeNode};
 
 #[derive(Debug, PartialEq,Clone)]
 pub struct FunctionParams {
@@ -30,6 +30,7 @@ pub struct FunctionDef {
     pub params: Vec<FunctionParams>,
     pub return_type: String,
     pub body: Box<Expr>,
+    pub _type: Option<TypeNode>,
 }
 
 impl FunctionDef {
@@ -39,6 +40,11 @@ impl FunctionDef {
             params,
             return_type,
             body: expr,
+            _type: None,
         }
+    }
+
+    pub fn set_expression_type(&mut self, _type: TypeNode) {
+        self._type = Some(_type);
     }
 }

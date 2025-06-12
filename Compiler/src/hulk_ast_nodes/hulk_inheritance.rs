@@ -1,4 +1,4 @@
-use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_ast_nodes::{hulk_expression::Expr};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Inheritance {

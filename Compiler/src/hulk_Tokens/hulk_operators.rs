@@ -41,5 +41,6 @@ pub enum DelimiterToken {
     Rparen,
     Lbrace,
     Arrow,
+    DotAccess,
     Rbrace,
 }

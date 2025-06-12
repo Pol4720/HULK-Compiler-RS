@@ -23,13 +23,13 @@ fn main() {
             break;
         }
 
-        let parsed_expr = parser.parse(&input).unwrap();
+        let mut parsed_expr = parser.parse(&input).unwrap();
         let mut print_visitor = PreetyPrintVisitor;
         let mut semantic_visitor = SemanticVisitor::new();
-        let res = semantic_visitor.analyze(&parsed_expr);
+        let res = semantic_visitor.analyze(&mut parsed_expr);
         match res {
             Ok(_) => {
-                println!("Parsed successfully!");
+                println!("Parsed successfully And zero semantic errors!");
             }
             Err(errors) => {
                 println!("\x1b[31mErrors:");
@@ -40,6 +40,6 @@ fn main() {
             }
         }
     println!("");
-    println!("\x1b[34m{}\x1b[0m", print_visitor.visit_program(&parsed_expr));
+    println!("\x1b[34m{}\x1b[0m", print_visitor.visit_program(&mut parsed_expr));
 }
 }

@@ -4,9 +4,17 @@ pub use hulk_inheritance::Inheritance;
 pub mod hulk_expression;
 pub use hulk_expression::Expr;
 
-pub mod hulk_type;
-pub use hulk_type::HulkTypeNode;
+pub mod hulk_type_def;
+pub use hulk_type_def::HulkTypeNode;
 
+pub mod hulk_member_access;
+pub use hulk_member_access::MemberAccess;
+
+pub mod hulk_new_instance;
+pub use hulk_new_instance::NewTypeInstance;
+
+pub mod hulk_function_access;
+pub use hulk_function_access::FunctionAccess;
 
 pub mod hulk_for_expr;
 pub use hulk_for_expr::ForExpr;
