@@ -53,7 +53,7 @@ impl Codegen for BinaryExpr {
             match &expr.kind {
                 crate::hulk_ast_nodes::hulk_expression::ExprKind::Number(_) => "double",
                 crate::hulk_ast_nodes::hulk_expression::ExprKind::Boolean(_) => "i1",
-                _ => "i32",
+                _ => "double",
             }
         }
 
