@@ -9,54 +9,78 @@ impl CodeGenerator {
     pub fn generate_and_run<T: CodegenTrait>(node: &T, filename: &str) {
         let mut ctx = CodegenContext::new();
 
-        // Header básico LLVM
-        ctx.emit("declare i32 @printf(i8*, ...)");
-        ctx.emit("@format_int = private constant [4 x i8] c\"%d\\0A\\00\"");
-        ctx.emit("@format_double = private constant [4 x i8] c\"%f\\0A\\00\"");
-        ctx.emit("");
-        ctx.emit("define i32 @main() {");
-
+        // Ejecuta codegen y guarda el resultado
         let result_reg = node.codegen(&mut ctx);
 
-        // Determinar el tipo del resultado para printf
-        // Por defecto, asume i32
-        let mut result_type = "i32";
-        if let Some(last_type) = ctx.symbol_table.get("__last_type__") {
-            result_type = last_type;
+        // Detecta tipo de resultado
+        let mut result_type = "i32"; // por defecto
+        if let Some(t) = ctx.symbol_table.get("__last_type__") {
+            result_type = t;
         }
-        // Si el registro de resultado comienza con '%t' y hay un tipo guardado, úsalo
         if result_reg.starts_with("%t") {
-            if let Some(last_type) = ctx.symbol_table.get(&format!("{}__type", result_reg)) {
-                result_type = last_type;
+            if let Some(t) = ctx.symbol_table.get(&format!("{}__type", result_reg)) {
+                result_type = t;
             }
         }
 
+        // Genera el cuerpo final del archivo LLVM IR
+        let mut final_code = String::new();
+
+        // Cabecera y formatos
+        final_code.push_str("declare i32 @printf(i8*, ...)\n");
+        final_code.push_str("@format_int = private constant [4 x i8] c\"%d\\0A\\00\"\n");
+        final_code.push_str("@format_double = private constant [4 x i8] c\"%f\\0A\\00\"\n");
+        final_code.push_str("@format_bool = private constant [4 x i8] c\"%d\\0A\\00\"\n"); // imprimimos i1 como %d
+        final_code.push_str("@format_str = private constant [3 x i8] c\"%s\\00\"\n");
+
+        // Definiciones globales (strings, etc.)
+        if !ctx.globals.is_empty() {
+            final_code.push_str("\n; Global definitions\n");
+            final_code.push_str(&ctx.globals);
+        }
+
+        // Función main
+        final_code.push_str("\ndefine i32 @main() {\n");
+        final_code.push_str(&ctx.code);
+
+        // Emisión de printf final según tipo
         if !result_reg.is_empty() {
-            if result_type == "double" {
-                ctx.emit(&format!(
+            let print_line = match result_type {
+                "double" => format!(
                     "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_double, i32 0, i32 0), double {})",
                     result_reg
-                ));
-            } else {
-                ctx.emit(&format!(
-                    "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_int, i32 0, i32 0), i32 {})",
+                ),
+                "i1" => {
+                    let extended = ctx.generate_temp();
+                    ctx.code.push_str(&format!("  {} = zext i1 {} to i32\n", extended, result_reg));
+                    format!(
+                        "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_bool, i32 0, i32 0), i32 {})",
+                        extended
+                    )
+                }
+                "i8*" => format!(
+                    "  call i32 (i8*, ...) @printf(i8* getelementptr ([3 x i8], [3 x i8]* @format_str, i32 0, i32 0), i8* {})",
                     result_reg
-                ));
-            }
-        } else {
-            ctx.emit("  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_int, i32 0, i32 0), i32 0)");
+                ),
+                _ => format!(
+                     "  call i32 (i8*, ...) @printf(i8* getelementptr ([3 x i8], [3 x i8]* @format_str, i32 0, i32 0), i8* {})",
+                    result_reg
+                ),
+            };
+            final_code.push_str(&print_line);
+            final_code.push('\n');
         }
 
-        ctx.emit("  ret i32 0");
-        ctx.emit("}");
+        final_code.push_str("  ret i32 0\n");
+        final_code.push_str("}\n");
 
-        //  Aquí imprimimos el código LLVM generado
+        // Mostrar y guardar el código generado
         println!(
             "\n\x1b[35m--- LLVM IR Generado ---\x1b[0m\n{}\n\x1b[35m-------------------------\x1b[0m",
-            ctx.code
+            final_code
         );
 
-        write_to_file(&ctx.code, filename);
+        write_to_file(&final_code, filename);
         run_llvm_ir(filename);
     }
 }
