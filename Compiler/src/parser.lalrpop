@@ -64,6 +64,7 @@ use crate::hulk_ast_nodes::hulk_member_access::MemberAccess;
 use crate::hulk_ast_nodes::hulk_new_instance::NewTypeInstance;
 use crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif;
 use crate::hulk_ast_nodes::hulk_if_exp::ElifBranch;
+use crate::hulk_ast_nodes::hulk_print_expr::PrintExpr;
 
 
 
@@ -358,6 +359,13 @@ FunctionCall: FunctionCall = {
 
 //   let p = new Knight("Diego", "Viera") in p.name() ;
 
+PrintExp: Box<Expr> = {
+    Print LParen <expression: Expr> RParen => Box::new(Expr::new(ExprKind::Print(PrintExpr {
+        expr: expression,
+        _type: None,
+    }))),
+}
+
 UpperExpressions: Box<Expr> = {
     WhileLoop,
     ForExpr,
@@ -367,6 +375,7 @@ UpperExpressions: Box<Expr> = {
 }
 
 PrimaryExpr: Box<Expr> = {
+    PrintExp,
     FunctionCall => Box::new(Expr::new(ExprKind::FunctionCall(<>))),
     TypeFunctionAccess => Box::new(Expr::new(ExprKind::FunctionAccess(<>))),
     TypePropAccess => Box::new(Expr::new(ExprKind::MemberAccess(*<>))),
@@ -458,7 +467,6 @@ IfExpr: Box<Expr> = {
     }
 };
 
-// Esta regla permite cero o más elif y opcionalmente un else al final
 ElifElseChain: ElseOrElif = {
     <elif_branch:ElifBranch> => ElseOrElif::Elif(elif_branch),
     <else_branch:ElseBranch> => ElseOrElif::Else(else_branch),

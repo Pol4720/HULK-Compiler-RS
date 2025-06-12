@@ -71,7 +71,9 @@ fn main() {
     
     let a = "
         if (true) {
-            2;
+            if (true) {
+                2;
+            }
         }
         elif (false){
             3;
@@ -79,6 +81,8 @@ fn main() {
         else{ 
             2;
         };
+        
+        let a = 2, a = 3 in (print(a));
 
     ";
     let inp = "

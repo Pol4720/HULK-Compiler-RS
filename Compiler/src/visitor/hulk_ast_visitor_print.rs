@@ -20,6 +20,7 @@ use crate::{
 };
 
 use crate::hulk_ast_nodes::hulk_if_exp::IfExpr;
+use crate::hulk_ast_nodes::hulk_print_expr::PrintExpr;
 use crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif;
 
 use super::hulk_visitor::Visitor;
@@ -225,5 +226,10 @@ fn visit_type_def(&mut self, node: &mut HulkTypeNode) -> String {
             "ElifBranch:\nCondition: {}\nThen: {}\nElse: {}",
             condition, then_branch, else_branch
         )
+    }
+    
+    fn visit_print_expr(&mut self, node: &mut crate::hulk_ast_nodes::hulk_print_expr::PrintExpr) -> String {
+        let expr = node.expr.accept(self);
+        format!("Print: {}", expr)
     }
 }

@@ -38,9 +38,9 @@ impl Display for KeywordToken {
         match self {
             KeywordToken::Let => write!(f, "let"),
             KeywordToken::If => write!(f, "if"),
+            KeywordToken::Print => write!(f,"print"),
             KeywordToken::Else => write!(f, "else"),
             KeywordToken::While => write!(f, "while"),
-            KeywordToken::Print => write!(f, "print"),
             KeywordToken::In => write!(f, "in"),    
             KeywordToken::Function => write!(f, "function"),
             KeywordToken::Class => write!(f, "class"),
