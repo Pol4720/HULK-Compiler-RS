@@ -58,8 +58,8 @@ impl Codegen for BinaryExpr {
         }
 
         // Generar código y obtener registros
-        let mut left_reg = self.left.codegen(context);
-        let mut right_reg = self.right.codegen(context);
+        let left_reg = self.left.codegen(context);
+        let right_reg = self.right.codegen(context);
 
         // Obtener tipo declarado por los nodos
         let left_type = get_llvm_type(&self.left);

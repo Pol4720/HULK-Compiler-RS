@@ -62,6 +62,12 @@ use crate::hulk_ast_nodes::hulk_inheritance::Inheritance;
 use crate::hulk_ast_nodes::hulk_function_access::FunctionAccess;
 use crate::hulk_ast_nodes::hulk_member_access::MemberAccess;
 use crate::hulk_ast_nodes::hulk_new_instance::NewTypeInstance;
+use crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif;
+use crate::hulk_ast_nodes::hulk_if_exp::ElifBranch;
+
+
+
+
 
 
 grammar;
@@ -442,19 +448,32 @@ LetIn: Box<Expr> = {
 };
 
 IfExpr: Box<Expr> = {
-    <if_Keyword: IfKeyword> LParen <condition:Expr> RParen <then_branch:CodeBlock> <else_branch:ElseBranchOpt> => {
+    <if_keyword: IfKeyword> LParen <condition:Expr> RParen <then_branch:CodeBlock> <elif_else:ElifElseChain?> => {
         Box::new(Expr::new(ExprKind::If(IfExpr::new(
-            if_Keyword,
+            if_keyword,
             condition,
             then_branch,
-            else_branch,
+            elif_else,
         ))))
     }
 };
 
-ElseBranchOpt: Option<ElseBranch> = {
-    ElseBranch => Some(<>),
-    => None,
+// Esta regla permite cero o más elif y opcionalmente un else al final
+ElifElseChain: ElseOrElif = {
+    <elif_branch:ElifBranch> => ElseOrElif::Elif(elif_branch),
+    <else_branch:ElseBranch> => ElseOrElif::Else(else_branch),
+};
+
+// Un elif puede encadenar otro elif o else
+ElifBranch: ElifBranch = {
+    <elif_keyword:Elif> LParen <condition:Expr> RParen <then_branch:CodeBlock> <next:ElifElseChain?> => {
+        ElifBranch::new(
+            elif_keyword,
+            condition,
+            then_branch,
+            next.map(Box::new),
+        )
+    }
 };
 
 ElseBranch: ElseBranch = {

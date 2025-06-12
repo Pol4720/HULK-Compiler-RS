@@ -13,11 +13,14 @@
 use crate::{
     hulk_ast_nodes::{
         Assignment, DestructiveAssignment, BinaryExpr, ForExpr, Block, BooleanLiteral, ElseBranch,
-        ExpressionList, FunctionCall, FunctionDef, Identifier, IfExpr, LetIn, NumberLiteral,
+        ExpressionList, FunctionCall, FunctionDef, Identifier, LetIn, NumberLiteral,
         ProgramNode, StringLiteral, UnaryExpr, WhileLoop, HulkTypeNode,
     },
     visitor::hulk_accept::Accept,
 };
+
+use crate::hulk_ast_nodes::hulk_if_exp::IfExpr;
+use crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif;
 
 use super::hulk_visitor::Visitor;
 
@@ -90,7 +93,10 @@ impl Visitor<String> for PreetyPrintVisitor {
         let condition = if_expr.condition.accept(self);
         let then_branch = if_expr.then_branch.accept(self);
         let else_branch = if_expr.else_branch.as_mut()
-            .map_or("None".to_string(), |e| e.accept(self));
+                    .map_or("None".to_string(), |e| match e {
+                        ElseOrElif::Else(else_branch) => else_branch.accept(self),
+                        ElseOrElif::Elif(elif_branch) => elif_branch.accept(self),
+                    });
         format!(
             "IfExpr:\nCondition: {}\nThen: {}\nElse: {}",
             condition, then_branch, else_branch
@@ -205,5 +211,19 @@ fn visit_type_def(&mut self, node: &mut HulkTypeNode) -> String {
         let object = node.object.accept(self);
         let member = &node.member;
         format!("{}.{}", object, member)
+    }
+    
+    fn visit_elif_branch(&mut self, node: &mut crate::hulk_ast_nodes::hulk_if_exp::ElifBranch) -> String {
+        let condition = node.condition.accept(self);
+        let then_branch = node.body.accept(self);
+        let else_branch = node.next.as_mut()
+            .map_or("None".to_string(), |e| match &mut **e {
+                crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif::Else(else_branch) => else_branch.accept(self),
+                crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif::Elif(elif_branch) => elif_branch.accept(self),
+            });
+        format!(
+            "ElifBranch:\nCondition: {}\nThen: {}\nElse: {}",
+            condition, then_branch, else_branch
+        )
     }
 }
