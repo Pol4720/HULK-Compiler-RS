@@ -48,7 +48,7 @@ pub fn run_llvm_ir(filename: &str) {
     }
 
     let exec_cmd = if cfg!(target_os = "windows") {
-        output.to_string()
+        format!(".\\{}", output)
     } else {
         format!("./{}", output)
     };
