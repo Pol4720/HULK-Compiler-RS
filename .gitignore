@@ -7,3 +7,4 @@
 Compiler/target
 
 *.ll
+*.exe
