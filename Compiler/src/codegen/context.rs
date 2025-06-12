@@ -1,15 +1,17 @@
 use std::collections::HashMap;
 
 pub struct CodegenContext {
-    pub code: String,
+    pub code: String,                     // Código dentro de main
+    pub globals: String,                 // Definiciones globales (strings, etc.)
     pub temp_counter: usize,
-    pub symbol_table: HashMap<String, String>, // nombre -> registro
+    pub symbol_table: HashMap<String, String>,
 }
 
 impl CodegenContext {
     pub fn new() -> Self {
         Self {
             code: String::new(),
+            globals: String::new(),
             temp_counter: 0,
             symbol_table: HashMap::new(),
         }
@@ -33,18 +35,18 @@ impl CodegenContext {
     }
 
     pub fn emit_global(&mut self, line: &str) {
-        self.code.push_str(line);
-        self.code.push('\n');
+        self.globals.push_str(line);
+        self.globals.push('\n');
     }
 
     pub fn register_variable(&mut self, name: &str, reg: String) {
         self.symbol_table.insert(name.to_string(), reg);
     }
 
-    // Si necesitas manejar strings constantes en LLVM IR, implementa este método
     pub fn generate_string_const_name(&mut self) -> String {
         let name = format!(".str.{}", self.temp_counter);
         self.temp_counter += 1;
         name
     }
 }
+

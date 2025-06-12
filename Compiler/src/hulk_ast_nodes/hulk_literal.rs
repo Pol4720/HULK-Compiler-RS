@@ -124,7 +124,7 @@ impl Codegen for StringLiteral {
 
         // Asegura que termine en nulo para C strings
         let null_terminated = format!("{}\\00", escaped);
-        let byte_count = null_terminated.len();
+        let byte_count = escaped.len() + 1; // Tamaño del string más el terminador nulo.
 
         // Nombre único para la constante
         let const_name = context.generate_string_const_name();
@@ -147,3 +147,4 @@ impl Codegen for StringLiteral {
         ptr_reg // Devuelve el nombre del registro con la dirección del string
     }
 }
+
