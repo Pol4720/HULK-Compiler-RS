@@ -109,7 +109,7 @@ fn main() {
             2;
         };
         
-        let a = 2, a = 3 in (print(a));
+        let a = 2, a = 3 in (print(a) + b);
 
     ";
     let inp = "
