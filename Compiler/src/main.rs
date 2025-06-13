@@ -247,9 +247,9 @@ fn main() {
             }
         }
         // Codegen y ejecución
-        // println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
-        // CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
+        println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
+        CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
 
-        // println!("\n");
+        println!("\n");
     // }
 }
