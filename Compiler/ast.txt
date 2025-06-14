@@ -1,0 +1,13 @@
+Program:
+
+LetIn:
+Assignments:
+Assignment: a = NumberLiteral: 42
+Body:
+Print: IfExpr:
+Condition: BinaryExpr: BinaryExpr: Identifier: a Mod NumberLiteral: 2 Eq NumberLiteral: 0
+Then: CodeBlock:
+StringLiteral: even
+Else: ElseBranch:
+CodeBlock:
+StringLiteral: odd

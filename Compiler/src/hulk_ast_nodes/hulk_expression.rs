@@ -184,7 +184,7 @@ impl Codegen for ExprKind {
             ExprKind::NewTypeInstance(new_type_instance) => todo!(),
             ExprKind::FunctionAccess(function_access) => todo!(),
             ExprKind::MemberAccess(member_access) => todo!(),
-            ExprKind::Print(print) => todo!(),
+            ExprKind::Print(print) => print.codegen(context),
             ExprKind::FunctionBody(function_body) => todo!(),
             ExprKind::ArrowExpression(arrow_expression) => todo!(),
         }

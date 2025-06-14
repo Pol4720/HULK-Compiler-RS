@@ -132,35 +132,102 @@ impl Accept for ElseBranch {
     }
 }
 
+// impl Codegen for IfExpr {
+//     /// Genera el código LLVM IR para la expresión condicional `if`.
+//     ///
+//     /// Crea las etiquetas y el flujo de control necesarios para implementar la condición,
+//     /// ejecuta las ramas y utiliza una instrucción `phi` para seleccionar el resultado.
+//     fn codegen(&self, context: &mut CodegenContext) -> String {
+//         let cond_val = self.condition.codegen(context);
+
+//         let then_label = context.generate_label("then");
+//         let else_label = context.generate_label("else");
+//         let merge_label = context.generate_label("ifend");
+
+//         let result_reg = context.generate_temp();
+
+//         // Br condicional
+//         context.emit(&format!(
+//             "  br i1 {}, label %{}, label %{}",
+//             cond_val, then_label, else_label
+//         ));
+
+//         // Then block
+//         context.emit(&format!("{}:", then_label));
+//         let then_val = self.then_branch.codegen(context);
+//         context.emit(&format!("  br label %{}", merge_label));
+
+//         // Else block
+//         context.emit(&format!("{}:", else_label));
+//         let else_val = match &self.else_branch {
+//             Some(ElseOrElif::Else(else_branch)) => {
+//             else_branch.codegen(context)
+//             }
+//             Some(ElseOrElif::Elif(elif_branch)) => {
+//             // Construye un nuevo IfExpr a partir del ElifBranch y llama a su codegen
+//             let new_if = IfExpr {
+//                 if_keyword: elif_branch.elif_keyword.clone(),
+//                 condition: elif_branch.condition.clone(),
+//                 then_branch: elif_branch.body.clone(),
+//                 else_branch: elif_branch.next.as_ref().map(|b| (**b).clone()),
+//                 _type: elif_branch._type.clone(),
+//             };
+//             new_if.codegen(context)
+//             }
+//             None => {
+//             // Por defecto, `0` si no hay rama else
+//             let tmp = context.generate_temp();
+//             context.emit(&format!("  {} = fadd double 0.0, 0.0", tmp));
+//             tmp
+//             }
+//         };
+//         context.emit(&format!("  br label %{}", merge_label));
+
+//         // Merge block
+//         context.emit(&format!("{}:", merge_label));
+//         context.emit(&format!(
+//             "  {} = phi double [ {}, %{} ], [ {}, %{} ]",
+//             result_reg,
+//             then_val,
+//             then_label,
+//             else_val,
+//             else_label
+//         ));
+
+//         result_reg
+//     }
+// }
+
+
 impl Codegen for IfExpr {
     /// Genera el código LLVM IR para la expresión condicional `if`.
     ///
     /// Crea las etiquetas y el flujo de control necesarios para implementar la condición,
     /// ejecuta las ramas y utiliza una instrucción `phi` para seleccionar el resultado.
     fn codegen(&self, context: &mut CodegenContext) -> String {
+        // Evalúa condición
         let cond_val = self.condition.codegen(context);
 
+        let cond_bool = context.generate_temp();
+        context.emit(&format!("  {} = icmp ne i1 {}, 0", cond_bool, cond_val));
 
+        // Etiquetas
         let then_label = context.generate_label("then");
         let else_label = context.generate_label("else");
-        let merge_label = context.generate_label("ifend");
+        let end_label = context.generate_label("endif");
 
-        let result_reg = context.generate_temp();
+        // Salto según condición
+        context.emit(&format!("  br i1 {}, label %{}, label %{}", cond_bool, then_label, else_label));
 
-        // Br condicional
-        context.emit(&format!(
-            "  br i1 {}, label %{}, label %{}",
-            cond_val, then_label, else_label
-        ));
-
-        // Then block
+        // THEN block
         context.emit(&format!("{}:", then_label));
-        let then_val = self.then_branch.codegen(context);
-        context.emit(&format!("  br label %{}", merge_label));
+        let then_reg = self.then_branch.codegen(context);
+        let then_type = context.symbol_table.get("__last_type__").cloned().unwrap_or("i32".to_string());
+        context.emit(&format!("  br label %{}", end_label));
 
-        // Else block
+        // ELSE/ELIF block
         context.emit(&format!("{}:", else_label));
-        let else_val = match &self.else_branch {
+        let else_reg = match &self.else_branch {
             Some(ElseOrElif::Else(else_branch)) => {
             else_branch.codegen(context)
             }
@@ -178,26 +245,33 @@ impl Codegen for IfExpr {
             None => {
             // Por defecto, `0` si no hay rama else
             let tmp = context.generate_temp();
-            context.emit(&format!("  {} = add i32 0, 0", tmp));
+            context.emit(&format!("  {} = fadd double 0.0, 0.0", tmp));
             tmp
             }
         };
-        context.emit(&format!("  br label %{}", merge_label));
+        let else_type = context.symbol_table.get("__last_type__").cloned().unwrap_or("i32".to_string());
+        context.emit(&format!("  br label %{}", end_label));
 
-        // Merge block
-        context.emit(&format!("{}:", merge_label));
+        // END block
+        context.emit(&format!("{}:", end_label));
+        let result = context.generate_temp();
+
+        // Verificación de tipos
+        if then_type != else_type {
+            panic!("Tipos incompatibles en ramas if: {} vs {}", then_type, else_type);
+        }
+
+        // PHI para unir los valores de las dos ramas
         context.emit(&format!(
-            "  {} = phi i32 [ {}, %{} ], [ {}, %{} ]",
-            result_reg,
-            then_val,
-            then_label,
-            else_val,
-            else_label
+            "  {} = phi {} [ {}, %{} ], [ {}, %{} ]",
+            result, then_type, then_reg, then_label, else_reg, else_label
         ));
 
-        result_reg
+        context.symbol_table.insert("__last_type__".to_string(), then_type);
+        result
     }
 }
+
 
 impl Codegen for ElseBranch {
     /// Genera el código LLVM IR para la rama `else`.
@@ -206,55 +280,3 @@ impl Codegen for ElseBranch {
     }
 }
 
-//En caso de q no pinche codegen de if con elif.
-
-// impl Codegen for ElifBranch {
-//     fn codegen(&self, context: &mut CodegenContext) -> String {
-//         let cond_val = self.condition.codegen(context);
-
-//         let then_label = context.generate_label("elif_then");
-//         let else_label = context.generate_label("elif_else");
-//         let merge_label = context.generate_label("elif_end");
-
-//         let result_reg = context.generate_temp();
-
-//         // Br condicional
-//         context.emit(&format!(
-//             "  br i1 {}, label %{}, label %{}",
-//             cond_val, then_label, else_label
-//         ));
-
-//         // Then block
-//         context.emit(&format!("{}:", then_label));
-//         let then_val = self.body.codegen(context);
-//         context.emit(&format!("  br label %{}", merge_label));
-
-//         // Else block (puede ser otro elif o else)
-//         context.emit(&format!("{}:", else_label));
-//         let else_val = match &self.next {
-//             Some(next) => match &**next {
-//                 ElseOrElif::Else(else_branch) => else_branch.codegen(context),
-//                 ElseOrElif::Elif(elif_branch) => elif_branch.codegen(context),
-//             },
-//             None => {
-//                 let tmp = context.generate_temp();
-//                 context.emit(&format!("  {} = add i32 0, 0", tmp));
-//                 tmp
-//             }
-//         };
-//         context.emit(&format!("  br label %{}", merge_label));
-
-//         // Merge block
-//         context.emit(&format!("{}:", merge_label));
-//         context.emit(&format!(
-//             "  {} = phi i32 [ {}, %{} ], [ {}, %{} ]",
-//             result_reg,
-//             then_val,
-//             then_label,
-//             else_val,
-//             else_label
-//         ));
-
-//         result_reg
-//     }
-// }

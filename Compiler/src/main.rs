@@ -196,8 +196,8 @@ fn main() {
 
 
 
-    // let input_hulk = fs::read_to_string("/Users/mauriciosundejimenez/Hulk-Project/HULK-Compiler-RS/script.hulk")
-    //     .expect("Failed to read input file");
+    let input_hulk = fs::read_to_string("../script.hulk")
+        .expect("Failed to read input file");
 
     // loop {
         print!("> ");

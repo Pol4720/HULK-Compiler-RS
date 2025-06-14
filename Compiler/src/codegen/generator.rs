@@ -43,33 +43,33 @@ impl CodeGenerator {
         final_code.push_str("\ndefine i32 @main() {\n");
         final_code.push_str(&ctx.code);
 
-        // Emisión de printf final según tipo
-        if !result_reg.is_empty() {
-            let print_line = match result_type {
-                "double" => format!(
-                    "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_double, i32 0, i32 0), double {})",
-                    result_reg
-                ),
-                "i1" => {
-                    let extended = ctx.generate_temp();
-                    ctx.code.push_str(&format!("  {} = zext i1 {} to i32\n", extended, result_reg));
-                    format!(
-                        "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_bool, i32 0, i32 0), i32 {})",
-                        extended
-                    )
-                }
-                "i8*" => format!(
-                    "  call i32 (i8*, ...) @printf(i8* getelementptr ([3 x i8], [3 x i8]* @format_str, i32 0, i32 0), i8* {})",
-                    result_reg
-                ),
-                _ => format!(
-                     "  call i32 (i8*, ...) @printf(i8* getelementptr ([3 x i8], [3 x i8]* @format_str, i32 0, i32 0), i8* {})",
-                    result_reg
-                ),
-            };
-            final_code.push_str(&print_line);
-            final_code.push('\n');
-        }
+        // // Emisión de printf final según tipo
+        // if !result_reg.is_empty() {
+        //     let print_line = match result_type {
+        //         "double" => format!(
+        //             "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_double, i32 0, i32 0), double {})",
+        //             result_reg
+        //         ),
+        //         "i1" => {
+        //             let extended = ctx.generate_temp();
+        //             ctx.code.push_str(&format!("  {} = zext i1 {} to i32\n", extended, result_reg));
+        //             format!(
+        //                 "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_bool, i32 0, i32 0), i32 {})",
+        //                 extended
+        //             )
+        //         }
+        //         "i8*" => format!(
+        //             "  call i32 (i8*, ...) @printf(i8* getelementptr ([3 x i8], [3 x i8]* @format_str, i32 0, i32 0), i8* {})",
+        //             result_reg
+        //         ),
+        //         _ => format!(
+        //              "  call i32 (i8*, ...) @printf(i8* getelementptr ([3 x i8], [3 x i8]* @format_str, i32 0, i32 0), i8* {})",
+        //             result_reg
+        //         ),
+        //     };
+        //     final_code.push_str(&print_line);
+        //     final_code.push('\n');
+        // }
 
         final_code.push_str("  ret i32 0\n");
         final_code.push_str("}\n");
@@ -84,3 +84,4 @@ impl CodeGenerator {
         run_llvm_ir(filename);
     }
 }
+
