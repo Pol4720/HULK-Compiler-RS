@@ -140,7 +140,7 @@ fn main() {
     let x = SumLet( 5, 5) in x ;
     ";
 
-    let input_hulk = fs::read_to_string("../../script.hulk")
+    let input_hulk = fs::read_to_string("../script.hulk")
         .expect("Failed to read input file");
 
     // loop {
