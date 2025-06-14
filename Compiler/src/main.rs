@@ -31,7 +31,7 @@ fn main() {
 
         setX(x: Number) : Number => self.x := x ;
         setY(y: Number) : Number => self.y := y ;
-    }; 
+    }
 
 
     let x = new Point(3, 4) in (x.getX() + x.getY()) ;
@@ -42,14 +42,15 @@ fn main() {
         } else {
             \"hola\" ;
         }
-    } ;
+    } 
+
     function SumPro ( a: Number , b : Number ) : Object {
         if ( a > b ) {
             5 ;
         } else {
             SumLet( a, b ) ;
         }
-    } ;
+    }
 
     for ( i in range(1,10) ) {
         if ( i > 5 ) {
@@ -67,6 +68,32 @@ fn main() {
 
     let x = SumLet( 5, 5) in x ;";
 
+    let test_lca = "
+        type Animal {
+            speak() : String => \"Some sound\" ;
+        } 
+        type Dog (name: String) inherits Animal {
+            name = name ;
+
+            speak() : String => \"Woof!\" ;
+        } 
+        type Cat (name: String) inherits Animal {
+            name = name ;
+
+            speak() : String => \"Meow!\" ;
+        } 
+
+        function testLCA(cond: Boolean): Animal {
+        if (2 < 3) {
+            new Dog(\"Buddy\");
+        }
+        elif(2 > 3){
+            new Cat(\"Whiskers\");
+        }
+        else {
+            new Animal();
+        }
+    }";
     
     let a = "
         if (true) {
@@ -91,8 +118,13 @@ fn main() {
         } else {
             \"hola\" ;
         }
-    } ;
+    }
+
+    let a = 2  in print(a);
+    
+    
     ";
+    
     let input = "
     type Point (x: Number, y: Number) {
         x = x;
@@ -103,7 +135,7 @@ fn main() {
 
         setX(x: Number) : Number => self.x := x ;
         setY(y: Number) : Number => self.y := y ;
-    }; 
+    }
 
 
     let x = new Point(3, 4) in (x.getX() + x.getY()) ;
@@ -114,14 +146,14 @@ fn main() {
         } else {
             \"hola\" ;
         }
-    } ;
+    }
     function SumPro ( a: Number , b : Number ) : Object {
         if ( a > b ) {
             5 ;
         } else {
             SumLet( a, b ) ;
         }
-    } ;
+    }
 
     for ( i in range(1,10) ) {
         if ( i > 5 ) {
@@ -140,8 +172,32 @@ fn main() {
     let x = SumLet( 5, 5) in x ;
     ";
 
-    let input_hulk = fs::read_to_string("../../script.hulk")
-        .expect("Failed to read input file");
+    let test_type = "
+        type Point (x: Number, y: Number) {
+        x = x;
+        y = y;
+
+        getX() : Number => self.x;
+        getY() : Number => self.y;
+
+        setX(x: Number) : Number => self.x := x ;
+        setY(y: Number) : Number => self.y := y ;
+    }
+    
+        function SumLet(a: Number , b: Number): Object {
+        if ( a > b ) {
+            5 ;
+        } else {
+            \"hola\" ;
+        }
+    }
+    ";
+    
+
+
+
+    // let input_hulk = fs::read_to_string("/Users/mauriciosundejimenez/Hulk-Project/HULK-Compiler-RS/script.hulk")
+    //     .expect("Failed to read input file");
 
     // loop {
         print!("> ");
@@ -152,31 +208,43 @@ fn main() {
         //     break;
         // }
 
-        let mut parsed_expr = parser.parse(&input_hulk).unwrap();
+        let mut parsed_expr = parser.parse(&test_type).unwrap();
         let mut print_visitor = PreetyPrintVisitor;
         let mut semantic_visitor = SemanticVisitor::new();
         let res = semantic_visitor.check(&mut parsed_expr);
-        let mut ast_file = File::create("ast.txt").expect("No se pudo crear ast.txt");
-
-        let ast_str = print_visitor.visit_program(&mut parsed_expr);
-        println!("\x1b[34m{}\x1b[0m", ast_str);
-        ast_file.write_all(ast_str.as_bytes()).expect("No se pudo escribir en ast.txt");
-
-        match res {
+        match &res {
             Ok(_) => {
-            println!("Parsed successfully And zero semantic errors!");
+                println!("Parsed successfully And zero semantic errors!");
             }
             Err(errors) => {
-            println!("\x1b[31mErrors:");
-            for err in errors.iter() {
+                println!("\x1b[31mErrors:");
+                for err in errors.iter() {
                 println!("{}", err.message());
-                ast_file.write_all(format!("{}\n", err.message()).as_bytes())
-                .expect("No se pudo escribir en ast.txt");
-            }
-            println!("\x1b[0m");
+                }
+                println!("\x1b[0m");
             }
         }
         println!("");
+
+        let mut ast_file = File::create("ast.txt").expect("No se pudo crear ast.txt");
+
+        match &res {
+            Ok(_) => {
+                println!("Parsed successfully And zero semantic errors!");
+                let ast_str = print_visitor.visit_program(&mut parsed_expr);
+                println!("\x1b[34m{}\x1b[0m", ast_str);
+                ast_file.write_all(ast_str.as_bytes()).expect("No se pudo escribir en ast.txt");
+            }
+            Err(errors) => {
+                println!("\x1b[31mErrors:");
+                for err in errors.iter() {
+                    println!("{}", err.message());
+                    ast_file.write_all(format!("{}\n", err.message()).as_bytes())
+                        .expect("No se pudo escribir en ast.txt");
+                }
+                println!("\x1b[0m");
+            }
+        }
         // Codegen y ejecución
         println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
         CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
