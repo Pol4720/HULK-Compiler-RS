@@ -739,8 +739,6 @@ impl Visitor<TypeNode> for SemanticVisitor {
         expr_type
     }
 
-
-
     fn visit_type_def(&mut self, node: &mut HulkTypeNode) -> TypeNode {
         self.build_scope();
         self.current_scope.current_type_def = Some(node.type_name.clone());
