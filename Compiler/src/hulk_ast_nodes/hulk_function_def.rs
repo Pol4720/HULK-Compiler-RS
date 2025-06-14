@@ -7,8 +7,79 @@ use std::fmt;
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_ast_nodes::hulk_expression::{Expr, ExprKind};
+use crate::hulk_ast_nodes::Block;
 use crate::typings::types_node::TypeNode;
+use crate::visitor::hulk_accept::Accept;
+use crate::visitor::hulk_visitor::Visitor;
+
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum FunctionBody {
+    Block(Block),
+    ArrowExpression(ArrowExpression),
+}
+
+impl FunctionBody {
+    pub fn as_arrow_expression(&self) -> Option<&ArrowExpression> {
+        if let Self::ArrowExpression(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_block(&self) -> Option<&Block> {
+        if let Self::Block(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+}
+
+impl From<Box<Expr>> for FunctionBody {
+    fn from(expr: Box<Expr>) -> Self {
+        match expr.kind {
+            ExprKind::CodeBlock(block) => FunctionBody::from(block),
+            _ => {
+                let arrow = ArrowExpression::new(expr);
+                FunctionBody::from(arrow)
+            }
+        }
+    }
+}
+
+
+impl From<Block> for FunctionBody {
+    fn from(v: Block) -> Self {
+        Self::Block(v)
+    }
+}
+
+impl From<ArrowExpression> for FunctionBody {
+    fn from(v: ArrowExpression) -> Self {
+        Self::ArrowExpression(v)
+    }
+}
+
+impl Codegen for FunctionBody {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        match self {
+            FunctionBody::Block(b) => b.codegen(context),
+            FunctionBody::ArrowExpression(a) => a.codegen(context),
+        }
+    }
+}
+
+impl Accept for FunctionBody {
+    fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T{
+        match self {
+            FunctionBody::Block(b) => visitor.visit_code_block(b),
+            FunctionBody::ArrowExpression(a) => a.expression.accept(visitor),
+        }
+    }
+}
 
 /// Representa un parámetro de función en el AST.
 /// 
@@ -37,6 +108,32 @@ impl fmt::Display for FunctionParams {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct FunctionHeaderStruct {
+    pub name: String,
+    pub params: Vec<FunctionParams>,
+    pub signature: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArrowExpression {
+    pub expression: Box<Expr>,
+}
+
+impl ArrowExpression {
+    pub fn new(expression: Box<Expr>) -> Self {
+        Self {
+            expression,
+        }
+    }
+}
+
+impl Codegen for ArrowExpression {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        self.expression.codegen(context)
+    }
+}
+
 /// Representa la definición de una función en el AST.
 /// 
 /// - `name`: nombre de la función.
@@ -49,7 +146,7 @@ pub struct FunctionDef {
     pub name: String,
     pub params: Vec<FunctionParams>,
     pub return_type: String,
-    pub body: Box<Expr>,
+    pub body: FunctionBody,
     pub _type: Option<TypeNode>,
 }
 
@@ -61,12 +158,22 @@ impl FunctionDef {
     /// * `params` - Vector de parámetros.
     /// * `return_type` - Tipo de retorno.
     /// * `expr` - Cuerpo de la función.
-    pub fn new_expr(name: String, params: Vec<FunctionParams>, return_type: String, expr: Box<Expr>) -> Self {
+    pub fn new_expr(name: String, params: Vec<FunctionParams>, return_type: String, body: Box<Expr>) -> Self {
         FunctionDef {
             name,
             params,
             return_type,
-            body: expr,
+            body: FunctionBody::from(body),
+            _type: None,
+        }
+    }
+
+    pub fn from_header(header: FunctionHeaderStruct, body: FunctionBody) -> Self {
+        FunctionDef {
+            name: header.name,
+            params: header.params,
+            return_type: String::from("i32"),
+            body,
             _type: None,
         }
     }
