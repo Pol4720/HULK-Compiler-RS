@@ -20,7 +20,6 @@ use crate::{
 };
 
 use crate::hulk_ast_nodes::hulk_if_exp::IfExpr;
-use crate::hulk_ast_nodes::hulk_print_expr::PrintExpr;
 use crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif;
 
 use super::hulk_visitor::Visitor;
@@ -30,11 +29,15 @@ pub struct PreetyPrintVisitor;
 
 impl Visitor<String> for PreetyPrintVisitor {
     fn visit_program(&mut self, program: &mut ProgramNode) -> String {
+        let definitions = program.definitions.iter_mut()
+            .map(|def| def.accept(self))
+            .collect::<Vec<_>>()
+            .join("\n");
         let instructions = program.instructions.iter_mut()
             .map(|instr| instr.accept(self))
             .collect::<Vec<_>>()
             .join("\n");
-        format!("Program:\n{}", instructions)
+        format!("Program:\n{}\n{}", definitions, instructions)
     }
 
     fn visit_identifier(&mut self, identifier: &mut Identifier) -> String {
@@ -231,5 +234,14 @@ fn visit_type_def(&mut self, node: &mut HulkTypeNode) -> String {
     fn visit_print_expr(&mut self, node: &mut crate::hulk_ast_nodes::hulk_print_expr::PrintExpr) -> String {
         let expr = node.expr.accept(self);
         format!("Print: {}", expr)
+    }
+
+    fn visit_function_body(&mut self, node: &mut crate::hulk_ast_nodes::hulk_function_def::FunctionBody) -> String {
+        match node {
+            crate::hulk_ast_nodes::hulk_function_def::FunctionBody::Block(block) => self.visit_code_block(block),
+            crate::hulk_ast_nodes::hulk_function_def::FunctionBody::ArrowExpression(arrow_expr) => {
+                arrow_expr.expression.accept(self)
+            }
+        }
     }
 }
