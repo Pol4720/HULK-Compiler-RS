@@ -14,7 +14,6 @@ lalrpop_mod!(pub parser);
 use std::fs;
 use std::fs::File;
 use std::io::{self, Write};
-use std::os::unix::raw::ino_t;
 use crate::parser::ProgramParser;
 use crate::visitor::hulk_ast_visitor_print::PreetyPrintVisitor;
 use crate::codegen::CodeGenerator;
