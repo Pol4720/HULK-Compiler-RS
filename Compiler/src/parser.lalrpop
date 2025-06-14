@@ -48,7 +48,7 @@ use crate::hulk_tokens::{
     hulk_operators::*, hulk_keywords::KeywordToken, token_pos::*,
 };
 
-use crate::hulk_ast_nodes::hulk_program::{ProgramNode, Instruction};
+use crate::hulk_ast_nodes::hulk_program::{ProgramNode, Definition};
 use crate::hulk_ast_nodes::hulk_function_def::FunctionDef;
 use crate::hulk_ast_nodes::hulk_function_call::FunctionCall;
 use crate::hulk_ast_nodes::hulk_code_block::ExpressionList;
@@ -65,11 +65,13 @@ use crate::hulk_ast_nodes::hulk_new_instance::NewTypeInstance;
 use crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif;
 use crate::hulk_ast_nodes::hulk_if_exp::ElifBranch;
 use crate::hulk_ast_nodes::hulk_print_expr::PrintExpr;
-
-
-
-
-
+use crate::semantic_visitor::hulk_semantic_visitor::*;
+use crate::semantic_visitor::hulk_semantic_visitor::Instruction;
+use crate::semantic_visitor::hulk_semantic_visitor::program_from_instructions;
+use crate::hulk_ast_nodes::hulk_function_def::FunctionHeaderStruct;
+use crate::hulk_ast_nodes::hulk_function_def::FunctionBody;
+use crate::hulk_ast_nodes::hulk_global_function::GlobalFunctionDef;
+use crate::hulk_ast_nodes::hulk_function_def::ArrowExpression;
 
 grammar;
 
@@ -78,24 +80,55 @@ grammar;
 // ===================
 // Programa principal
 // ===================
+
 pub Program: ProgramNode = {
-    <v:(<Instruction> Semicolon)*> <last:Instruction?> => {
-        let mut vec = v;
-        if let Some(e) = last {
-            vec.push(e);
-        }
-        ProgramNode { instructions: vec.into_iter().map(|b| *b).collect() }
+    InstructionList => program_from_instructions(<>),
+}
+
+InstructionList: Vec<Instruction> = {
+    <mut h:InstructionList> <i:Instruction> => {
+        h.push(i);
+        h
+    },
+    <i:Instruction> => {
+        let mut h: Vec<Instruction> = Vec::new();
+        h.push(i);
+        h
     }
 }
 
-// ===================
-// Instrucciones
-// ===================
-Instruction: Box<Instruction> = {
-    TypeDef => Box::new(Instruction::TypeDef(<>)),
-    FunctionFullDef => Box::new(Instruction::FunctionDef(<>)),
-    FunctionArrowDef => Box::new(Instruction::FunctionDef(<>)),
-    Expr => Box::new(Instruction::Expression(<>)),
+Instruction: Instruction = {
+    Definition => Instruction::from(<>),
+    <x:Expr> ";" => Instruction::from(*x),
+}
+Definition: Definition = {
+    TypeDef => Definition::from(<>),
+    GlobalFunctionDef => Definition::from(<>),
+}
+
+GlobalFunctionDef: GlobalFunctionDef = {
+    <func_keyword:Function> <header:FunctionHeader> <body:FunctionBody> => 
+    GlobalFunctionDef::from_header_and_body
+    (func_keyword, header, body),
+}
+
+FunctionBody: FunctionBody = {
+    <body:ArrowExpression> ";" => FunctionBody::from(body),
+    <block:CodeBlock> => FunctionBody::from(block),
+}
+
+
+FunctionHeader: FunctionHeaderStruct = {
+    <name:Identifier> LParen <params:IdentifierList> RParen DoubleDot <signature:Signature> => {
+        FunctionHeaderStruct { name, params, signature }
+    },
+    <name:Identifier> LParen RParen DoubleDot <signature:Signature> => {
+        FunctionHeaderStruct { name, params: vec![], signature }
+    }
+}
+
+ArrowExpression: ArrowExpression = {
+    Arrow <x:Expr> => ArrowExpression::new(x),
 }
 
 TypeDef: HulkTypeNode = {
@@ -175,23 +208,6 @@ TypePropAccess: Box<MemberAccess> = {
 };
 
 
-FunctionArrowDef: FunctionDef = {
-    Function <name:Identifier> LParen <params:IdentifierList> RParen DoubleDot <s:Signature> Arrow <body:Expr> => {
-        FunctionDef::new_expr(name, params, s, body)
-    },
-    Function <name:Identifier> LParen RParen DoubleDot <s:Signature> Arrow <body:Expr> => {
-        FunctionDef::new_expr(name, vec![], s, body)
-    }
-};
-
-FunctionFullDef: FunctionDef = {
-    Function <name:Identifier> LParen <params:IdentifierList> RParen DoubleDot <s:Signature> <body:CodeBlock> => {
-        FunctionDef::new_expr(name, params, s, body)
-    },
-    Function <name:Identifier> LParen RParen DoubleDot <s:Signature> <body:CodeBlock> => {
-        FunctionDef::new_expr(name, vec![], s, body)
-    }
-};
 
 // ===================
 // Expresiones y listas
@@ -424,6 +440,11 @@ IdentifierList: Vec<FunctionParams> = {
 // ===================
 // Bloques y listas de asignación
 // ===================
+CodeBlockK: Block = {
+    LBrace <body:Exprs_List> RBrace =>
+        Block::new(body),
+}
+
 CodeBlock: Box<Expr> = {
     LBrace <body:Exprs_List> RBrace => Box::new(Expr::new(ExprKind::CodeBlock(
         Block::new(body)

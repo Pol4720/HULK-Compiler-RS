@@ -1,4 +1,4 @@
-use crate::hulk_ast_nodes::{hulk_if_exp::ElifBranch, hulk_print_expr::PrintExpr, *};
+use crate::hulk_ast_nodes::{hulk_function_def::FunctionBody, hulk_if_exp::ElifBranch, hulk_print_expr::PrintExpr, *};
 pub trait Visitor<T> {
     fn visit_program(&mut self, node: &mut ProgramNode) -> T;
     fn visit_function_def(&mut self, node: &mut FunctionDef) -> T;
@@ -23,5 +23,6 @@ pub trait Visitor<T> {
     fn visit_function_access(&mut self, node: &mut FunctionAccess) -> T;
     fn visit_member_access(&mut self, node: &mut MemberAccess) -> T;
     fn visit_destructive_assignment(&mut self, node: &mut DestructiveAssignment) -> T;
+    fn visit_function_body(&mut self, node: &mut FunctionBody) -> T;
     fn visit_print_expr(&mut self, node: &mut PrintExpr) -> T;
 }

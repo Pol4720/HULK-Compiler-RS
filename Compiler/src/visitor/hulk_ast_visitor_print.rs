@@ -20,7 +20,6 @@ use crate::{
 };
 
 use crate::hulk_ast_nodes::hulk_if_exp::IfExpr;
-use crate::hulk_ast_nodes::hulk_print_expr::PrintExpr;
 use crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif;
 
 use super::hulk_visitor::Visitor;
@@ -231,5 +230,14 @@ fn visit_type_def(&mut self, node: &mut HulkTypeNode) -> String {
     fn visit_print_expr(&mut self, node: &mut crate::hulk_ast_nodes::hulk_print_expr::PrintExpr) -> String {
         let expr = node.expr.accept(self);
         format!("Print: {}", expr)
+    }
+
+    fn visit_function_body(&mut self, node: &mut crate::hulk_ast_nodes::hulk_function_def::FunctionBody) -> String {
+        match node {
+            crate::hulk_ast_nodes::hulk_function_def::FunctionBody::Block(block) => self.visit_code_block(block),
+            crate::hulk_ast_nodes::hulk_function_def::FunctionBody::ArrowExpression(arrow_expr) => {
+                arrow_expr.expression.accept(self)
+            }
+        }
     }
 }

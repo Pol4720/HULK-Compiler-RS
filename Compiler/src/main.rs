@@ -68,6 +68,36 @@ fn main() {
 
     let x = SumLet( 5, 5) in x ;";
 
+    let test_lca = "
+
+        type Animal {
+            speak() : String => \"Some sound\" ;
+        } 
+        type Dog (name: String) inherits Animal {
+            name = name ;
+
+            speak() : String => \"Woof!\" ;
+        } 
+        type Cat (name: String) inherits Animal {
+            name = name ;
+
+            speak() : String => \"Meow!\" ;
+        } 
+
+        function testLCA(cond: Boolean): Animal {
+        if (2 < 3) {
+            new Dog(\"Buddy\");
+        }
+        elif(2 > 3){
+            new Cat(\"Whiskers\");
+        }
+        else {
+            new Animal();
+        }
+
+    };
+    
+    ";
     
     let a = "
         if (true) {
@@ -92,8 +122,13 @@ fn main() {
         } else {
             \"hola\" ;
         }
-    } ;
+    }
+
+    let a = 2  in print(a);
+    
+    
     ";
+    
     let input = "
     type Point (x: Number, y: Number) {
         x = x;
@@ -153,11 +188,11 @@ fn main() {
         //     break;
         // }
 
-        let mut parsed_expr = parser.parse(&a).unwrap();
+        let mut parsed_expr = parser.parse(&inp).unwrap();
         let mut print_visitor = PreetyPrintVisitor;
         let mut semantic_visitor = SemanticVisitor::new();
         let res = semantic_visitor.check(&mut parsed_expr);
-        match res {
+        match &res {
             Ok(_) => {
                 println!("Parsed successfully And zero semantic errors!");
             }
@@ -171,12 +206,25 @@ fn main() {
         }
         println!("");
 
-        let ast_str = print_visitor.visit_program(&mut parsed_expr);
-        println!("\x1b[34m{}\x1b[0m", ast_str);
-
         let mut ast_file = File::create("ast.txt").expect("No se pudo crear ast.txt");
-        ast_file.write_all(ast_str.as_bytes()).expect("No se pudo escribir en ast.txt");
 
+        match &res {
+            Ok(_) => {
+                println!("Parsed successfully And zero semantic errors!");
+                let ast_str = print_visitor.visit_program(&mut parsed_expr);
+                println!("\x1b[34m{}\x1b[0m", ast_str);
+                ast_file.write_all(ast_str.as_bytes()).expect("No se pudo escribir en ast.txt");
+            }
+            Err(errors) => {
+                println!("\x1b[31mErrors:");
+                for err in errors.iter() {
+                    println!("{}", err.message());
+                    ast_file.write_all(format!("{}\n", err.message()).as_bytes())
+                        .expect("No se pudo escribir en ast.txt");
+                }
+                println!("\x1b[0m");
+            }
+        }
         // Codegen y ejecución
         // println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
         // CodeGenerator::generate_and_run(&parsed_expr, "out.ll");

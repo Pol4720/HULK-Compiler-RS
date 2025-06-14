@@ -41,8 +41,9 @@ pub use hulk_whileloop::WhileLoop;
 pub mod hulk_let_in;
 pub use hulk_let_in::LetIn;
 
+
 pub mod hulk_program;
-pub use hulk_program::Instruction;
+pub use hulk_program::Definition;
 pub use hulk_program::ProgramNode;
 
 pub mod hulk_code_block;
@@ -51,6 +52,9 @@ pub use hulk_code_block::ExpressionList;
 
 pub mod hulk_function_def;
 pub use hulk_function_def::FunctionDef;
+
+pub mod hulk_global_function;
+pub use hulk_global_function::GlobalFunctionDef;
 
 pub mod hulk_function_call;
 pub use hulk_function_call::FunctionCall;

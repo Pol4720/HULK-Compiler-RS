@@ -8,33 +8,27 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_ast_nodes::GlobalFunctionDef;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
 use crate::hulk_ast_nodes::hulk_type_def::HulkTypeNode;
 
-use super::FunctionDef;
 
 /// Nodo raíz del AST que representa un programa completo.
 /// 
 /// Contiene una lista de instrucciones de alto nivel (definiciones de tipos, funciones y expresiones).
 #[derive(Debug, Clone)]
 pub struct ProgramNode {
-    pub instructions: Vec<Instruction>,
+    pub instructions: Vec<Expr>,
+    pub definitions: Vec<Definition>,
 }
 
 impl ProgramNode {
     /// Crea un nuevo nodo de programa con una lista de instrucciones.
-    pub fn new(instructions: Vec<Instruction>) -> Self {
-        ProgramNode { instructions }
+    pub fn new(instructions: Vec<Expr>, definitions: Vec<Definition>) -> Self {
+        ProgramNode { instructions, definitions }
     }
 
-    /// Crea un nodo de programa combinando instrucciones previas, una expresión y posteriores.
-    pub fn with_instructions(pre: Vec<Instruction>, expr: Box<Expr>, post: Vec<Instruction>) -> Self {
-        let mut instructions = pre;
-        instructions.push(Instruction::Expression(expr));
-        instructions.extend(post);
-        ProgramNode { instructions }
-    }
 }
 
 impl Accept for ProgramNode {
@@ -44,40 +38,91 @@ impl Accept for ProgramNode {
     }
 }
 
-/// Enum que representa las instrucciones de alto nivel de un programa Hulk.
-/// 
-/// - `TypeDef`: definición de tipo/clase.
-/// - `FunctionDef`: definición de función.
-/// - `Expression`: expresión evaluable.
 #[derive(Debug, Clone)]
-pub enum Instruction {
+pub enum Definition {
     TypeDef(HulkTypeNode),
-    FunctionDef(FunctionDef),
-    // Protocol(ProtocolDecl), // Futuro: soporte para protocolos
-    Expression(Box<Expr>)
+    FunctionDef(GlobalFunctionDef),
 }
 
-impl Instruction {
-    /// Evalúa la instrucción si es una expresión, retornando su valor.
-    /// Para otros tipos de instrucción, retorna un error.
-    pub fn eval(&self) -> Result<f64, String> {
-        match self {
-            Instruction::Expression(expr) => expr.eval(),
-            _ => Err("Solo se pueden evaluar expresiones.".to_string()),
+impl Definition {
+    pub fn as_type_def(&self) -> Option<&HulkTypeNode> {
+        if let Self::TypeDef(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_function_def(&self) -> Option<&GlobalFunctionDef> {
+        if let Self::FunctionDef(v) = self {
+            Some(v)
+        } else {
+            None
         }
     }
 }
 
-impl Accept for Instruction {
-    /// Permite que la instrucción acepte un visitor.
+
+impl From<GlobalFunctionDef> for Definition {
+    fn from(v: GlobalFunctionDef) -> Self {
+        Self::FunctionDef(v)
+    }
+}
+
+impl From<HulkTypeNode> for Definition {
+    fn from(v: HulkTypeNode) -> Self {
+        Self::TypeDef(v)
+    }
+}
+
+impl Accept for Definition {
     fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
         match self {
-            Instruction::Expression(expr) => expr.accept(visitor),
-            Instruction::FunctionDef(func_def) => visitor.visit_function_def(func_def),
-            Instruction::TypeDef(type_node) => visitor.visit_type_def(type_node),
+            Self::FunctionDef(func_def) => visitor.visit_function_def(&mut func_def.function_def),
+            Definition::TypeDef(type_node) => visitor.visit_type_def(type_node),
         }
     }
 }
+
+
+
+
+/// Enum que representa las instrucciones de alto nivel de un programa Hulk.
+/// 
+/// - `HulkTypeNode`: definición de tipo/clase.
+/// - `FunctionDef`: definición de función.
+/// - `Expression`: expresión evaluable.
+
+
+// #[derive(Debug, Clone)]
+// pub enum Instruction {
+//     HulkTypeNode(HulkTypeNode),
+//     FunctionDef(FunctionDef),
+//     // Protocol(ProtocolDecl), // Futuro: soporte para protocolos
+//     Expression(Box<Expr>)
+// }
+
+// impl Instruction {
+//     /// Evalúa la instrucción si es una expresión, retornando su valor.
+//     /// Para otros tipos de instrucción, retorna un error.
+//     pub fn eval(&self) -> Result<f64, String> {
+//         match self {
+//             Instruction::Expression(expr) => expr.eval(),
+//             _ => Err("Solo se pueden evaluar expresiones.".to_string()),
+//         }
+//     }
+// }
+
+// impl Accept for Instruction {
+//     /// Permite que la instrucción acepte un visitor.
+//     fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
+//         match self {
+//             Instruction::Expression(expr) => expr.accept(visitor),
+//             Instruction::FunctionDef(func_def) => visitor.visit_function_def(func_def),
+//             Instruction::HulkTypeNode(type_node) => visitor.visit_type_def(type_node),
+//         }
+//     }
+// }
 
 impl Codegen for ProgramNode {
     /// Genera el código LLVM IR para todo el programa.
@@ -92,18 +137,18 @@ impl Codegen for ProgramNode {
     }
 }
 
-impl Codegen for Instruction {
-    /// Genera el código LLVM IR para una instrucción.
-    ///
-    /// Soporta generación para funciones y expresiones. Para definiciones de tipo, no genera código por defecto.
-    fn codegen(&self, context: &mut CodegenContext) -> String {
-        match self {
-            Instruction::FunctionDef(func_def) => func_def.codegen(context),
-            Instruction::Expression(expr) => expr.codegen(context),
-            Instruction::TypeDef(_type_node) => {
-                // Puedes implementar codegen para TypeDef aquí si es necesario
-                String::new()
-            }
-        }
-    }
-}
+// impl Codegen for Instruction {
+//     /// Genera el código LLVM IR para una instrucción.
+//     ///
+//     /// Soporta generación para funciones y expresiones. Para definiciones de tipo, no genera código por defecto.
+//     fn codegen(&self, context: &mut CodegenContext) -> String {
+//         match self {
+//             Instruction::FunctionDef(func_def) => func_def.codegen(context),
+//             Instruction::Expression(expr) => expr.codegen(context),
+//             Instruction::HulkTypeNode(_type_node) => {
+//                 // Puedes implementar codegen para HulkTypeNode aquí si es necesario
+//                 String::new()
+//             }
+//         }
+//     }
+// }
