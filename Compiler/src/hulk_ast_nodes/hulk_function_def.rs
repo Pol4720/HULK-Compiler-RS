@@ -14,7 +14,6 @@ use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
 
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum FunctionBody {
     Block(Block),
@@ -38,7 +37,6 @@ impl FunctionBody {
         }
     }
 }
-
 
 impl From<Box<Expr>> for FunctionBody {
     fn from(expr: Box<Expr>) -> Self {
@@ -160,12 +158,12 @@ impl FunctionDef {
     /// * `params` - Vector de parámetros.
     /// * `return_type` - Tipo de retorno.
     /// * `expr` - Cuerpo de la función.
-    pub fn new_expr(name: String, params: Vec<FunctionParams>, return_type: String, body: FunctionBody) -> Self {
+    pub fn new_expr(name: String, params: Vec<FunctionParams>, return_type: String, body: Box<Expr>) -> Self {
         FunctionDef {
             name,
             params,
             return_type,
-            body: body,
+            body: FunctionBody::from(body),
             _type: None,
         }
     }

@@ -29,11 +29,15 @@ pub struct PreetyPrintVisitor;
 
 impl Visitor<String> for PreetyPrintVisitor {
     fn visit_program(&mut self, program: &mut ProgramNode) -> String {
+        let definitions = program.definitions.iter_mut()
+            .map(|def| def.accept(self))
+            .collect::<Vec<_>>()
+            .join("\n");
         let instructions = program.instructions.iter_mut()
             .map(|instr| instr.accept(self))
             .collect::<Vec<_>>()
             .join("\n");
-        format!("Program:\n{}", instructions)
+        format!("Program:\n{}\n{}", definitions, instructions)
     }
 
     fn visit_identifier(&mut self, identifier: &mut Identifier) -> String {

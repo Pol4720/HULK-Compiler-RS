@@ -1,4 +1,4 @@
-use crate::{hulk_ast_nodes::{hulk_function_def::{FunctionBody, FunctionHeaderStruct, FunctionParams}, FunctionDef}, hulk_tokens::KeywordToken};
+use crate::{hulk_ast_nodes::{hulk_function_def::{FunctionBody, FunctionHeaderStruct, FunctionParams}, Expr, FunctionDef}, hulk_tokens::KeywordToken};
 
 #[derive(Debug, Clone)]
 pub struct GlobalFunctionDef {
@@ -11,7 +11,7 @@ impl GlobalFunctionDef {
         function_token: KeywordToken,
         identifier: String,
         parameters: Vec<FunctionParams>,
-        body: FunctionBody,
+        body: Box<Expr>,
     ) -> Self {
         GlobalFunctionDef {
             function_token,

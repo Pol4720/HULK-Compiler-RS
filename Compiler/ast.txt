@@ -1,6 +1,27 @@
 Program:
-LetIn:
-Assignments:
-Assignment: a = NumberLiteral: 2
-Body:
-Print: Identifier: a
+type Point ( x: Number, y: Number ) {
+x: Identifier: x
+y: Identifier: y
+FunctionDef: getX() -> {
+  Identifier: self.x
+}
+FunctionDef: setX(FunctionParams { name: "x", param_type: "Number" }) -> {
+  Identifier: self.x := Identifier: x
+}
+FunctionDef: setY(FunctionParams { name: "y", param_type: "Number" }) -> {
+  Identifier: self.y := Identifier: y
+}
+FunctionDef: getY() -> {
+  Identifier: self.y
+}
+}
+FunctionDef: SumLet(FunctionParams { name: "a", param_type: "Number" }, FunctionParams { name: "b", param_type: "Number" }) -> {
+  CodeBlock:
+IfExpr:
+Condition: BinaryExpr: Identifier: a Gt Identifier: b
+Then: CodeBlock:
+NumberLiteral: 5
+Else: ElseBranch:
+CodeBlock:
+StringLiteral: hola
+}

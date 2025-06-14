@@ -32,7 +32,7 @@ fn main() {
 
         setX(x: Number) : Number => self.x := x ;
         setY(y: Number) : Number => self.y := y ;
-    }; 
+    }
 
 
     let x = new Point(3, 4) in (x.getX() + x.getY()) ;
@@ -43,14 +43,15 @@ fn main() {
         } else {
             \"hola\" ;
         }
-    } ;
+    } 
+
     function SumPro ( a: Number , b : Number ) : Object {
         if ( a > b ) {
             5 ;
         } else {
             SumLet( a, b ) ;
         }
-    } ;
+    }
 
     for ( i in range(1,10) ) {
         if ( i > 5 ) {
@@ -69,7 +70,6 @@ fn main() {
     let x = SumLet( 5, 5) in x ;";
 
     let test_lca = "
-
         type Animal {
             speak() : String => \"Some sound\" ;
         } 
@@ -94,10 +94,7 @@ fn main() {
         else {
             new Animal();
         }
-
-    };
-    
-    ";
+    }";
     
     let a = "
         if (true) {
@@ -139,7 +136,7 @@ fn main() {
 
         setX(x: Number) : Number => self.x := x ;
         setY(y: Number) : Number => self.y := y ;
-    }; 
+    }
 
 
     let x = new Point(3, 4) in (x.getX() + x.getY()) ;
@@ -150,14 +147,14 @@ fn main() {
         } else {
             \"hola\" ;
         }
-    } ;
+    }
     function SumPro ( a: Number , b : Number ) : Object {
         if ( a > b ) {
             5 ;
         } else {
             SumLet( a, b ) ;
         }
-    } ;
+    }
 
     for ( i in range(1,10) ) {
         if ( i > 5 ) {
@@ -176,6 +173,30 @@ fn main() {
     let x = SumLet( 5, 5) in x ;
     ";
 
+    let test_type = "
+        type Point (x: Number, y: Number) {
+        x = x;
+        y = y;
+
+        getX() : Number => self.x;
+        getY() : Number => self.y;
+
+        setX(x: Number) : Number => self.x := x ;
+        setY(y: Number) : Number => self.y := y ;
+    }
+    
+        function SumLet(a: Number , b: Number): Object {
+        if ( a > b ) {
+            5 ;
+        } else {
+            \"hola\" ;
+        }
+    }
+    ";
+    
+
+
+
     // let input_hulk = fs::read_to_string("/Users/mauriciosundejimenez/Hulk-Project/HULK-Compiler-RS/script.hulk")
     //     .expect("Failed to read input file");
 
@@ -188,7 +209,7 @@ fn main() {
         //     break;
         // }
 
-        let mut parsed_expr = parser.parse(&inp).unwrap();
+        let mut parsed_expr = parser.parse(&test_type).unwrap();
         let mut print_visitor = PreetyPrintVisitor;
         let mut semantic_visitor = SemanticVisitor::new();
         let res = semantic_visitor.check(&mut parsed_expr);
