@@ -8,3 +8,4 @@ Compiler/target
 
 *.ll
 *.exe
+*.hulk
