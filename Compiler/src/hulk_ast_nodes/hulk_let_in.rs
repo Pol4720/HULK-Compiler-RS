@@ -78,7 +78,12 @@ impl Codegen for LetIn {
             // Genera almacenamiento y guarda el valor
             let alloca_reg = context.generate_temp();
             context.emit(&format!("  {} = alloca {}", alloca_reg, llvm_type));
-            context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, alloca_reg));
+            if llvm_type == "ptr" {
+                // Si el tipo es un puntero, almacenamos el valor como un puntero genérico (i8*)
+                context.emit(&format!("  store ptr {}, ptr {}", value_reg, alloca_reg));
+            } else {
+                context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, alloca_reg));
+            }
 
             // Guarda cualquier binding anterior (shadowing reversible)
             let previous = context.symbol_table.get(&name).cloned();
