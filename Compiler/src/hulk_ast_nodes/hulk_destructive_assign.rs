@@ -44,13 +44,41 @@ impl DestructiveAssignment {
     }
 }
 
+// impl Codegen for DestructiveAssignment {
+//     /// Genera el código LLVM IR para la asignación destructiva.
+//     ///
+//     /// Busca el puntero de la variable en el contexto y almacena el valor generado por la expresión.
+//     /// Si la variable no existe en el contexto, lanza un panic.
+//     fn codegen(&self, context: &mut CodegenContext) -> String {
+
+//         let var_name = match *self.identifier {
+//             Expr {
+//                 kind: ExprKind::Identifier(ref name),
+//                 ..
+//             } => name,
+//             _ => panic!("Expected identifier on left side of destructive assignment"),
+//         };
+//         let ptr = context.symbol_table.get(&var_name.to_string()).cloned();
+//         if let Some(ptr) = ptr {
+//             let value_reg = self.expression.codegen(context);
+//             context.emit(&format!("  store i32 {}, i32* {}", value_reg, ptr));
+//             value_reg
+//         } else {
+//             panic!(
+//                 "Variable '{}' no definida en el contexto para asignación destructiva",
+//                 var_name
+//             );
+//         }
+//     }
+// }
+
 impl Codegen for DestructiveAssignment {
     /// Genera el código LLVM IR para la asignación destructiva.
     ///
     /// Busca el puntero de la variable en el contexto y almacena el valor generado por la expresión.
     /// Si la variable no existe en el contexto, lanza un panic.
     fn codegen(&self, context: &mut CodegenContext) -> String {
-
+        // Obtener el nombre de la variable
         let var_name = match *self.identifier {
             Expr {
                 kind: ExprKind::Identifier(ref name),
@@ -58,16 +86,23 @@ impl Codegen for DestructiveAssignment {
             } => name,
             _ => panic!("Expected identifier on left side of destructive assignment"),
         };
-        let ptr = context.symbol_table.get(&var_name.to_string()).cloned();
-        if let Some(ptr) = ptr {
-            let value_reg = self.expression.codegen(context);
-            context.emit(&format!("  store i32 {}, i32* {}", value_reg, ptr));
-            value_reg
-        } else {
-            panic!(
-                "Variable '{}' no definida en el contexto para asignación destructiva",
-                var_name
-            );
-        }
+
+        // Obtener el puntero de la variable del symbol_table
+        let ptr = context.symbol_table.get(&var_name.id).cloned().unwrap_or_else(|| {
+            panic!("Variable '{}' no definida en el contexto para asignación destructiva", var_name)
+        });
+
+        // Generar el valor de la expresión
+        let value_reg = self.expression.codegen(context);
+
+        // Obtener el tipo inferido
+        let hulk_type = self._type.clone().expect("DestructiveAssignment debe tener tipo inferido");
+        let llvm_type = CodegenContext::to_llvm_type(hulk_type.type_name);
+
+        // Asegurarse que el puntero también tiene el tipo correcto en la tabla de símbolos
+        // (esto es importante si el puntero es a i8*, o i1, o double)
+        context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, ptr));
+        
+        value_reg
     }
 }
