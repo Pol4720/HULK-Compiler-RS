@@ -45,9 +45,54 @@ impl CodeGenerator {
           ret i8* %buf
         }
 
+        ; Compara si dos strings son iguales (devuelve i1)
+        define i1 @hulk_str_eq(i8* %s1, i8* %s2) {
+        entry:
+          %cmp = call i32 @strcmp(i8* %s1, i8* %s2)
+          %is_eq = icmp eq i32 %cmp, 0
+          ret i1 %is_eq
+        }
+
+        ; Compara si s1 > s2 (por longitud)
+        define i1 @hulk_str_gt(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %gt = icmp ugt i64 %len1, %len2
+          ret i1 %gt
+        }
+
+        ; Compara si s1 < s2 (por longitud)
+        define i1 @hulk_str_lt(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %lt = icmp ult i64 %len1, %len2
+          ret i1 %lt
+        }
+
+        ; Compara si s1 >= s2 (por longitud)
+        define i1 @hulk_str_ge(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %ge = icmp uge i64 %len1, %len2
+          ret i1 %ge
+        }
+
+        ; Compara si s1 <= s2 (por longitud)
+        define i1 @hulk_str_le(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %le = icmp ule i64 %len1, %len2
+          ret i1 %le
+        }
+
         declare i64 @strlen(i8*)
         declare i8* @malloc(i64)
         declare void @llvm.memcpy.p0i8.p0i8.i64(i8*, i8*, i64, i1)
+        declare i32 @strcmp(i8*, i8*)
         "#
         );
         final_code.push_str("@format_int = private constant [4 x i8] c\"%d\\0A\\00\"\n");
