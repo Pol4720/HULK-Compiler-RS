@@ -191,52 +191,52 @@ impl Codegen for BinaryExpr {
 
         // Obtener tipo declarado por los nodos
         let left_type = get_llvm_type(&self.left, context);
-        // let right_type = get_llvm_type(&self.right, context);
+        let right_type = get_llvm_type(&self.right, context);
 
-        let  left = left_reg;
-        let  right = right_reg;
+        let mut left = left_reg;
+        let mut right = right_reg;
 
-        let final_type: &'static str = left_type;
+        let mut final_type: &'static str = left_type;
 
-        // // Realiza coerción de tipos si es necesario
-        // match (left_type, right_type) {
-        //     ("i1", "double") => {
-        //         let casted = context.generate_temp();
-        //         context.emit(&format!("  {} = uitofp i1 {} to double", casted, left));
-        //         left = casted;
-        //         final_type = "double";
-        //     }
-        //     ("double", "i1") => {
-        //         let casted = context.generate_temp();
-        //         context.emit(&format!("  {} = uitofp i1 {} to double", casted, right));
-        //         right = casted;
-        //         final_type = "double";
-        //     }
-        //     ("i1", "i32") => {
-        //         let casted = context.generate_temp();
-        //         context.emit(&format!("  {} = zext i1 {} to i32", casted, left));
-        //         left = casted;
-        //         final_type = "i32";
-        //     }
-        //     ("i32", "i1") => {
-        //         let casted = context.generate_temp();
-        //         context.emit(&format!("  {} = zext i1 {} to i32", casted, right));
-        //         right = casted;
-        //         final_type = "i32";
-        //     }
-        //     ("i1", "i1") => final_type = "i1",
-        //     ("double", "double") => final_type = "double",
-        //     ("i32", "i32") => final_type = "i32",
-        //     ("i8*", "i8*") => final_type = "i8*",
-        //     ("i8*", _) | (_, "i8*") => {
-        //         if self.operator == BinaryOperatorToken::Concat {
-        //             final_type = "i8*";
-        //         } else {
-        //             panic!("No se puede operar entre tipos incompatibles: {} y {}", left_type, right_type);
-        //         }
-        //     }
-        //     _ => panic!("No se puede operar entre tipos incompatibles: {} y {}", left_type, right_type),
-        // }
+        // Realiza coerción de tipos si es necesario
+        match (left_type, right_type) {
+            ("i1", "double") => {
+                let casted = context.generate_temp();
+                context.emit(&format!("  {} = uitofp i1 {} to double", casted, left));
+                left = casted;
+                final_type = "double";
+            }
+            ("double", "i1") => {
+                let casted = context.generate_temp();
+                context.emit(&format!("  {} = uitofp i1 {} to double", casted, right));
+                right = casted;
+                final_type = "double";
+            }
+            ("i1", "i32") => {
+                let casted = context.generate_temp();
+                context.emit(&format!("  {} = zext i1 {} to i32", casted, left));
+                left = casted;
+                final_type = "i32";
+            }
+            ("i32", "i1") => {
+                let casted = context.generate_temp();
+                context.emit(&format!("  {} = zext i1 {} to i32", casted, right));
+                right = casted;
+                final_type = "i32";
+            }
+            ("i1", "i1") => final_type = "i1",
+            ("double", "double") => final_type = "double",
+            ("i32", "i32") => final_type = "i32",
+            ("i8*", "i8*") => final_type = "i8*",
+            ("i8*", _) | (_, "i8*") => {
+                if self.operator == BinaryOperatorToken::Concat {
+                    final_type = "i8*";
+                } else {
+                    panic!("No se puede operar entre tipos incompatibles: {} y {}", left_type, right_type);
+                }
+            }
+            _ => panic!("No se puede operar entre tipos incompatibles: {} y {}", left_type, right_type),
+        }
 
         let result = context.generate_temp();
 
@@ -253,36 +253,52 @@ impl Codegen for BinaryExpr {
             BinaryOperatorToken::Div => format!("  {} = fdiv double {}, {}", result, left, right),
             BinaryOperatorToken::Mod => format!("  {} = frem double {}, {}", result, left, right),
             BinaryOperatorToken::Eq | BinaryOperatorToken::EqEq => {
-                match final_type {
+                final_type = "i1";
+                match left_type {
                     "i8*" => format!("  {} = call i1 @hulk_str_eq(i8* {}, i8* {})", result, left, right),
                     "i1" => format!("  {} = icmp eq i1 {}, {}", result, left, right),
                     _ => format!("  {} = fcmp oeq double {}, {}", result, left, right),
                 }
             }
-            BinaryOperatorToken::Neq => match final_type {
-                "i8*" => format!("  {} = call i1 @hulk_str_neq(i8* {}, i8* {})", result, left, right),
-                "i1" => format!("  {} = icmp ne i1 {}, {}", result, left, right),
-                _ => format!("  {} = fcmp one double {}, {}", result, left, right),
+            BinaryOperatorToken::Neq => {
+                final_type = "i1";
+                match left_type {
+                    "i8*" => format!("  {} = call i1 @hulk_str_neq(i8* {}, i8* {})", result, left, right),
+                    "i1" => format!("  {} = icmp ne i1 {}, {}", result, left, right),
+                    _ => format!("  {} = fcmp one double {}, {}", result, left, right),
+                }
             }
-            BinaryOperatorToken::Lt => match final_type {
-                "i8*" => format!("  {} = call i1 @hulk_str_lt(i8* {}, i8* {})", result, left, right),
-                "i1" => format!("  {} = icmp ult i1 {}, {}", result, left, right),
-                _ => format!("  {} = fcmp olt double {}, {}", result, left, right),
-            },
-            BinaryOperatorToken::Gt => match final_type {
-                "i8*" => format!("  {} = call i1 @hulk_str_gt(i8* {}, i8* {})", result, left, right),
-                "i1" => format!("  {} = icmp ugt i1 {}, {}", result, left, right),
-                _ => format!("  {} = fcmp ogt double {}, {}", result, left, right),
-            },
-            BinaryOperatorToken::Lte => match final_type {
-                "i8*" => format!("  {} = call i1 @hulk_str_lte(i8* {}, i8* {})", result, left, right),
-                "i1" => format!("  {} = icmp ule i1 {}, {}", result, left, right),
-                _ => format!("  {} = fcmp ole double {}, {}", result, left, right),
-            },
-            BinaryOperatorToken::Gte => match final_type {
-                "i8*" => format!("  {} = call i1 @hulk_str_gte(i8* {}, i8* {})", result, left, right),
-                "i1" => format!("  {} = icmp uge i1 {}, {}", result, left, right),
-                _ => format!("  {} = fcmp oge double {}, {}", result, left, right),
+            BinaryOperatorToken::Lt => {
+                final_type = "i1";
+                match left_type {
+                    "i8*" => format!("  {} = call i1 @hulk_str_lt(i8* {}, i8* {})", result, left, right),
+                    "i1" => format!("  {} = icmp ult i1 {}, {}", result, left, right),
+                    _ => format!("  {} = fcmp olt double {}, {}", result, left, right),
+                }
+            }
+            BinaryOperatorToken::Gt => {
+                final_type = "i1";
+                match left_type {
+                    "i8*" => format!("  {} = call i1 @hulk_str_gt(i8* {}, i8* {})", result, left, right),
+                    "i1" => format!("  {} = icmp ugt i1 {}, {}", result, left, right),
+                    _ => format!("  {} = fcmp ogt double {}, {}", result, left, right),
+                }
+            }
+            BinaryOperatorToken::Lte => {
+                final_type = "i1";
+                match left_type {
+                    "i8*" => format!("  {} = call i1 @hulk_str_lte(i8* {}, i8* {})", result, left, right),
+                    "i1" => format!("  {} = icmp ule i1 {}, {}", result, left, right),
+                    _ => format!("  {} = fcmp ole double {}, {}", result, left, right),
+                }
+            }
+            BinaryOperatorToken::Gte => {
+                final_type = "i1";
+                match left_type {
+                    "i8*" => format!("  {} = call i1 @hulk_str_gte(i8* {}, i8* {})", result, left, right),
+                    "i1" => format!("  {} = icmp uge i1 {}, {}", result, left, right),
+                    _ => format!("  {} = fcmp oge double {}, {}", result, left, right),
+                }
             },
             // Agrega otros operadores aquí si lo deseas
             _ => panic!("Operador no implementado aún: {:?}", self.operator),
