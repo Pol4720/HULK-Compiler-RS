@@ -13,9 +13,9 @@ use crate::hulk_tokens::hulk_keywords::KeywordToken;
 use crate::typings::types_node::TypeNode;
 
 /// Representa una expresión `let-in` en el AST.
-/// 
+///
 /// Por ejemplo: `let x = 5, y = 10 in x + y`
-/// 
+///
 /// - `let_token`: token de palabra clave `let`.
 /// - `assignment`: lista de asignaciones locales.
 /// - `in_keyword`: token de palabra clave `in`.
@@ -27,7 +27,7 @@ pub struct LetIn {
     pub assignment: Vec<Assignment>,
     pub in_keyword: KeywordToken,
     pub body: Box<Expr>,
-    pub _type: Option<TypeNode>, 
+    pub _type: Option<TypeNode>,
 }
 
 impl LetIn {
@@ -41,10 +41,16 @@ impl LetIn {
     pub fn new(
         let_token: KeywordToken,
         assignment: Vec<Assignment>,
-        in_keyword: KeywordToken, 
-        body: Box<Expr>
+        in_keyword: KeywordToken,
+        body: Box<Expr>,
     ) -> Self {
-        LetIn { let_token, assignment, in_keyword, body, _type: None }
+        LetIn {
+            let_token,
+            assignment,
+            in_keyword,
+            body,
+            _type: None,
+        }
     }
 
     /// Establece el tipo de la expresión `let-in`.
@@ -54,7 +60,7 @@ impl LetIn {
 }
 
 impl Codegen for LetIn {
-    /// Genera el código LLVM IR para la expresión `let-in`.
+    /// Genera el código LLVM IR para la expresión let-in.
     ///
     /// Reserva espacio para cada variable local, almacena su valor y gestiona el shadowing de variables.
     /// Al finalizar el cuerpo, restaura los bindings anteriores para mantener el alcance correcto.
@@ -68,22 +74,25 @@ impl Codegen for LetIn {
             // Genera el valor (registro LLVM) de la expresión
             let value_reg = value_expr.codegen(context);
 
-            // Obtiene el tipo LLVM desde el symbol table
+            // Genera almacenamiento y guarda el valor
             let llvm_type = context
                 .symbol_table
                 .get("__last_type__")
                 .cloned()
                 .expect("Tipo no encontrado para asignación let");
 
-            // Genera almacenamiento y guarda el valor
+            let llvm_type = if llvm_type == "ptr" {
+                "i8*"
+            } else {
+                &llvm_type
+            };
+
             let alloca_reg = context.generate_temp();
             context.emit(&format!("  {} = alloca {}", alloca_reg, llvm_type));
-            if llvm_type == "ptr" {
-                // Si el tipo es un puntero, almacenamos el valor como un puntero genérico (i8*)
-                context.emit(&format!("  store ptr {}, ptr {}", value_reg, alloca_reg));
-            } else {
-                context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, alloca_reg));
-            }
+            context.emit(&format!(
+                "  store {} {}, {}* {}",
+                llvm_type, value_reg, llvm_type, alloca_reg
+            ));
 
             // Guarda cualquier binding anterior (shadowing reversible)
             let previous = context.symbol_table.get(&name).cloned();
@@ -93,7 +102,7 @@ impl Codegen for LetIn {
             context.register_variable(&name, alloca_reg);
         }
 
-        // Genera el cuerpo de la expresión `in`
+        // Genera el cuerpo de la expresión in
         let body_reg = self.body.codegen(context);
 
         // Restaura bindings anteriores

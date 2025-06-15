@@ -85,45 +85,6 @@ impl Accept for Definition {
 }
 
 
-
-
-/// Enum que representa las instrucciones de alto nivel de un programa Hulk.
-/// 
-/// - `HulkTypeNode`: definición de tipo/clase.
-/// - `FunctionDef`: definición de función.
-/// - `Expression`: expresión evaluable.
-
-
-// #[derive(Debug, Clone)]
-// pub enum Instruction {
-//     HulkTypeNode(HulkTypeNode),
-//     FunctionDef(FunctionDef),
-//     // Protocol(ProtocolDecl), // Futuro: soporte para protocolos
-//     Expression(Box<Expr>)
-// }
-
-// impl Instruction {
-//     /// Evalúa la instrucción si es una expresión, retornando su valor.
-//     /// Para otros tipos de instrucción, retorna un error.
-//     pub fn eval(&self) -> Result<f64, String> {
-//         match self {
-//             Instruction::Expression(expr) => expr.eval(),
-//             _ => Err("Solo se pueden evaluar expresiones.".to_string()),
-//         }
-//     }
-// }
-
-// impl Accept for Instruction {
-//     /// Permite que la instrucción acepte un visitor.
-//     fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
-//         match self {
-//             Instruction::Expression(expr) => expr.accept(visitor),
-//             Instruction::FunctionDef(func_def) => visitor.visit_function_def(func_def),
-//             Instruction::HulkTypeNode(type_node) => visitor.visit_type_def(type_node),
-//         }
-//     }
-// }
-
 impl Codegen for ProgramNode {
     /// Genera el código LLVM IR para todo el programa.
     ///
@@ -137,18 +98,33 @@ impl Codegen for ProgramNode {
     }
 }
 
-// impl Codegen for Instruction {
-//     /// Genera el código LLVM IR para una instrucción.
+// impl Codegen for ProgramNode {
+//      /// Genera el código LLVM IR para todo el programa.
 //     ///
-//     /// Soporta generación para funciones y expresiones. Para definiciones de tipo, no genera código por defecto.
+//     /// Recorre todas las instrucciones y genera el código correspondiente.
 //     fn codegen(&self, context: &mut CodegenContext) -> String {
-//         match self {
-//             Instruction::FunctionDef(func_def) => func_def.codegen(context),
-//             Instruction::Expression(expr) => expr.codegen(context),
-//             Instruction::HulkTypeNode(_type_node) => {
-//                 // Puedes implementar codegen para HulkTypeNode aquí si es necesario
-//                 String::new()
+//         let mut last_reg = String::new();
+
+//         // Primero genera el código de todas las definiciones (funciones y tipos)
+//         for def in &self.definitions {
+//             match def {
+//                 Definition::FunctionDef(func_def) => {
+//                     func_def.codegen(context); // Esto define una función global
+//                 }
+//                 Definition::TypeDef(type_def) => {
+//                     type_def.codegen(context); // Define un tipo personalizado
+//                 }
 //             }
 //         }
+
+//         // Luego genera el código de las instrucciones ejecutables (main, prints, exprs, etc)
+//         for instr in &self.instructions {
+//             last_reg = instr.codegen(context);
+//         }
+
+//         last_reg
 //     }
 // }
+
+
+
