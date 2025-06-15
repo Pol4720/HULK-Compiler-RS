@@ -68,22 +68,18 @@ impl Codegen for LetIn {
             // Genera el valor (registro LLVM) de la expresión
             let value_reg = value_expr.codegen(context);
 
-            // Obtiene el tipo LLVM desde el symbol table
+            // Genera almacenamiento y guarda el valor
             let llvm_type = context
                 .symbol_table
                 .get("__last_type__")
                 .cloned()
                 .expect("Tipo no encontrado para asignación let");
 
-            // Genera almacenamiento y guarda el valor
+            let llvm_type = if llvm_type == "ptr" { "i8*" } else { &llvm_type };
+
             let alloca_reg = context.generate_temp();
             context.emit(&format!("  {} = alloca {}", alloca_reg, llvm_type));
-            if llvm_type == "ptr" {
-                // Si el tipo es un puntero, almacenamos el valor como un puntero genérico (i8*)
-                context.emit(&format!("  store ptr {}, ptr {}", value_reg, alloca_reg));
-            } else {
-                context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, alloca_reg));
-            }
+            context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, alloca_reg));
 
             // Guarda cualquier binding anterior (shadowing reversible)
             let previous = context.symbol_table.get(&name).cloned();
