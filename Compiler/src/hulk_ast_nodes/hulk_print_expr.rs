@@ -29,7 +29,7 @@ impl Codegen for PrintExpr {
             ._type
             .clone()
             .expect("PrintExpr debe tener un tipo inferido");
-        let llvm_type = to_llvm_type(hulk_type.type_name);
+        let llvm_type = CodegenContext::to_llvm_type(hulk_type.type_name);
 
         match llvm_type.as_str() {
             "double" => {
@@ -67,11 +67,4 @@ impl Codegen for PrintExpr {
     }
 }
 
-pub fn to_llvm_type(type_node: String) -> String {
-    match type_node.as_str() {
-        "Number" => "double".to_string(),
-        "Boolean" => "i1".to_string(),
-        "String" => "i8*".to_string(),
-        _ => "i8*".to_string(), // Default to pointer type for unknown types
-    }
-}
+
