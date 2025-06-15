@@ -84,7 +84,7 @@ impl Codegen for Identifier {
             "El tipo del identificador '{}' no ha sido inferido",
             self.id
         ));
-        let llvm_type = to_llvm_type(hulk_type.type_name);
+        let llvm_type = CodegenContext::to_llvm_type(hulk_type.type_name);
 
         // Si el tipo es un puntero (como i8* para strings), no hace falta hacer load
         match llvm_type.as_str() {
@@ -99,12 +99,5 @@ impl Codegen for Identifier {
     }
 }
 
-pub fn to_llvm_type(type_node: String) -> String {
-    match type_node.as_str() {
-        "Number" => "double".to_string(),
-        "Boolean" => "i1".to_string(),
-        "String" => "i8*".to_string(),
-        _ => "i8*".to_string(), // Default to pointer type for unknown types
-    }
-}
+
 
