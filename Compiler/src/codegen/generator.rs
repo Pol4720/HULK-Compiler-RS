@@ -28,6 +28,28 @@ impl CodeGenerator {
 
         // Cabecera y formatos
         final_code.push_str("declare i32 @printf(i8*, ...)\n");
+        final_code.push_str(
+            r#"
+        define i8* @hulk_str_concat(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %totallen = add i64 %len1, %len2
+          %totallen1 = add i64 %totallen, 1
+          %buf = call i8* @malloc(i64 %totallen1)
+          call void @llvm.memcpy.p0i8.p0i8.i64(i8* %buf, i8* %s1, i64 %len1, i1 false)
+          %buf_offset = getelementptr i8, i8* %buf, i64 %len1
+          call void @llvm.memcpy.p0i8.p0i8.i64(i8* %buf_offset, i8* %s2, i64 %len2, i1 false)
+          %last = getelementptr i8, i8* %buf, i64 %totallen
+          store i8 0, i8* %last
+          ret i8* %buf
+        }
+
+        declare i64 @strlen(i8*)
+        declare i8* @malloc(i64)
+        declare void @llvm.memcpy.p0i8.p0i8.i64(i8*, i8*, i64, i1)
+        "#
+        );
         final_code.push_str("@format_int = private constant [4 x i8] c\"%d\\0A\\00\"\n");
         final_code.push_str("@format_double = private constant [4 x i8] c\"%f\\0A\\00\"\n");
         final_code.push_str("@format_bool = private constant [4 x i8] c\"%d\\0A\\00\"\n"); // imprimimos i1 como %d
