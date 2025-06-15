@@ -88,7 +88,7 @@ impl Codegen for Identifier {
 
         // Si el tipo es un puntero (como i8* para strings), no hace falta hacer load
         match llvm_type.as_str() {
-            "i8*" => ptr,
+            // "i8*" => ptr,
             _ => {
                 let result_reg = context.generate_temp();
                 let line = format!("  {} = load {}, {}* {}", result_reg, llvm_type, llvm_type, ptr);
