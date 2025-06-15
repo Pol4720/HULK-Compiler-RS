@@ -546,11 +546,12 @@ impl Visitor<TypeNode> for SemanticVisitor {
             | BinaryOperatorToken::Gte
             | BinaryOperatorToken::Lt
             | BinaryOperatorToken::Lte
-            | BinaryOperatorToken::Eq
+            | BinaryOperatorToken::EqEq
             | BinaryOperatorToken::Neq
             | BinaryOperatorToken::Neg => {
                 if left_type == self.get_type(&HulkTypesInfo::Number)
-                    && right_type == self.get_type(&HulkTypesInfo::Number)
+                    && right_type == self.get_type(&HulkTypesInfo::Number) || left_type == self.get_type(&HulkTypesInfo::Boolean)
+                    && right_type == self.get_type(&HulkTypesInfo::Boolean)
                 {
                     node.set_expression_type(self.get_type(&HulkTypesInfo::Boolean));
                     self.get_type(&HulkTypesInfo::Boolean)

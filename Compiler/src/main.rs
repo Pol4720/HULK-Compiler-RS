@@ -112,16 +112,16 @@ fn main() {
 
     ";
     let inp = "
-    function SumLet(a: Number , b: Number): Object {
-        if ( a > b ) {
-            5 ;
-        } else {
-            \"hola\" ;
-        }
-    }
+if (2 + 2 > 4) {
+    let a = 2 in print(a);
+}
+elif (2 + 2 == 4){
+    let b = 2 in print(b);
 
-    let a = 2  in print(a);
-    
+}
+else {
+    let c = 2 in print(c);
+};
     
     ";
     
@@ -193,7 +193,16 @@ fn main() {
     }
     ";
     
+    let function_test = "
+        function sum(a: Number, b: Number): Number {
+            a + b ;
+        }
+        sum(3, 4);
+    ";
 
+    let boolean_test = "
+        true == false;
+    ";
 
 
     let input_hulk = fs::read_to_string("../script.hulk")
@@ -208,7 +217,7 @@ fn main() {
         //     break;
         // }
 
-        let mut parsed_expr = parser.parse(&input_hulk).unwrap();
+        let mut parsed_expr = parser.parse(&boolean_test).unwrap();
         let mut print_visitor = PreetyPrintVisitor;
         let mut semantic_visitor = SemanticVisitor::new();
         let res = semantic_visitor.check(&mut parsed_expr);
