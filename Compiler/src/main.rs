@@ -208,7 +208,7 @@ fn main() {
         //     break;
         // }
 
-        let mut parsed_expr = parser.parse(&test_type).unwrap();
+        let mut parsed_expr = parser.parse(&input_hulk).unwrap();
         let mut print_visitor = PreetyPrintVisitor;
         let mut semantic_visitor = SemanticVisitor::new();
         let res = semantic_visitor.check(&mut parsed_expr);
