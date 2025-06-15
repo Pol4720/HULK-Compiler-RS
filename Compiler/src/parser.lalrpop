@@ -273,7 +273,7 @@ ExponentExpr: Box<Expr> = {
 // Operadores y tokens
 // ===================
 EqualOp: BinaryOperatorToken = {
-    "==" => BinaryOperatorToken::Eq,
+    "==" => BinaryOperatorToken::EqEq,
     "!=" => BinaryOperatorToken::Neq,
 }
 
