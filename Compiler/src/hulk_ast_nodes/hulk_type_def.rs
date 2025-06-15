@@ -5,6 +5,8 @@
 //! Incluye métodos para construir tipos, agregar herencia, atributos y métodos, y establecer el tipo inferido o declarado.
 
 use std::collections::HashMap;
+use crate::codegen::context::CodegenContext;
+use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::hulk_ast_nodes::hulk_function_def::{FunctionDef, FunctionParams};
 use crate::hulk_ast_nodes::hulk_identifier::Identifier;
@@ -88,3 +90,10 @@ impl HulkTypeNode {
         self._type = Some(_type);
     }
 }
+
+impl Codegen for HulkTypeNode {
+    fn codegen(&self, _context: &mut CodegenContext) -> String {
+        "HulkTypeNode codegen placeholder".to_string()
+    }
+}
+

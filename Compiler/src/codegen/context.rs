@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
 pub struct CodegenContext {
-    pub code: String,                     // Código dentro de main
-    pub globals: String,                 // Definiciones globales (strings, etc.)
+    pub code: String,    // Código dentro de main
+    pub globals: String, // Definiciones globales (strings, etc.)
     pub temp_counter: usize,
     pub symbol_table: HashMap<String, String>,
+    pub type_table: HashMap<String, String>,
+    pub function_table: HashMap<String, String>,
 }
 
 impl CodegenContext {
@@ -14,7 +16,23 @@ impl CodegenContext {
             globals: String::new(),
             temp_counter: 0,
             symbol_table: HashMap::new(),
+            type_table: HashMap::new(),
+            function_table: HashMap::new(),
         }
+    }
+    pub fn merge_into_global(&mut self, other: CodegenContext) {
+        self.globals.push_str(&other.globals);
+        self.globals.push_str(&other.code);
+        self.temp_counter = other.temp_counter.max(self.temp_counter);
+        self.function_table.extend(other.function_table);
+        self.symbol_table.extend(other.symbol_table);
+    }
+    pub fn register_type(&mut self, name: &str, llvm_type: String) {
+        self.type_table.insert(name.to_string(), llvm_type);
+    }
+
+    pub fn get_type(&self, name: &str) -> Option<&String> {
+        self.type_table.get(name)
     }
 
     pub fn generate_temp(&mut self) -> String {
@@ -50,12 +68,11 @@ impl CodegenContext {
     }
 
     pub fn to_llvm_type(type_node: String) -> String {
-    match type_node.as_str() {
-        "Number" => "double".to_string(),
-        "Boolean" => "i1".to_string(),
-        "String" => "i8*".to_string(),
-        _ => "i8*".to_string(), // Default to pointer type for unknown types
+        match type_node.as_str() {
+            "Number" => "double".to_string(),
+            "Boolean" => "i1".to_string(),
+            "String" => "i8*".to_string(),
+            _ => "double".to_string(), // Default to pointer type for unknown types
+        }
     }
 }
-}
-

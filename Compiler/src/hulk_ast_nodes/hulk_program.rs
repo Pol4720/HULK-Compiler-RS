@@ -85,46 +85,46 @@ impl Accept for Definition {
 }
 
 
-impl Codegen for ProgramNode {
-    /// Genera el código LLVM IR para todo el programa.
-    ///
-    /// Recorre todas las instrucciones y genera el código correspondiente.
-    fn codegen(&self, context: &mut CodegenContext) -> String {
-        let mut last_reg = String::new();
-        for instr in &self.instructions {
-            last_reg = instr.codegen(context);
-        }
-        last_reg
-    }
-}
-
 // impl Codegen for ProgramNode {
-//      /// Genera el código LLVM IR para todo el programa.
+//     /// Genera el código LLVM IR para todo el programa.
 //     ///
 //     /// Recorre todas las instrucciones y genera el código correspondiente.
 //     fn codegen(&self, context: &mut CodegenContext) -> String {
 //         let mut last_reg = String::new();
-
-//         // Primero genera el código de todas las definiciones (funciones y tipos)
-//         for def in &self.definitions {
-//             match def {
-//                 Definition::FunctionDef(func_def) => {
-//                     func_def.codegen(context); // Esto define una función global
-//                 }
-//                 Definition::TypeDef(type_def) => {
-//                     type_def.codegen(context); // Define un tipo personalizado
-//                 }
-//             }
-//         }
-
-//         // Luego genera el código de las instrucciones ejecutables (main, prints, exprs, etc)
 //         for instr in &self.instructions {
 //             last_reg = instr.codegen(context);
 //         }
-
 //         last_reg
 //     }
 // }
+
+impl Codegen for ProgramNode {
+     /// Genera el código LLVM IR para todo el programa.
+    ///
+    /// Recorre todas las instrucciones y genera el código correspondiente.
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        let mut last_reg = String::new();
+
+        // Primero genera el código de todas las definiciones (funciones y tipos)
+        for def in &self.definitions {
+            match def {
+                Definition::FunctionDef(func_def) => {
+                    func_def.codegen(context); // Esto define una función global
+                }
+                Definition::TypeDef(type_def) => {
+                    type_def.codegen(context); // Define un tipo personalizado
+                }
+            }
+        }
+
+        // Luego genera el código de las instrucciones ejecutables (main, prints, exprs, etc)
+        for instr in &self.instructions {
+            last_reg = instr.codegen(context);
+        }
+
+        last_reg
+    }
+}
 
 
 
