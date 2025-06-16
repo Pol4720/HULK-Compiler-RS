@@ -180,17 +180,22 @@ impl Codegen for BinaryExpr {
                 "double"
                 }
             },
-            _ => "double",
+            _ => 
+                match context.symbol_table.get("__last_type__") {
+                    Some(s) if s == "double" => "double",
+                    Some(s) if s == "i1" => "i1",
+                    Some(s) if s == "i8*" => "i8*",
+                    _ => "double",
+                }
             }
         }
         
 
         // Generar los operandos
         let left_reg = self.left.codegen(context);
-        let right_reg = self.right.codegen(context);
-
-        // Obtener tipo declarado por los nodos
         let left_type = get_llvm_type(&self.left, context);
+
+        let right_reg = self.right.codegen(context);       
         let right_type = get_llvm_type(&self.right, context);
 
         let mut left = left_reg;

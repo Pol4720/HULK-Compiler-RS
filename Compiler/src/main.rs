@@ -2,21 +2,21 @@ use lalrpop_util::lalrpop_mod;
 use semantic_visitor::hulk_semantic_visitor::SemanticVisitor;
 use visitor::hulk_visitor::Visitor;
 
+pub mod codegen;
 pub mod hulk_ast_nodes;
 pub mod hulk_tokens;
-pub mod visitor;
-pub mod typings;
 pub mod semantic_visitor;
-pub mod codegen;
+pub mod typings;
+pub mod visitor;
 
 lalrpop_mod!(pub parser);
 
+use crate::codegen::CodeGenerator;
+use crate::parser::ProgramParser;
+use crate::visitor::hulk_ast_visitor_print::PreetyPrintVisitor;
 use std::fs;
 use std::fs::File;
 use std::io::{self, Write};
-use crate::parser::ProgramParser;
-use crate::visitor::hulk_ast_visitor_print::PreetyPrintVisitor;
-use crate::codegen::CodeGenerator;
 
 fn main() {
     let parser = ProgramParser::new();
@@ -94,7 +94,7 @@ fn main() {
             new Animal();
         }
     }";
-    
+
     let a = "
         if (true) {
             if (true) {
@@ -124,7 +124,7 @@ else {
 };
     
     ";
-    
+
     let input = "
     type Point (x: Number, y: Number) {
         x = x;
@@ -192,7 +192,7 @@ else {
         }
     }
     ";
-    
+
     let function_test = "
         function sum(a: Number, b: Number): Number {
             a + b ;
@@ -204,60 +204,61 @@ else {
         true == false;
     ";
 
-
-    let input_hulk = fs::read_to_string("../script.hulk")
-        .expect("Failed to read input file");
+    let input_hulk = fs::read_to_string("../script.hulk").expect("Failed to read input file");
 
     // loop {
-        print!("> ");
-        io::stdout().flush().unwrap();
+    print!("> ");
+    io::stdout().flush().unwrap();
 
-        // let mut input = String::new();
-        // if io::stdin().read_line(&mut input).unwrap() == 0 {
-        //     break;
-        // }
+    // let mut input = String::new();
+    // if io::stdin().read_line(&mut input).unwrap() == 0 {
+    //     break;
+    // }
 
-        let mut parsed_expr = parser.parse(&input_hulk).unwrap();
-        let mut print_visitor = PreetyPrintVisitor;
-        let mut semantic_visitor = SemanticVisitor::new();
-        let res = semantic_visitor.check(&mut parsed_expr);
-        match &res {
-            Ok(_) => {
-                println!("Parsed successfully And zero semantic errors!");
-            }
-            Err(errors) => {
-                println!("\x1b[31mErrors:");
-                for err in errors.iter() {
+    let mut parsed_expr = parser.parse(&input_hulk).unwrap();
+    let mut print_visitor = PreetyPrintVisitor;
+    let mut semantic_visitor = SemanticVisitor::new();
+    let res = semantic_visitor.check(&mut parsed_expr);
+    match &res {
+        Ok(_) => {
+            println!("Parsed successfully And zero semantic errors!");
+        }
+        Err(errors) => {
+            println!("\x1b[31mErrors:");
+            for err in errors.iter() {
                 println!("{}", err.message());
-                }
-                println!("\x1b[0m");
             }
+            println!("\x1b[0m");
         }
-        println!("");
+    }
+    println!("");
 
-        let mut ast_file = File::create("ast.txt").expect("No se pudo crear ast.txt");
+    let mut ast_file = File::create("ast.txt").expect("No se pudo crear ast.txt");
 
-        match &res {
-            Ok(_) => {
-                println!("Parsed successfully And zero semantic errors!");
-                let ast_str = print_visitor.visit_program(&mut parsed_expr);
-                println!("\x1b[34m{}\x1b[0m", ast_str);
-                ast_file.write_all(ast_str.as_bytes()).expect("No se pudo escribir en ast.txt");
-            }
-            Err(errors) => {
-                println!("\x1b[31mErrors:");
-                for err in errors.iter() {
-                    println!("{}", err.message());
-                    ast_file.write_all(format!("{}\n", err.message()).as_bytes())
-                        .expect("No se pudo escribir en ast.txt");
-                }
-                println!("\x1b[0m");
-            }
+    match &res {
+        Ok(_) => {
+            println!("Parsed successfully And zero semantic errors!");
+            let ast_str = print_visitor.visit_program(&mut parsed_expr);
+            println!("\x1b[34m{}\x1b[0m", ast_str);
+            ast_file
+                .write_all(ast_str.as_bytes())
+                .expect("No se pudo escribir en ast.txt");
+            // Codegen y ejecución
+            println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
+            CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
         }
-        // Codegen y ejecución
-        println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
-        CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
+        Err(errors) => {
+            println!("\x1b[31mErrors:");
+            for err in errors.iter() {
+                println!("{}", err.message());
+                ast_file
+                    .write_all(format!("{}\n", err.message()).as_bytes())
+                    .expect("No se pudo escribir en ast.txt");
+            }
+            println!("\x1b[0m");
+        }
+    }
 
-        println!("\n");
+    println!("\n");
     // }
 }
