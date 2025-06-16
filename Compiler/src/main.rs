@@ -197,11 +197,14 @@ else {
         function sum(a: Number, b: Number): Number {
             a + b ;
         }
-        sum(3, 4);
+        print(sum(3, 4) + 2);
+
+        let a = 2 in (a + 2);
     ";
 
     let boolean_test = "
-        true == false;
+        let a = \"adormir\" == \"arurru\" in print(a);
+
     ";
 
     let input_hulk = fs::read_to_string("../script.hulk").expect("Failed to read input file");

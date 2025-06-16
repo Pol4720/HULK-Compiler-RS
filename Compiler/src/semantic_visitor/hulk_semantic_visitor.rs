@@ -178,7 +178,7 @@ impl SemanticVisitor {
                 HulkFunctionInfo::new(
                     func_def.function_def.name.clone(),
                     arg_types,
-                    return_type_node,
+                    return_type_node.type_name.clone(),
                 ),
                 );
             }
@@ -483,11 +483,11 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     }
                 }
             }
-            if let Some(func_type_node) = self.type_ast.get_type(&func_type.type_name) {
+            if let Some(func_type_node) = self.type_ast.get_type(&func_type) {
                 node.set_expression_type(func_type_node.clone());
                 func_type_node
             } else {
-                self.new_error(SemanticError::UndefinedType(func_type.type_name.clone()));
+                self.new_error(SemanticError::UndefinedType(func_type.clone()));
                 self.get_type(&HulkTypesInfo::Unknown)
             }
         } else {

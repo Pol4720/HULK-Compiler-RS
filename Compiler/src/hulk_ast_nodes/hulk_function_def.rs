@@ -8,7 +8,7 @@ use std::fmt;
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::{Expr, ExprKind};
-use crate::hulk_ast_nodes::{Block, NewTypeInstance};
+use crate::hulk_ast_nodes::{Block};
 use crate::typings::types_node::TypeNode;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
@@ -172,7 +172,7 @@ impl FunctionDef {
         FunctionDef {
             name: header.name,
             params: header.params,
-            return_type: String::from("i32"),
+            return_type: header.signature,
             body,
             _type: None,
         }

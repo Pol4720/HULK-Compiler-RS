@@ -41,24 +41,38 @@ impl Visitor<String> for PreetyPrintVisitor {
     }
 
     fn visit_identifier(&mut self, identifier: &mut Identifier) -> String {
-        format!("Identifier: {}", identifier.id)
+        match &identifier._type {
+            Some(ty) => format!("Identifier: {} : {}", identifier.id, ty.type_name),
+            None => format!("Identifier: {}", identifier.id),
+        }
     }
 
     fn visit_number_literal(&mut self, number: &mut NumberLiteral) -> String {
-        format!("NumberLiteral: {}", number.value)
+        match &number._type {
+            Some(ty) => format!("NumberLiteral: {} : {}", number.value, ty.type_name),
+            None => format!("NumberLiteral: {}", number.value),
+        }
     }
-
     fn visit_boolean_literal(&mut self, boolean: &mut BooleanLiteral) -> String {
-        format!("BooleanLiteral: {}", boolean.value)
+        match &boolean._type {
+            Some(ty) => format!("BooleanLiteral: {} : {}", boolean.value, ty.type_name),
+            None => format!("BooleanLiteral: {}", boolean.value),
+        }
     }
 
     fn visit_string_literal(&mut self, string: &mut StringLiteral) -> String {
-        format!("StringLiteral: {}", string.value)
+        match &string._type {
+            Some(ty) => format!("StringLiteral: {} : {}", string.value, ty.type_name),
+            None => format!("StringLiteral: {}", string.value),
+        }
     }
 
     fn visit_function_def(&mut self, function_def: &mut FunctionDef) -> String {
         let params = function_def.params.iter()
-            .map(|param| param.to_string())
+            .map(|param| {
+                // Asumiendo que param tiene campos 'name' y 'param_type'
+                format!("{}: {}", param.name, param.param_type)
+            })
             .collect::<Vec<_>>()
             .join(", ");
         format!(
@@ -68,28 +82,48 @@ impl Visitor<String> for PreetyPrintVisitor {
             function_def.body.accept(self)
         )
     }
+    
 
     fn visit_function_call(&mut self, function_call: &mut FunctionCall) -> String {
         let args = function_call.arguments.iter_mut()
             .map(|arg| arg.accept(self))
             .collect::<Vec<_>>()
             .join(", ");
-        format!("FunctionCall: {}({})", function_call.funct_name, args)
+        let type_str = match &function_call._type {
+            Some(ty) => format!(" : {}", ty.type_name),
+            None => "".to_string(),
+        };
+        format!("FunctionCall: {}({}){}", function_call.funct_name, args, type_str)
     }
 
     fn visit_assignment(&mut self, assignment: &mut Assignment) -> String {
-        format!("Assignment: {} = {}", assignment.identifier.id, assignment.expression.accept(self))
+        let id = &assignment.identifier;
+        let expr_str = assignment.expression.accept(self);
+        let type_str = match &assignment._type {
+            Some(ty) => format!(" : {}", ty.type_name),
+            None => "".to_string(),
+        };
+        format!(
+            "Assignment: {}{} = {}",
+            id.id,
+            type_str,
+            expr_str
+        )
     }
 
     fn visit_let_in(&mut self, let_in: &mut LetIn) -> String {
-        let assignments = let_in.assignment.iter_mut()
+        let assignments: Vec<String> = let_in.assignment.iter_mut()
             .map(|a| a.accept(self))
-            .collect::<Vec<_>>()
-            .join("\n");
+            .collect();
+        let assignments_types: Vec<String> = let_in.assignment.iter_mut()
+            .map(|a| format!("{:?}", a._type))
+            .collect();
+        let body_str = let_in.body.accept(self);
         format!(
-            "LetIn:\nAssignments:\n{}\nBody:\n{}",
-            assignments,
-            let_in.body.accept(self)
+            "LetIn:\nAssignments:\n{}\nAssignments Types:\n{}\nBody:\n{}",
+            assignments.join("\n"),
+            assignments_types.join("\n"),
+            body_str
         )
     }
 
@@ -128,7 +162,11 @@ impl Visitor<String> for PreetyPrintVisitor {
     fn visit_binary_expr(&mut self, binary_expr: &mut BinaryExpr) -> String {
         let left = binary_expr.left.accept(self);
         let right = binary_expr.right.accept(self);
-        format!("BinaryExpr: {} {:?} {}", left, binary_expr.operator, right)
+        let type_str = match &binary_expr._type {
+            Some(ty) => format!(" : {}", ty.type_name),
+            None => "".to_string(),
+        };
+        format!("BinaryExpr: {} {:?} {}{}", left, binary_expr.operator, right, type_str)
     }
 
     fn visit_unary_expr(&mut self, unary_expr: &mut UnaryExpr) -> String {
