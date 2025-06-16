@@ -197,11 +197,14 @@ else {
         function sum(a: Number, b: Number): Number {
             a + b ;
         }
-        sum(3, 4);
+        print(sum(3, 4) + 2);
+
+        let a = 2 in (a + 2);
     ";
 
     let boolean_test = "
-        true == false;
+        let a = \"adormir\" == \"arurru\" in print(a);
+
     ";
 
 
@@ -217,7 +220,7 @@ else {
         //     break;
         // }
 
-        let mut parsed_expr = parser.parse(&input_hulk).unwrap();
+        let mut parsed_expr = parser.parse(&function_test).unwrap();
         let mut print_visitor = PreetyPrintVisitor;
         let mut semantic_visitor = SemanticVisitor::new();
         let res = semantic_visitor.check(&mut parsed_expr);
@@ -255,8 +258,8 @@ else {
             }
         }
         // Codegen y ejecución
-        println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
-        CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
+        // println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
+        // CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
 
         println!("\n");
     // }

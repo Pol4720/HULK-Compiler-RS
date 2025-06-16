@@ -9,6 +9,7 @@ use std::collections::HashMap;
 
 use crate::hulk_ast_nodes::hulk_function_def::FunctionParams;
 use crate::hulk_ast_nodes::FunctionDef;
+use std::fmt;
 
 /// Representa un tipo (clase) en el árbol de tipos del compilador Hulk.
 /// 
@@ -28,6 +29,20 @@ pub struct TypeNode {
     pub children: Vec<String>,
     pub variables: HashMap<String, Box<String>>, 
     pub methods: HashMap<String, Box<FunctionDef>>, 
+}
+
+
+impl fmt::Display for TypeNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "TypeNode: {}", self.type_name)?;
+        writeln!(f, "  Depth: {}", self.depth)?;
+        writeln!(f, "  Params: {:?}", self.params)?;
+        writeln!(f, "  Parent: {:?}", self.parent)?;
+        writeln!(f, "  Children: {:?}", self.children)?;
+        writeln!(f, "  Variables: {:?}", self.variables)?;
+        writeln!(f, "  Methods: {:?}", self.methods.keys().collect::<Vec<_>>())?;
+        Ok(())
+    }
 }
 
 impl TypeNode {
