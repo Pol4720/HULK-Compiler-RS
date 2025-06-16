@@ -51,66 +51,138 @@ impl ForExpr {
     }
 }
 
+// impl Codegen for ForExpr {
+//     /// Genera el código LLVM IR para la expresión de bucle `for`.
+//     ///
+//     /// Crea las etiquetas y el flujo de control necesarios para implementar el bucle,
+//     /// inicializa la variable, evalúa la condición, ejecuta el cuerpo y realiza la actualización.
+//     /// El bucle no produce un valor, por lo que retorna `"void"`.
+//     fn codegen(&self, context: &mut CodegenContext) -> String {
+//          // Genera valores de inicio y fin
+//          let start_val = self.start.codegen(context);
+//          let end_val = self.end.codegen(context);
+ 
+//          // Aloca espacio para la variable del bucle y almacena el valor inicial
+//          let loop_var_alloc = context.generate_temp();
+//          context.emit(&format!("  {} = alloca i32", loop_var_alloc));
+//          context.emit(&format!("  store i32 {}, i32* {}", start_val, loop_var_alloc));
+ 
+//          // Etiquetas
+//          let loop_cond_label = context.generate_label("loop_cond");
+//          let loop_body_label = context.generate_label("loop_body");
+//          let loop_inc_label = context.generate_label("loop_inc");
+//          let loop_end_label = context.generate_label("loop_end");
+ 
+//          // Salta a condición
+//          context.emit(&format!("  br label %{}", loop_cond_label));
+ 
+//          // loop_cond:
+//          context.emit(&format!("{}:", loop_cond_label));
+//          let loop_var = context.generate_temp();
+//          context.emit(&format!("  {} = load i32, i32* {}", loop_var, loop_var_alloc));
+ 
+//          let cond_temp = context.generate_temp();
+//          context.emit(&format!(
+//              "  {} = icmp sle i32 {}, {}",
+//              cond_temp, loop_var, end_val
+//          ));
+//          context.emit(&format!(
+//              "  br i1 {}, label %{}, label %{}",
+//              cond_temp, loop_body_label, loop_end_label
+//          ));
+ 
+//          // loop_body:
+//          context.emit(&format!("{}:", loop_body_label));
+ 
+//          // Aquí puedes registrar el nombre de variable si usas un entorno de símbolos
+//          // por ahora solo generamos el cuerpo normalmente
+//          let _ = self.body.codegen(context);
+ 
+//          context.emit(&format!("  br label %{}", loop_inc_label));
+ 
+//          // loop_inc:
+//          context.emit(&format!("{}:", loop_inc_label));
+//          let next_val = context.generate_temp();
+//          context.emit(&format!("  {} = add i32 {}, 1", next_val, loop_var));
+//          context.emit(&format!("  store i32 {}, i32* {}", next_val, loop_var_alloc));
+//          context.emit(&format!("  br label %{}", loop_cond_label));
+ 
+//          // loop_end:
+//          context.emit(&format!("{}:", loop_end_label));
+ 
+//          // Los bucles no producen valor , así que devolvemos "void"
+//          String::from("void")
+//     }
+// }
+
 impl Codegen for ForExpr {
-    /// Genera el código LLVM IR para la expresión de bucle `for`.
+     /// Genera el código LLVM IR para la expresión de bucle `for`.
     ///
     /// Crea las etiquetas y el flujo de control necesarios para implementar el bucle,
     /// inicializa la variable, evalúa la condición, ejecuta el cuerpo y realiza la actualización.
     /// El bucle no produce un valor, por lo que retorna `"void"`.
     fn codegen(&self, context: &mut CodegenContext) -> String {
-         // Genera valores de inicio y fin
-         let start_val = self.start.codegen(context);
-         let end_val = self.end.codegen(context);
- 
-         // Aloca espacio para la variable del bucle y almacena el valor inicial
-         let loop_var_alloc = context.generate_temp();
-         context.emit(&format!("  {} = alloca i32", loop_var_alloc));
-         context.emit(&format!("  store i32 {}, i32* {}", start_val, loop_var_alloc));
- 
-         // Etiquetas
-         let loop_cond_label = context.generate_label("loop_cond");
-         let loop_body_label = context.generate_label("loop_body");
-         let loop_inc_label = context.generate_label("loop_inc");
-         let loop_end_label = context.generate_label("loop_end");
- 
-         // Salta a condición
-         context.emit(&format!("  br label %{}", loop_cond_label));
- 
-         // loop_cond:
-         context.emit(&format!("{}:", loop_cond_label));
-         let loop_var = context.generate_temp();
-         context.emit(&format!("  {} = load i32, i32* {}", loop_var, loop_var_alloc));
- 
-         let cond_temp = context.generate_temp();
-         context.emit(&format!(
-             "  {} = icmp sle i32 {}, {}",
-             cond_temp, loop_var, end_val
-         ));
-         context.emit(&format!(
-             "  br i1 {}, label %{}, label %{}",
-             cond_temp, loop_body_label, loop_end_label
-         ));
- 
-         // loop_body:
-         context.emit(&format!("{}:", loop_body_label));
- 
-         // Aquí puedes registrar el nombre de variable si usas un entorno de símbolos
-         // por ahora solo generamos el cuerpo normalmente
-         let _ = self.body.codegen(context);
- 
-         context.emit(&format!("  br label %{}", loop_inc_label));
- 
-         // loop_inc:
-         context.emit(&format!("{}:", loop_inc_label));
-         let next_val = context.generate_temp();
-         context.emit(&format!("  {} = add i32 {}, 1", next_val, loop_var));
-         context.emit(&format!("  store i32 {}, i32* {}", next_val, loop_var_alloc));
-         context.emit(&format!("  br label %{}", loop_cond_label));
- 
-         // loop_end:
-         context.emit(&format!("{}:", loop_end_label));
- 
-         // Los bucles no producen valor , así que devolvemos "void"
-         String::from("void")
+        // Obtener tipo del bucle (debe estar definido)
+        let hulk_type = self._type.clone().expect("ForExpr debe tener tipo inferido");
+        let llvm_type = CodegenContext::to_llvm_type(hulk_type.type_name);
+
+        // Generar valores de inicio y fin
+        let start_val = self.start.codegen(context);
+        let end_val = self.end.codegen(context);
+
+        // Aloca espacio para la variable del bucle y almacena el valor inicial
+        let loop_var_alloc = context.generate_temp();
+        context.emit(&format!("  {} = alloca {}", loop_var_alloc, llvm_type));
+        context.emit(&format!("  store {} {}, {}* {}", llvm_type, start_val, llvm_type, loop_var_alloc));
+
+        // Registrar variable del iterador en el symbol_table
+        context.symbol_table.insert(self.variable.clone(), loop_var_alloc.clone());
+
+        // Etiquetas
+        let loop_cond_label = context.generate_label("loop_cond");
+        let loop_body_label = context.generate_label("loop_body");
+        let loop_inc_label = context.generate_label("loop_inc");
+        let loop_end_label = context.generate_label("loop_end");
+
+        // Salto inicial
+        context.emit(&format!("  br label %{}", loop_cond_label));
+
+        // loop_cond:
+        context.emit(&format!("{}:", loop_cond_label));
+        let loop_var = context.generate_temp();
+        context.emit(&format!("  {} = load {}, {}* {}", loop_var, llvm_type, llvm_type, loop_var_alloc));
+
+        let cond_temp = context.generate_temp();
+        context.emit(&format!(
+            "  {} = fcmp ole double {}, {}",
+            cond_temp, loop_var, end_val
+        ));
+        context.emit(&format!(
+            "  br i1 {}, label %{}, label %{}",
+            cond_temp, loop_body_label, loop_end_label
+        ));
+
+        // loop_body:
+        context.emit(&format!("{}:", loop_body_label));
+        let _ = self.body.codegen(context); // ejecuta cuerpo del bucle
+        context.emit(&format!("  br label %{}", loop_inc_label));
+
+        // loop_inc:
+        context.emit(&format!("{}:", loop_inc_label));
+        let next_val = context.generate_temp();
+        context.emit(&format!(
+            "  {} = fadd {} {}, 1.0", // Considerar suma adecuada para tipos no enteros si se soportan
+            next_val, llvm_type, loop_var
+        ));
+        context.emit(&format!("  store {} {}, {}* {}", llvm_type, next_val, llvm_type, loop_var_alloc));
+        context.emit(&format!("  br label %{}", loop_cond_label));
+
+        // loop_end:
+        context.emit(&format!("{}:", loop_end_label));
+
+        // Limpiar la variable del iterador del contexto si lo deseas
+        context.symbol_table.remove(&self.variable);
+
+        String::from("void")
     }
 }

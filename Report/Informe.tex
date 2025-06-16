@@ -92,7 +92,7 @@ framerule=1pt
     \centering
     \vspace*{2cm}
     {\huge\bfseries Informe\\[0.4cm]}
-    {\LARGE Compilador HULK-C++-RS\\}
+    {\LARGE Compilador HULK-In-RUST\\}
     \vspace*{2cm}
     
      
@@ -104,7 +104,7 @@ framerule=1pt
     {\Large Facultad de Matemática y Computación\\[0.5cm]}
     {\Large Universidad de La Habana\\[0.5cm]}
     \vfill
-    \includegraphics[width=0.2\textwidth, height=0.2\textheight]{Images/MATCOM.jpg}\\[0.5cm]
+    \includegraphics[width=0.2\textwidth, height=0.2\textheight]{MATCOM.jpg}\\[0.5cm]
     {\Large 2025}
 \end{titlepage}
 
@@ -112,48 +112,54 @@ framerule=1pt
 \tableofcontents
 \newpage
 
+\section{Introduccion al Lenguaje Hulk}
+
+HULK (Lenguaje de la Universidad de La Habana para Compiladores) es un lenguaje de programación didáctico, con tipado seguro, orientado a objetos e incremental, diseñado para el curso de Introducción a los Compiladores en la carrera de Ciencias de la Computación en la Universidad de La Habana.
+
+A grandes rasgos, HULK es un lenguaje de programación orientado a objetos, con herencia simple, polimorfismo y encapsulamiento a nivel de clase. Además, en HULK es posible definir funciones globales fuera del ámbito de cualquier clase. También es posible definir una única expresión global que constituye el punto de entrada del programa.
+
+\subsection{Características del lenguaje}
+
+La mayoría de las construcciones sintácticas en HULK son expresiones, incluyendo las instrucciones condicionales y los ciclos. HULK es un lenguaje de tipado estático con inferencia de tipos opcional, lo que significa que algunas (o todas) las partes de un programa pueden ser anotadas con tipos, y el compilador verificará la consistencia de todas las operaciones.
+
+\section{Ejecución del Proyecto}
+
+El proyecto HULK-Compiler-RS incluye un archivo \texttt{Makefile} que automatiza tareas comunes como la compilación, ejecución y limpieza del proyecto. A continuación se detallan los objetivos y su uso.
+
+\subsection{Objetivos del Makefile}
+
+\begin{itemize}
+  \item \textbf{compile}: Construye el proyecto usando \texttt{cargo} y mueve los archivos generados (\texttt{out.ll}, \texttt{ast.txt}) al directorio \texttt{hulk}.
+  \item \textbf{execute}: Depende de \texttt{compile}. Mueve los binarios generados para distintas plataformas (\texttt{output\_macos}, \texttt{output.exe}, \texttt{output\_linux}) y los archivos generados al directorio \texttt{hulk}.
+  \item \textbf{clean}: Elimina los artefactos de compilación generados por \texttt{cargo} y remueve el directorio \texttt{hulk}.
+\end{itemize}
+
+\subsection{Variables del Makefile}
+
+\begin{itemize}
+  \item \texttt{TARGET\_DIR}: Directorio donde se recopilan los archivos de salida (por defecto \texttt{hulk}).
+  \item \texttt{CARGO\_DIR}: Directorio que contiene el proyecto en Rust (por defecto \texttt{Compiler}).
+  \item \texttt{OUT\_LL}: Ruta del archivo de salida en formato LLVM IR.
+  \item \texttt{OUTPUT\_TXT}: Ruta del archivo de salida con el AST (Árbol de Sintaxis Abstracta).
+  \item \texttt{TARGETMac}: Ruta de salida del binario para macOS.
+  \item \texttt{TARGETWindows}: Ruta de salida del binario para Windows.
+  \item \texttt{TARGETLinux}: Ruta de salida del binario para Linux.
+\end{itemize}
+
+\subsection{Uso}
+
+Para ejecutar las tareas definidas en el \texttt{Makefile}, utiliza los siguientes comandos desde la terminal:
+
+\begin{itemize}
+  \item \texttt{make compile} \hfill \\
+        Compila el proyecto y recopila los archivos intermedios.
+  \item \texttt{make execute} \hfill \\
+        Compila y recopila los binarios y archivos de salida para todas las plataformas(Al ejecutar este comando también se generara un html con la documentación completa del código, en la terminal aparecera la url).
+  \item \texttt{make clean} \hfill \\
+        Elimina los artefactos de compilación y el directorio de salida.
+\end{itemize}
+
+
 \end{document}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

@@ -46,22 +46,58 @@ impl fmt::Display for Identifier {
     }
 }
 
+// impl Codegen for Identifier {
+//     /// Genera el código LLVM IR para el identificador.
+//     ///
+//     /// Busca el puntero de la variable en la tabla de símbolos y genera una instrucción `load`.
+//     /// Si la variable no existe en el contexto, lanza un panic.
+//     fn codegen(&self, context: &mut CodegenContext) -> String {
+//         // Busca el puntero de la variable en la tabla de símbolos
+//         let ptr = context.symbol_table.get(&self.id).cloned();
+//         if let Some(ptr) = ptr {
+//             let result_reg = context.generate_temp();
+//             // Asume tipo i32 (ajustar si soportas otros tipos)
+//             let line = format!("  {} = load i32, i32* {}", result_reg, ptr);
+//             context.emit(&line);
+//             result_reg
+//         } else {
+//             panic!("Variable '{}' no definida en el contexto", self.id);
+//         }
+//     }
+// }
+
 impl Codegen for Identifier {
-    /// Genera el código LLVM IR para el identificador.
+     /// Genera el código LLVM IR para el identificador.
     ///
     /// Busca el puntero de la variable en la tabla de símbolos y genera una instrucción `load`.
     /// Si la variable no existe en el contexto, lanza un panic.
     fn codegen(&self, context: &mut CodegenContext) -> String {
         // Busca el puntero de la variable en la tabla de símbolos
         let ptr = context.symbol_table.get(&self.id).cloned();
-        if let Some(ptr) = ptr {
-            let result_reg = context.generate_temp();
-            // Asume tipo i32 (ajustar si soportas otros tipos)
-            let line = format!("  {} = load i32, i32* {}", result_reg, ptr);
-            context.emit(&line);
-            result_reg
-        } else {
+        if ptr.is_none() {
             panic!("Variable '{}' no definida en el contexto", self.id);
+        }
+        let ptr = ptr.unwrap();
+
+        // Asegura que el tipo del identificador esté definido
+        let hulk_type = self._type.clone().expect(&format!(
+            "El tipo del identificador '{}' no ha sido inferido",
+            self.id
+        ));
+        let llvm_type = CodegenContext::to_llvm_type(hulk_type.type_name);
+
+        // Si el tipo es un puntero (como i8* para strings), no hace falta hacer load
+        match llvm_type.as_str() {
+            // "i8*" => ptr,
+            _ => {
+                let result_reg = context.generate_temp();
+                let line = format!("  {} = load {}, {}* {}", result_reg, llvm_type, llvm_type, ptr);
+                context.emit(&line);
+                result_reg
+            }
         }
     }
 }
+
+
+

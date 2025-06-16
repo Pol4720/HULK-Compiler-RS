@@ -8,3 +8,5 @@ Compiler/target
 
 *.ll
 *.exe
+*.hulk
+ast.txt

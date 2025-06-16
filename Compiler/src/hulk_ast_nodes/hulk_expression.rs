@@ -6,6 +6,8 @@
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
+use crate::hulk_ast_nodes::hulk_function_def::ArrowExpression;
+use crate::hulk_ast_nodes::hulk_function_def::FunctionBody;
 use crate::hulk_ast_nodes::hulk_print_expr::PrintExpr;
 use crate::hulk_ast_nodes::Block;
 use crate::hulk_ast_nodes::DestructiveAssignment;
@@ -65,12 +67,14 @@ pub enum ExprKind {
     Assignment(Assignment),
     LetIn(LetIn),
     WhileLoop(WhileLoop),
+    FunctionBody(FunctionBody),
     ForExp(ForExpr),
     CodeBlock(Block),
     DestructiveAssign(DestructiveAssignment),
     NewTypeInstance(NewTypeInstance),
     FunctionAccess(FunctionAccess),
     MemberAccess(MemberAccess),
+    ArrowExpression(ArrowExpression),
 }
 
 impl Expr {
@@ -146,6 +150,8 @@ impl Accept for ExprKind {
             ExprKind::FunctionAccess(node) => visitor.visit_function_access(node),
             ExprKind::MemberAccess(node) => visitor.visit_member_access(node),
             ExprKind::Print(node) => visitor.visit_print_expr(node),
+            ExprKind::FunctionBody(node) => visitor.visit_function_body(node),
+            ExprKind::ArrowExpression(arrow_expression) => todo!(),
         }
     }
 }
@@ -178,7 +184,9 @@ impl Codegen for ExprKind {
             ExprKind::NewTypeInstance(new_type_instance) => todo!(),
             ExprKind::FunctionAccess(function_access) => todo!(),
             ExprKind::MemberAccess(member_access) => todo!(),
-            ExprKind::Print(print) => todo!(),
+            ExprKind::Print(print) => print.codegen(context),
+            ExprKind::FunctionBody(function_body) => todo!(),
+            ExprKind::ArrowExpression(arrow_expression) => todo!(),
         }
     }
 }

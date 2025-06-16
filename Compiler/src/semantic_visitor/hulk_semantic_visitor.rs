@@ -30,14 +30,15 @@
 use std::collections::HashMap;
 
 use super::{hulk_scope::Scope, hulk_semantic_error::SemanticError};
+use crate::hulk_ast_nodes::hulk_function_def::FunctionBody;
+use crate::hulk_ast_nodes::hulk_program::Definition;
 use crate::hulk_tokens::hulk_operators::BinaryOperatorToken;
 use crate::hulk_tokens::hulk_operators::UnaryOperator;
 use crate::hulk_ast_nodes::hulk_types_info::HulkTypesInfo;
-use crate::hulk_ast_nodes::hulk_print_expr::PrintExpr;
 use crate::{
     hulk_ast_nodes::{
         BinaryExpr, Block, BooleanLiteral, DestructiveAssignment, Expr, ForExpr, FunctionAccess,
-        FunctionCall, FunctionDef, HulkFunctionInfo, HulkTypeNode, Identifier, IfExpr, Instruction,
+        FunctionCall, FunctionDef, HulkFunctionInfo, HulkTypeNode, Identifier, IfExpr,
         LetIn, MemberAccess, NewTypeInstance, NumberLiteral, ProgramNode, StringLiteral, UnaryExpr,
         WhileLoop, hulk_expression::ExprKind,
     },
@@ -54,6 +55,39 @@ use crate::{
 /// - `scopes`: Pila de scopes anidados.
 /// - `errors`: Lista de errores semánticos encontrados.
 /// - `type_ast`: Árbol de tipos para resolución de tipos y herencia.
+
+pub enum Instruction {
+    Definition(Definition),
+    Expression(Box<Expr>)
+}
+
+impl From<Definition> for Instruction {
+    fn from(v: Definition) -> Self {
+        Self::Definition(v)
+    }
+}
+
+impl From<Expr> for Instruction {
+    fn from(v: Expr) -> Self {
+        Self::Expression(Box::new(v))
+    }
+}
+
+pub fn program_from_instructions(instructions: Vec<Instruction>) -> ProgramNode {
+    let mut definitions = Vec::new();
+    let mut expressions = Vec::new();
+
+    for instruction in instructions.into_iter() {
+        match instruction {
+            Instruction::Expression(expr) => expressions.push(expr),
+            Instruction::Definition(def) => definitions.push(def),
+        }
+    }
+
+    let expressions: Vec<Expr> = expressions.into_iter().map(|b| *b).collect();
+    return ProgramNode::new(expressions, definitions)
+}
+
 
 pub struct SemanticVisitor {
     pub current_scope: Scope,
@@ -108,17 +142,17 @@ impl SemanticVisitor {
     }
 
     pub fn get_all_functions(&mut self, node: &ProgramNode) {
-        for instruction in &node.instructions {
-            if let Instruction::FunctionDef(func_def) = instruction {
-            let func_return_type = func_def.return_type.clone();
+        for instruction in &node.definitions {
+            if let Definition::FunctionDef(func_def) = instruction {
+            let func_return_type = func_def.function_def.return_type.clone();
             let mut arg_types = Vec::new();
             let mut param_names = std::collections::HashSet::new();
 
-            for param in &func_def.params {
+            for param in &func_def.function_def.params {
                 if !param_names.insert(&param.name) {
                 self.new_error(SemanticError::ParamNameAlreadyExist(
                     param.name.clone(),
-                    func_def.name.clone(),
+                    func_def.function_def.name.clone(),
                     "function".to_string(),
                 ));
                 }
@@ -132,17 +166,17 @@ impl SemanticVisitor {
                 arg_types.push((param.name.clone(), param_type));
             }
 
-            if self.current_scope.declared_functions.contains_key(&func_def.name) {
-                self.new_error(SemanticError::RedefinitionOfFunction(func_def.name.clone()));
+            if self.current_scope.declared_functions.contains_key(&func_def.function_def.name) {
+                self.new_error(SemanticError::RedefinitionOfFunction(func_def.function_def.name.clone()));
             } else {
                 let return_type_node = self
                 .type_ast
                 .get_type(&func_return_type)
                 .unwrap_or_else(|| self.get_type(&HulkTypesInfo::Unknown));
                 self.current_scope.declared_functions.insert(
-                func_def.name.clone(),
+                func_def.function_def.name.clone(),
                 HulkFunctionInfo::new(
-                    func_def.name.clone(),
+                    func_def.function_def.name.clone(),
                     arg_types,
                     return_type_node,
                 ),
@@ -153,8 +187,8 @@ impl SemanticVisitor {
     }
 
     pub fn get_all_types_def(&mut self, node: &ProgramNode) {
-        for instruction in &node.instructions {
-            if let Instruction::TypeDef(type_def) = instruction {
+        for instruction in &node.definitions {
+            if let Definition::TypeDef(type_def) = instruction {
                 if self.type_ast.get_type(&type_def.type_name).is_some()
                     || self
                         .current_scope
@@ -512,11 +546,13 @@ impl Visitor<TypeNode> for SemanticVisitor {
             | BinaryOperatorToken::Gte
             | BinaryOperatorToken::Lt
             | BinaryOperatorToken::Lte
-            | BinaryOperatorToken::Eq
+            | BinaryOperatorToken::EqEq
             | BinaryOperatorToken::Neq
             | BinaryOperatorToken::Neg => {
                 if left_type == self.get_type(&HulkTypesInfo::Number)
-                    && right_type == self.get_type(&HulkTypesInfo::Number)
+                    && right_type == self.get_type(&HulkTypesInfo::Number) || left_type == self.get_type(&HulkTypesInfo::Boolean)
+                    && right_type == self.get_type(&HulkTypesInfo::Boolean) || left_type == self.get_type(&HulkTypesInfo::String)
+                    && right_type == self.get_type(&HulkTypesInfo::String)
                 {
                     node.set_expression_type(self.get_type(&HulkTypesInfo::Boolean));
                     self.get_type(&HulkTypesInfo::Boolean)
@@ -705,8 +741,6 @@ impl Visitor<TypeNode> for SemanticVisitor {
         expr_type
     }
 
-
-
     fn visit_type_def(&mut self, node: &mut HulkTypeNode) -> TypeNode {
         self.build_scope();
         self.current_scope.current_type_def = Some(node.type_name.clone());
@@ -880,6 +914,13 @@ impl Visitor<TypeNode> for SemanticVisitor {
         let expr_type = node.expr.accept(self);
         node.set_expression_type(expr_type.clone());
         expr_type
+    }
+    
+    fn visit_function_body(&mut self, node: &mut crate::hulk_ast_nodes::hulk_function_def::FunctionBody) -> TypeNode {
+        match node {
+            FunctionBody::Block(b) => self.visit_code_block(b),
+            FunctionBody::ArrowExpression(a) => a.expression.accept(self),
+        }
     }
     
 }

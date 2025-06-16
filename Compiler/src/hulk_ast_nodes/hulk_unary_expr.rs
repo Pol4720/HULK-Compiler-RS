@@ -55,23 +55,20 @@ impl Codegen for UnaryExpr {
         let result_reg = context.generate_temp();
 
         // Selecciona la operación LLVM correspondiente
-        let line = match self.operator {
+        match self.operator {
             UnaryOperator::Minus => {
                 // Negación aritmética: -x
-                format!("  {} = sub i32 0, {}", result_reg, operand_reg)
+                context.emit(&format!("{} = fsub double 0.0, {}", result_reg, operand_reg));
             }
             UnaryOperator::LogicalNot => {
                 // Negación lógica: !x (bitwise not)
-                format!("  {} = xor i32 {}, -1", result_reg, operand_reg)
+                context.emit(&format!("{} = xor i1 {}, true", result_reg, operand_reg));
             }
             UnaryOperator::Plus => {
                 // Operador + unario: simplemente copia el valor
-                format!("  {} = add i32 0, {}", result_reg, operand_reg)
+                context.emit(&format!("{} = add i32 0, {}", result_reg, operand_reg));
             }
-        };
-
-        // Emite la instrucción LLVM IR
-        context.emit(&line);
+        }
 
         result_reg
     }

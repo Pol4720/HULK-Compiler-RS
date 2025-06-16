@@ -28,6 +28,73 @@ impl CodeGenerator {
 
         // Cabecera y formatos
         final_code.push_str("declare i32 @printf(i8*, ...)\n");
+        final_code.push_str(
+            r#"
+        define i8* @hulk_str_concat(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %totallen = add i64 %len1, %len2
+          %totallen1 = add i64 %totallen, 1
+          %buf = call i8* @malloc(i64 %totallen1)
+          call void @llvm.memcpy.p0i8.p0i8.i64(i8* %buf, i8* %s1, i64 %len1, i1 false)
+          %buf_offset = getelementptr i8, i8* %buf, i64 %len1
+          call void @llvm.memcpy.p0i8.p0i8.i64(i8* %buf_offset, i8* %s2, i64 %len2, i1 false)
+          %last = getelementptr i8, i8* %buf, i64 %totallen
+          store i8 0, i8* %last
+          ret i8* %buf
+        }
+
+        ; Compara si dos strings son iguales (devuelve i1)
+        define i1 @hulk_str_eq(i8* %s1, i8* %s2) {
+        entry:
+          %cmp = call i32 @strcmp(i8* %s1, i8* %s2)
+          %is_eq = icmp eq i32 %cmp, 0
+          ret i1 %is_eq
+        }
+
+        ; Compara si s1 > s2 (por longitud)
+        define i1 @hulk_str_gt(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %gt = icmp ugt i64 %len1, %len2
+          ret i1 %gt
+        }
+
+        ; Compara si s1 < s2 (por longitud)
+        define i1 @hulk_str_lt(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %lt = icmp ult i64 %len1, %len2
+          ret i1 %lt
+        }
+
+        ; Compara si s1 >= s2 (por longitud)
+        define i1 @hulk_str_ge(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %ge = icmp uge i64 %len1, %len2
+          ret i1 %ge
+        }
+
+        ; Compara si s1 <= s2 (por longitud)
+        define i1 @hulk_str_le(i8* %s1, i8* %s2) {
+        entry:
+          %len1 = call i64 @strlen(i8* %s1)
+          %len2 = call i64 @strlen(i8* %s2)
+          %le = icmp ule i64 %len1, %len2
+          ret i1 %le
+        }
+
+        declare i64 @strlen(i8*)
+        declare i8* @malloc(i64)
+        declare void @llvm.memcpy.p0i8.p0i8.i64(i8*, i8*, i64, i1)
+        declare i32 @strcmp(i8*, i8*)
+        "#
+        );
         final_code.push_str("@format_int = private constant [4 x i8] c\"%d\\0A\\00\"\n");
         final_code.push_str("@format_double = private constant [4 x i8] c\"%f\\0A\\00\"\n");
         final_code.push_str("@format_bool = private constant [4 x i8] c\"%d\\0A\\00\"\n"); // imprimimos i1 como %d
@@ -42,35 +109,6 @@ impl CodeGenerator {
         // Función main
         final_code.push_str("\ndefine i32 @main() {\n");
         final_code.push_str(&ctx.code);
-
-        // Emisión de printf final según tipo
-        if !result_reg.is_empty() {
-            let print_line = match result_type {
-                "double" => format!(
-                    "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_double, i32 0, i32 0), double {})",
-                    result_reg
-                ),
-                "i1" => {
-                    let extended = ctx.generate_temp();
-                    ctx.code.push_str(&format!("  {} = zext i1 {} to i32\n", extended, result_reg));
-                    format!(
-                        "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @format_bool, i32 0, i32 0), i32 {})",
-                        extended
-                    )
-                }
-                "i8*" => format!(
-                    "  call i32 (i8*, ...) @printf(i8* getelementptr ([3 x i8], [3 x i8]* @format_str, i32 0, i32 0), i8* {})",
-                    result_reg
-                ),
-                _ => format!(
-                     "  call i32 (i8*, ...) @printf(i8* getelementptr ([3 x i8], [3 x i8]* @format_str, i32 0, i32 0), i8* {})",
-                    result_reg
-                ),
-            };
-            final_code.push_str(&print_line);
-            final_code.push('\n');
-        }
-
         final_code.push_str("  ret i32 0\n");
         final_code.push_str("}\n");
 
@@ -84,3 +122,4 @@ impl CodeGenerator {
         run_llvm_ir(filename);
     }
 }
+

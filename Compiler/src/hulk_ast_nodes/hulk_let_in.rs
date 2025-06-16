@@ -59,30 +59,40 @@ impl Codegen for LetIn {
     /// Reserva espacio para cada variable local, almacena su valor y gestiona el shadowing de variables.
     /// Al finalizar el cuerpo, restaura los bindings anteriores para mantener el alcance correcto.
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // Guarda el estado original del símbolo (para restaurar al final)
         let mut previous_bindings: Vec<(String, Option<String>)> = vec![];
 
         for assignment in &self.assignment {
             let name = assignment.identifier.id.clone();
             let value_expr = &assignment.expression;
 
+            // Genera el valor (registro LLVM) de la expresión
             let value_reg = value_expr.codegen(context);
 
-            let alloca_reg = context.generate_temp();
-            context.emit(&format!("  {} = alloca i32", alloca_reg));
-            context.emit(&format!("  store i32 {}, i32* {}", value_reg, alloca_reg));
+            // Genera almacenamiento y guarda el valor
+            let llvm_type = context
+                .symbol_table
+                .get("__last_type__")
+                .cloned()
+                .expect("Tipo no encontrado para asignación let");
 
-            // Guarda cualquier binding anterior para restaurar luego (sombra)
+            let llvm_type = if llvm_type == "ptr" { "i8*" } else { &llvm_type };
+
+            let alloca_reg = context.generate_temp();
+            context.emit(&format!("  {} = alloca {}", alloca_reg, llvm_type));
+            context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, alloca_reg));
+
+            // Guarda cualquier binding anterior (shadowing reversible)
             let previous = context.symbol_table.get(&name).cloned();
             previous_bindings.push((name.clone(), previous));
 
+            // Registra la variable nueva
             context.register_variable(&name, alloca_reg);
         }
 
         // Genera el cuerpo de la expresión `in`
-        let body_value = self.body.codegen(context);
+        let body_reg = self.body.codegen(context);
 
-        // Restaura bindings anteriores (shadowing reversible)
+        // Restaura bindings anteriores
         for (name, prev) in previous_bindings {
             match prev {
                 Some(ptr) => context.register_variable(&name, ptr),
@@ -92,6 +102,6 @@ impl Codegen for LetIn {
             }
         }
 
-        body_value
+        body_reg
     }
 }
