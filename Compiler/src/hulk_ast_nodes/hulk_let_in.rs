@@ -60,7 +60,7 @@ impl LetIn {
 }
 
 impl Codegen for LetIn {
-    /// Genera el código LLVM IR para la expresión let-in.
+    /// Genera el código LLVM IR para la expresión `let-in`.
     ///
     /// Reserva espacio para cada variable local, almacena su valor y gestiona el shadowing de variables.
     /// Al finalizar el cuerpo, restaura los bindings anteriores para mantener el alcance correcto.
@@ -81,18 +81,11 @@ impl Codegen for LetIn {
                 .cloned()
                 .expect("Tipo no encontrado para asignación let");
 
-            let llvm_type = if llvm_type == "ptr" {
-                "i8*"
-            } else {
-                &llvm_type
-            };
+            let llvm_type = if llvm_type == "ptr" { "i8*" } else { &llvm_type };
 
             let alloca_reg = context.generate_temp();
             context.emit(&format!("  {} = alloca {}", alloca_reg, llvm_type));
-            context.emit(&format!(
-                "  store {} {}, {}* {}",
-                llvm_type, value_reg, llvm_type, alloca_reg
-            ));
+            context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, alloca_reg));
 
             // Guarda cualquier binding anterior (shadowing reversible)
             let previous = context.symbol_table.get(&name).cloned();
@@ -102,7 +95,7 @@ impl Codegen for LetIn {
             context.register_variable(&name, alloca_reg);
         }
 
-        // Genera el cuerpo de la expresión in
+        // Genera el cuerpo de la expresión `in`
         let body_reg = self.body.codegen(context);
 
         // Restaura bindings anteriores
