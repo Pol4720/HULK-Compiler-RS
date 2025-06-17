@@ -208,9 +208,6 @@ else {
 
     ";
 
-<<<<<<< Updated upstream
-    let input_hulk = fs::read_to_string("../script.hulk").expect("Failed to read input file");
-=======
     let recursive_test = "
         function factorial(n: Number): Number {
             if (n <= 1) {
@@ -224,9 +221,7 @@ else {
         
         ";
 
-        let input_hulk = fs::read_to_string("../script.hulk")
-        .expect("Failed to read input file");
->>>>>>> Stashed changes
+    let input_hulk = fs::read_to_string("../script.hulk").expect("Failed to read input file");
 
     // loop {
     print!("> ");
@@ -237,7 +232,6 @@ else {
     //     break;
     // }
 
-<<<<<<< Updated upstream
     let mut parsed_expr = parser.parse(&input_hulk).unwrap();
     let mut print_visitor = PreetyPrintVisitor;
     let mut semantic_visitor = SemanticVisitor::new();
@@ -249,19 +243,6 @@ else {
         Err(errors) => {
             println!("\x1b[31mErrors:");
             for err in errors.iter() {
-=======
-        let mut parsed_expr = parser.parse(&recursive_test).unwrap();
-        let mut print_visitor = PreetyPrintVisitor;
-        let mut semantic_visitor = SemanticVisitor::new();
-        let res = semantic_visitor.check(&mut parsed_expr);
-        match &res {
-            Ok(_) => {
-                println!("Parsed successfully And zero semantic errors!");
-            }
-            Err(errors) => {
-                println!("\x1b[31mErrors:");
-                for err in errors.iter() {
->>>>>>> Stashed changes
                 println!("{}", err.message());
             }
             println!("\x1b[0m");
@@ -283,7 +264,6 @@ else {
             println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
             CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
         }
-<<<<<<< Updated upstream
         Err(errors) => {
             println!("\x1b[31mErrors:");
             for err in errors.iter() {
@@ -295,11 +275,6 @@ else {
             println!("\x1b[0m");
         }
     }
-=======
-        // Codegen y ejecución
-        println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
-        CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
->>>>>>> Stashed changes
 
     println!("\n");
     // }

@@ -81,8 +81,6 @@ impl Codegen for Identifier {
 
         // Asegura que el tipo del identificador esté definido
         let typep = self._type.clone();
-        println!("Tipo del identificador '{}': {:?}", self.id, typep);
-
         let hulk_type = self._type.clone().expect(&format!(
             "El tipo del identificador '{}' no ha sido inferido",
             self.id

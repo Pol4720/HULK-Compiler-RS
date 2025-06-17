@@ -272,14 +272,17 @@ impl Codegen for FunctionDef {
         fn_context.emit(&format!("define {} @{}({}) {{", llvm_return_type, self.name, params_str));
 
         // 🧾 Registra nombre de la función en sí misma (permite recursividad)
+        fn_context.function_table.insert(self.name.clone(), llvm_return_type.clone());
         // * No hace falta guardar nada en una tabla separada porque LLVM lo permite directamente
 
         //📦 Reserva espacio para parámetros y almacena
         for param in &self.params {
             param.codegen(&mut fn_context);
         }
+       
 
         //  Genera el cuerpo
+        // println!("¿La función '{}' está en la tabla?: {}", self.name, fn_context.function_table.contains_key(&self.name));
         let result_reg = self.body.codegen(&mut fn_context);
 
         //  Emitir retorno
@@ -290,7 +293,7 @@ impl Codegen for FunctionDef {
         context.merge_into_global(fn_context);
 
         //  Añade la función a la tabla de funciones (nombre -> tipo de retorno)
-        context.function_table.insert(self.name.clone(), llvm_return_type.clone());
+        
         //  No devuelve valor porque no aplica aquí
         String::new()
     }
