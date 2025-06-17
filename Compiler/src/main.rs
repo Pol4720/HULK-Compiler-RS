@@ -228,11 +228,48 @@ fn main() {
         let result = factorial(5) in print(result);
     "#;
 
-    let if_el = "
-        if (3 > 4) {
-            print(3);
-        };
-    ";
+    let if_el = r#"
+        function abs(x: Number): Number {
+            if (x < 0) {
+                -x;
+            } else {
+                x;
+            }
+        }
+
+        function log10(x: Number): Number {
+            if (x <= 0) {
+                0;
+            } else {
+                let int_part = 0 in
+                let temp = x in {
+                    while (temp >= 10) {
+                        temp := temp / 10;
+                        int_part := int_part + 1;
+                    };
+
+                    while (temp < 1) {
+                        temp := temp * 10;
+                        int_part := int_part - 1;
+                    };
+
+                    let y = (temp - 1) / (temp + 1) in
+                    let y2 = y * y in
+                    let frac = 0.0, term = y, n = 0, epsilon = 0.0000000001, max_iter = 1000 in {
+                        while ((abs(term) >= epsilon) & (n < max_iter)) {
+                            frac := frac + term;
+                            n := n + 1;
+                            term := term * y2 * (2 * n - 1) / (2 * n + 1);
+                        };
+                        let fractional = 0.8685889638065035 * 2 * frac in
+                            (int_part + fractional);
+                    }
+                }
+            }
+        }
+
+        print(log10(1));
+    "#;
 
     let input_hulk = fs::read_to_string("../script.hulk")
         .expect("Failed to read input file");
@@ -240,7 +277,7 @@ fn main() {
     print!("> ");
     io::stdout().flush().unwrap();
 
-    let mut parsed_expr = parser.parse(&recursive_test).unwrap();
+    let mut parsed_expr = parser.parse(&if_el).unwrap();
     let mut print_visitor = PreetyPrintVisitor;
     let mut semantic_visitor = SemanticVisitor::new();
     let res = semantic_visitor.check(&mut parsed_expr);

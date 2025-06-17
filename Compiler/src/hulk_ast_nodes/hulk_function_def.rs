@@ -285,6 +285,8 @@ impl Codegen for FunctionDef {
         //  Creamos un subcontexto aislado para evitar emitir en el main
         let mut fn_context = CodegenContext::new();
 
+        fn_context.function_table.extend(context.function_table.clone()); 
+
         //  Traduce tipo de retorno
         let llvm_return_type = CodegenContext::to_llvm_type(self.return_type.clone());
 
@@ -299,6 +301,8 @@ impl Codegen for FunctionDef {
 
         //  Emite la cabecera de la función en el contexto de función
         fn_context.emit(&format!("define {} @{}({}) {{", llvm_return_type, self.name, params_str));
+        
+        context.function_table.insert(self.name.clone(), llvm_return_type.clone());
 
         // 🧾 Registra nombre de la función en sí misma (permite recursividad)
         fn_context.function_table.insert(self.name.clone(), llvm_return_type.clone());
