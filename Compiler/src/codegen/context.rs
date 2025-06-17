@@ -8,6 +8,7 @@ pub struct CodegenContext {
     pub type_table: HashMap<String, String>,
     pub function_table: HashMap<String, String>,
     pub vtable: HashMap<String, HashMap<String, String>>,
+    pub id: usize,
 }
 
 impl CodegenContext {
@@ -20,6 +21,7 @@ impl CodegenContext {
             type_table: HashMap::new(),
             function_table: HashMap::new(),
             vtable: HashMap::new(), 
+            id: 1,
         }
     }
 
@@ -61,6 +63,12 @@ impl CodegenContext {
         let label = format!("{}{}", base, self.temp_counter);
         self.temp_counter += 1;
         label
+    }
+
+    pub fn new_id(&mut self) -> usize {
+        let id = self.id;
+        self.id += 1;
+        id
     }
 
     pub fn emit(&mut self, line: &str) {

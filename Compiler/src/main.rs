@@ -117,7 +117,7 @@ fn main() {
         };
     }
 
-    print(is_prime(5));
+    print(is_prime(6));
     "#;
 
     let inp = r#"
@@ -240,7 +240,7 @@ fn main() {
     print!("> ");
     io::stdout().flush().unwrap();
 
-    let mut parsed_expr = parser.parse(&a).unwrap();
+    let mut parsed_expr = parser.parse(&recursive_test).unwrap();
     let mut print_visitor = PreetyPrintVisitor;
     let mut semantic_visitor = SemanticVisitor::new();
     let res = semantic_visitor.check(&mut parsed_expr);
