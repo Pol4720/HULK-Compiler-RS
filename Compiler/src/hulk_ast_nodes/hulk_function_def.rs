@@ -213,23 +213,6 @@ impl FunctionDef {
     }
 }
 
-// impl Codegen for FunctionParams {
-//     /// Genera el código LLVM IR para un parámetro de función.
-//     ///
-//     /// Reserva espacio local para el argumento, almacena el valor recibido y lo registra en la tabla de símbolos.
-//     fn codegen(&self, context: &mut CodegenContext) -> String {
-//         // Genera un nombre de argumento LLVM (por ejemplo, %x)
-//         let arg_name = format!("%{}", self.name);
-//         // Reserva espacio local para el argumento
-//         let alloca_reg = context.generate_temp();
-//         context.emit(&format!("  {} = alloca i32", alloca_reg));
-//         // Almacena el argumento en el espacio local
-//         context.emit(&format!("  store i32 {}, i32* {}", arg_name, alloca_reg));
-//         // Registra el parámetro en la tabla de símbolos
-//         context.register_variable(&self.name, alloca_reg.clone());
-//         alloca_reg
-//     }
-// }
 
 impl Codegen for FunctionParams {
     /// Genera el código LLVM IR para un parámetro de función.
@@ -249,35 +232,6 @@ impl Codegen for FunctionParams {
         alloca_reg
     }
 }
-
-
-// impl Codegen for FunctionDef {
-//     /// Genera el código LLVM IR para la definición de la función.
-//     ///
-//     /// Emite la cabecera de la función, reserva espacio para los parámetros, genera el cuerpo y emite la instrucción de retorno.
-//     fn codegen(&self, context: &mut CodegenContext) -> String {
-//         // Prepara la lista de parámetros para LLVM IR
-//         let params_ir: Vec<String> = self
-//             .params
-//             .iter()
-//             .map(|p| format!("i32 %{}", p.name))
-//             .collect();
-//         let params_str = params_ir.join(", ");
-//         // Cabecera de la función
-//         context.emit(&format!("define i32 @{}({}) {{", self.name, params_str));
-//         // Prologo: asigna espacio y almacena los argumentos
-//         for param in &self.params {
-//             param.codegen(context);
-//         }
-//         // Genera el cuerpo de la función
-//         let ret_val = self.body.codegen(context);
-//         // Retorno
-//         context.emit(&format!("  ret i32 {}", ret_val));
-//         // Cierre de la función
-//         context.emit("}");
-//         String::new() // No se usa el valor de retorno
-//     }
-// }
 
 
 impl Codegen for FunctionDef {

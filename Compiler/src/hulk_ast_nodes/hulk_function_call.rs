@@ -38,35 +38,6 @@ impl FunctionCall {
     }
 }
 
-// impl Codegen for FunctionCall {
-//     /// Genera el código LLVM IR para la llamada a función.
-//     ///
-//     /// Genera el código para cada argumento, prepara la lista de argumentos para LLVM IR (asumiendo `i32` para todos),
-//     /// obtiene un nuevo registro temporal para el resultado y emite la instrucción de llamada.
-//     fn codegen(&self, context: &mut CodegenContext) -> String {
-//         // Genera el código para cada argumento y obtiene los registros
-//         let arg_regs: Vec<String> = self
-//             .arguments
-//             .iter()
-//             .map(|arg| arg.codegen(context))
-//             .collect();
-//         // Prepara la lista de argumentos para LLVM IR (asume i32 para todos)
-//         let args_str = arg_regs
-//             .iter()
-//             .map(|reg| format!("i32 {}", reg))
-//             .collect::<Vec<_>>()
-//             .join(", ");
-//         // Obtiene un nuevo registro temporal para el resultado
-//         let result_reg = context.generate_temp();
-//         // Emite la instrucción de llamada
-//         context.emit(&format!(
-//             "  {} = call i32 @{}({})",
-//             result_reg, self.funct_name, args_str
-//         ));
-//         result_reg
-//     }
-// }
-
 impl Codegen for FunctionCall {
     /// Genera el código LLVM IR para la llamada a función.
     ///
