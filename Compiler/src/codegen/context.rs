@@ -7,6 +7,7 @@ pub struct CodegenContext {
     pub symbol_table: HashMap<String, String>,
     pub type_table: HashMap<String, String>,
     pub function_table: HashMap<String, String>,
+    pub vtable: HashMap<String, HashMap<String, String>>,
 }
 
 impl CodegenContext {
@@ -18,8 +19,23 @@ impl CodegenContext {
             symbol_table: HashMap::new(),
             type_table: HashMap::new(),
             function_table: HashMap::new(),
+            vtable: HashMap::new(), 
         }
     }
+
+     pub fn register_method(&mut self, type_name: &str, method_name: &str, llvm_function_name: &str) {
+        self.vtable
+            .entry(type_name.to_string())
+            .or_default()
+            .insert(method_name.to_string(), llvm_function_name.to_string());
+    }
+
+    pub fn get_method(&self, type_name: &str, method_name: &str) -> Option<&String> {
+        self.vtable
+            .get(type_name)
+            .and_then(|methods| methods.get(method_name))
+    }
+    
     pub fn merge_into_global(&mut self, other: CodegenContext) {
         self.globals.push_str(&other.globals);
         self.globals.push_str(&other.code);

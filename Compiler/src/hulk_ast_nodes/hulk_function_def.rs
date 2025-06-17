@@ -182,6 +182,35 @@ impl FunctionDef {
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
     }
+     pub fn codegen_with_name_override(&self, context: &mut CodegenContext, new_name: &str) -> String {
+        let mut backup_code = std::mem::take(&mut context.code); // 🔒 Backup del main
+        let mut backup_symbols = std::mem::take(&mut context.symbol_table);
+
+        let params_ir: Vec<String> = self
+            .params
+            .iter()
+            .map(|p| format!("{} %{}", CodegenContext::to_llvm_type(p.param_type.clone()), p.name))
+            .collect();
+        let params_str = params_ir.join(", ");
+
+        context.emit(&format!("define {} @{}({}) {{",
+            CodegenContext::to_llvm_type(self.return_type.clone()), 
+            new_name, 
+            params_str));
+
+        for param in &self.params {
+            param.codegen(context);
+        }
+
+        let ret_val = self.body.codegen(context);
+        context.emit(&format!("  ret {} {}", CodegenContext::to_llvm_type(self.return_type.clone()), ret_val));
+        context.emit("}");
+
+        let result = std::mem::take(&mut context.code); // Función generada
+        context.code = backup_code;
+        context.symbol_table = backup_symbols;
+        result
+    }
 }
 
 // impl Codegen for FunctionParams {
