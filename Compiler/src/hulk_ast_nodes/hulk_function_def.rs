@@ -182,6 +182,35 @@ impl FunctionDef {
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
     }
+     pub fn codegen_with_name_override(&self, context: &mut CodegenContext, new_name: &str) -> String {
+        let mut backup_code = std::mem::take(&mut context.code); // 🔒 Backup del main
+        let mut backup_symbols = std::mem::take(&mut context.symbol_table);
+
+        let params_ir: Vec<String> = self
+            .params
+            .iter()
+            .map(|p| format!("{} %{}", CodegenContext::to_llvm_type(p.param_type.clone()), p.name))
+            .collect();
+        let params_str = params_ir.join(", ");
+
+        context.emit(&format!("define {} @{}({}) {{",
+            CodegenContext::to_llvm_type(self.return_type.clone()), 
+            new_name, 
+            params_str));
+
+        for param in &self.params {
+            param.codegen(context);
+        }
+
+        let ret_val = self.body.codegen(context);
+        context.emit(&format!("  ret {} {}", CodegenContext::to_llvm_type(self.return_type.clone()), ret_val));
+        context.emit("}");
+
+        let result = std::mem::take(&mut context.code); // Función generada
+        context.code = backup_code;
+        context.symbol_table = backup_symbols;
+        result
+    }
 }
 
 // impl Codegen for FunctionParams {
@@ -256,6 +285,8 @@ impl Codegen for FunctionDef {
         //  Creamos un subcontexto aislado para evitar emitir en el main
         let mut fn_context = CodegenContext::new();
 
+        fn_context.function_table.extend(context.function_table.clone()); 
+
         //  Traduce tipo de retorno
         let llvm_return_type = CodegenContext::to_llvm_type(self.return_type.clone());
 
@@ -270,16 +301,21 @@ impl Codegen for FunctionDef {
 
         //  Emite la cabecera de la función en el contexto de función
         fn_context.emit(&format!("define {} @{}({}) {{", llvm_return_type, self.name, params_str));
+        
+        context.function_table.insert(self.name.clone(), llvm_return_type.clone());
 
         // 🧾 Registra nombre de la función en sí misma (permite recursividad)
+        fn_context.function_table.insert(self.name.clone(), llvm_return_type.clone());
         // * No hace falta guardar nada en una tabla separada porque LLVM lo permite directamente
 
         //📦 Reserva espacio para parámetros y almacena
         for param in &self.params {
             param.codegen(&mut fn_context);
         }
+       
 
         //  Genera el cuerpo
+        // println!("¿La función '{}' está en la tabla?: {}", self.name, fn_context.function_table.contains_key(&self.name));
         let result_reg = self.body.codegen(&mut fn_context);
 
         //  Emitir retorno
@@ -290,7 +326,7 @@ impl Codegen for FunctionDef {
         context.merge_into_global(fn_context);
 
         //  Añade la función a la tabla de funciones (nombre -> tipo de retorno)
-        context.function_table.insert(self.name.clone(), llvm_return_type.clone());
+        
         //  No devuelve valor porque no aplica aquí
         String::new()
     }

@@ -94,9 +94,10 @@ impl Codegen for Identifier {
                 let line = format!("  {} = load {}, {}* {}", result_reg, llvm_type, llvm_type, ptr);
                 context.emit(&line);
                 result_reg
-            }
+            
         }
     }
+}
 }
 
 

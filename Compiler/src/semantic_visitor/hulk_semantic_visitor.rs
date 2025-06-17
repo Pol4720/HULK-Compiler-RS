@@ -127,6 +127,10 @@ impl SemanticVisitor {
         self.get_all_functions(node);
         self.get_all_types_def(node);
         self.add_type_inheritance();
+        // Procesa tanto definiciones como instrucciones
+        for definition in node.definitions.iter_mut() {
+            definition.accept(self);
+        }
         for instruction in node.instructions.iter_mut() {
             instruction.accept(self);
         }
@@ -401,6 +405,8 @@ impl Visitor<TypeNode> for SemanticVisitor {
             ));
             }
             return_type_node = func_type;
+            println!("{:?}", return_type_node);
+
         } else {
             self.new_error(SemanticError::UndefinedType(node.return_type.clone()));
         }
@@ -648,45 +654,28 @@ impl Visitor<TypeNode> for SemanticVisitor {
     }
 
     fn visit_if_else(&mut self, node: &mut IfExpr) -> TypeNode {
-        let condition_type = node.condition.accept(self);
-        if condition_type != self.get_type(&HulkTypesInfo::Boolean) {
-            self.new_error(SemanticError::InvalidConditionType(condition_type));
+        let if_condition_type = node.condition.accept(self);
+        if if_condition_type != self.get_type(&HulkTypesInfo::Boolean) {
+            self.new_error(SemanticError::InvalidConditionType(if_condition_type));
         }
-        let then_type = node.then_branch.accept(self);
-        let else_type = if let Some(else_branch) = &mut node.else_branch {
-            match else_branch {
-                crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif::Else(else_node) => {
-                    self.visit_else_branch(else_node)
-                }
-                crate::hulk_ast_nodes::hulk_if_exp::ElseOrElif::Elif(elif_node) => {
-                    self.visit_elif_branch(elif_node)
+        let if_expr_type = node.then_branch.accept(self);
+        let result = if_expr_type.clone();
+        for (condition , body_expr) in node.else_branch.iter_mut() {
+            let expr_type = body_expr.accept(self);
+            if let Some(cond) = condition {
+                let cond_type = cond.accept(self);
+                if cond_type != self.get_type(&HulkTypesInfo::Boolean) {
+                    self.new_error(SemanticError::InvalidConditionType(cond_type));
                 }
             }
-        } else {
-            self.get_type(&HulkTypesInfo::Unknown)
-        };
+            if result != expr_type {
+                
+                self.new_error(SemanticError::UnknownError("Incompatible types in if-else branches".to_string()));
 
-        if then_type != else_type {
-            let lca = self.type_ast.find_lca(&then_type, &else_type);
-            if lca.type_name == "Unknown" {
-                self.new_error(SemanticError::UnknownError(
-                    "Incompatible types in if-else branches".to_string(),
-                ));
             }
-            node.set_expression_type(lca.clone());
-            lca
-        } else {
-            node.set_expression_type(then_type.clone());
-            then_type
         }
-    }
-
-    fn visit_elif_branch(&mut self, node: &mut crate::hulk_ast_nodes::hulk_if_exp::ElifBranch) -> TypeNode {
-        node.body.accept(self)
-    }
-
-    fn visit_else_branch(&mut self, node: &mut crate::hulk_ast_nodes::ElseBranch) -> TypeNode {
-        node.body.accept(self)
+        node.set_expression_type(result.clone());
+        result
     }
 
     fn visit_let_in(&mut self, node: &mut LetIn) -> TypeNode {
