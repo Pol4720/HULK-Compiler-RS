@@ -51,7 +51,7 @@ use crate::hulk_ast_nodes::hulk_function_def::FunctionDef;
 use crate::hulk_ast_nodes::hulk_function_call::FunctionCall;
 use crate::hulk_ast_nodes::hulk_code_block::ExpressionList;
 use crate::hulk_ast_nodes::hulk_expression::{Expr, ExprKind};
-use crate::hulk_ast_nodes::hulk_if_exp::{IfExpr, ElseBranch, ElseOrElif, ElifBranch};
+use crate::hulk_ast_nodes::hulk_if_exp::{IfExpr};
 use crate::hulk_ast_nodes::hulk_function_def::{FunctionParams, FunctionHeaderStruct, FunctionBody, ArrowExpression};
 use crate::hulk_ast_nodes::DestructiveAssignment;
 use crate::hulk_ast_nodes::hulk_code_block::Block;
@@ -412,34 +412,25 @@ LetIn: Box<Expr> = {
 }
 
 IfExpr: Box<Expr> = {
-    <if_keyword:IfKeyword> LParen <condition:Expr> RParen <then_branch:CodeBlock> <elif_else:ElifElseChain?> => {
+    <if_keyword:IfKeyword> LParen <condition:Expr> RParen <then_branch:CodeBlock> <elif_else:ElifElse?> => {
         Box::new(Expr::new(ExprKind::If(IfExpr::new(
             if_keyword,
             condition,
             then_branch,
-            elif_else,
+            elif_else.unwrap_or_default(),
         ))))
     }
 }
 
-ElifElseChain: ElseOrElif = {
-    <elif_branch:ElifBranch> => ElseOrElif::Elif(elif_branch),
-    <else_branch:ElseBranch> => ElseOrElif::Else(else_branch),
-}
-
-ElifBranch: ElifBranch = {
-    <elif_keyword:Elif> LParen <condition:Expr> RParen <then_branch:CodeBlock> <next:ElifElseChain?> => {
-        ElifBranch::new(
-            elif_keyword,
-            condition,
-            then_branch,
-            next.map(Box::new),
-        )
+ElifElse: Vec<(Option<Expr>, Expr)> = {
+    ElseKeyword <else_expr:CodeBlock> => vec![(None, *else_expr)],
+    Elif LParen <condition:Expr> RParen <then_branch:CodeBlock> <next:ElifElse?> => {
+        let mut exprs = vec![(Some(*condition), *then_branch)];
+        if let Some(rest) = next {
+            exprs.extend(rest);
+        }
+        exprs
     }
-}
-
-ElseBranch: ElseBranch = {
-    <elseKeyword:ElseKeyword> <body:CodeBlock> => ElseBranch::new(elseKeyword, body),
 }
 
 WhileLoop: Box<Expr> = {

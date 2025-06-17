@@ -26,7 +26,6 @@ pub mod hulk_type_def;
 pub use hulk_type_def::HulkTypeNode;
 
 pub mod hulk_if_exp;
-pub use hulk_if_exp::ElseBranch;
 pub use hulk_if_exp::IfExpr;
 
 pub mod hulk_function_info;

@@ -80,7 +80,6 @@ impl Codegen for Identifier {
         let ptr = ptr.unwrap();
 
         // Asegura que el tipo del identificador esté definido
-        let typep = self._type.clone();
         let hulk_type = self._type.clone().expect(&format!(
             "El tipo del identificador '{}' no ha sido inferido",
             self.id
@@ -95,9 +94,10 @@ impl Codegen for Identifier {
                 let line = format!("  {} = load {}, {}* {}", result_reg, llvm_type, llvm_type, ptr);
                 context.emit(&line);
                 result_reg
-            }
+            
         }
     }
+}
 }
 
 
