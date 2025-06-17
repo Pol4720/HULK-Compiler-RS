@@ -98,7 +98,7 @@ impl Codegen for FunctionCall {
             .expect("Tipo de retorno de la función no encontrado");
 
 
-        let llvm_ret_type = CodegenContext::to_llvm_type(return_type_str.to_string());
+        let llvm_ret_type =return_type_str.to_string();
 
         // 3. Emitimos la llamada
         let result_reg = context.generate_temp();
