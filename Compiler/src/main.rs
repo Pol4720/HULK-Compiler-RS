@@ -124,6 +124,9 @@ fn main() {
         if (2 + 2 > 4) {
             let a = "true" in print(a);
         }
+        elif (2 + 2 < 4) {
+            let a = "true" in print(a);
+        }
         elif (2 + 2 <= 4) {
             let a = "true" in print(a);
         }
@@ -213,13 +216,7 @@ fn main() {
         let a = "2" in print(a);
     "#;
 
-<<<<<<< HEAD
-    ";
-
-    let recursive_test = "
-=======
     let recursive_test = r#"
->>>>>>> da81e4b (changing if expr)
         function factorial(n: Number): Number {
             if (n <= 1) {
                 1;
@@ -231,26 +228,19 @@ fn main() {
         let result = factorial(5) in print(result);
     "#;
 
-<<<<<<< HEAD
-    let input_hulk = fs::read_to_string("../script.hulk").expect("Failed to read input file");
-=======
+    let if_el = "
+        if (3 > 4) {
+            print(3);
+        };
+    ";
+
     let input_hulk = fs::read_to_string("../script.hulk")
         .expect("Failed to read input file");
->>>>>>> da81e4b (changing if expr)
 
     print!("> ");
     io::stdout().flush().unwrap();
 
-<<<<<<< HEAD
-    // let mut input = String::new();
-    // if io::stdin().read_line(&mut input).unwrap() == 0 {
-    //     break;
-    // }
-
-    let mut parsed_expr = parser.parse(&input_hulk).unwrap();
-=======
-    let mut parsed_expr = parser.parse(&inp).unwrap();
->>>>>>> da81e4b (changing if expr)
+    let mut parsed_expr = parser.parse(&a).unwrap();
     let mut print_visitor = PreetyPrintVisitor;
     let mut semantic_visitor = SemanticVisitor::new();
     let res = semantic_visitor.check(&mut parsed_expr);
@@ -283,21 +273,9 @@ fn main() {
             println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
             CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
         }
-<<<<<<< HEAD
-        Err(errors) => {
-            println!("\x1b[31mErrors:");
-            for err in errors.iter() {
-                println!("{}", err.message());
-                ast_file
-                    .write_all(format!("{}\n", err.message()).as_bytes())
-                    .expect("No se pudo escribir en ast.txt");
-            }
-            println!("\x1b[0m");
-=======
         Err(_) => {
             println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
             CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
->>>>>>> da81e4b (changing if expr)
         }
     }
 

@@ -121,7 +121,6 @@ impl IfExpr {
 //     }
 // }
 
-
 impl Codegen for IfExpr {
     fn codegen(&self, context: &mut CodegenContext) -> String {
         let end_label = context.generate_label("endif");
@@ -149,86 +148,108 @@ impl Codegen for IfExpr {
             .get("__last_type__")
             .cloned()
             .unwrap_or("i32".to_string());
+        // Si la rama no retorna valor, asigna un valor por defecto
+        let then_val = if then_val.is_empty() || then_val == "undef" {
+            let tmp = context.generate_temp();
+            context.emit(&format!("  {} = add i32 0, 0", tmp));
+            tmp
+        } else {
+            then_val
+        };
         context.emit(&format!("  br label %{}", end_label));
         phi_entries.push((then_val.clone(), then_label.clone()));
 
-
         // ELSE o ELIFs
         let mut current_label = else_label.clone();
-        context.emit(&format!("{}:", else_label));
         if self.else_branch.is_empty() {
             // Si no hay else, simplemente terminamos aquí
+            context.emit(&format!("{}:", else_label));
             context.emit(&format!("  br label %{}", end_label));
-            phi_entries.push((cond_val.clone(), current_label.clone()));
-            context.symbol_table.insert("__last_type__".to_string(), then_type);
-            return result;
-        }
-        let mut else_blocks = self.else_branch.iter().peekable();
+        } else {
+            let mut else_blocks = self.else_branch.iter().peekable();
 
-        while let Some((maybe_cond, expr)) = else_blocks.next() {
-            context.emit(&format!("{}:", current_label));
+            while let Some((maybe_cond, expr)) = else_blocks.next() {
+                context.emit(&format!("{}:", current_label));
 
-            if let Some(cond) = maybe_cond {
-                let cond_val = cond.codegen(context);
-                let cond_bool = context.generate_temp();
-                let true_label = context.generate_label("elif_then");
-                let next_label = if else_blocks.peek().is_some() {
-                    context.generate_label("else")
+                if let Some(cond) = maybe_cond {
+                    let cond_val = cond.codegen(context);
+                    let cond_bool = context.generate_temp();
+                    let true_label = context.generate_label("elif_then");
+                    let next_label = if else_blocks.peek().is_some() {
+                        context.generate_label("else")
+                    } else {
+                        context.generate_label("final_else")
+                    };
+
+                    context.emit(&format!(
+                        "  {} = icmp ne i1 {}, 0",
+                        cond_bool, cond_val
+                    ));
+                    context.emit(&format!(
+                        "  br i1 {}, label %{}, label %{}",
+                        cond_bool, true_label, next_label
+                    ));
+
+                    // ELIF THEN
+                    context.emit(&format!("{}:", true_label));
+                    let elif_val = expr.codegen(context);
+                    let elif_type = context
+                        .symbol_table
+                        .get("__last_type__")
+                        .cloned()
+                        .unwrap_or("i32".to_string());
+
+                    // Si la rama no retorna valor, asigna un valor por defecto
+                    let elif_val = if elif_val.is_empty() || elif_val == "undef" {
+                        let tmp = context.generate_temp();
+                        context.emit(&format!("  {} = add i32 0, 0", tmp));
+                        tmp
+                    } else {
+                        elif_val
+                    };
+
+                    if elif_type != then_type {
+                        panic!(
+                            "Tipos incompatibles en ramas if/elif: {} vs {}",
+                            then_type, elif_type
+                        );
+                    }
+
+                    context.emit(&format!("  br label %{}", end_label));
+                    phi_entries.push((elif_val.clone(), true_label.clone()));
+
+                    current_label = next_label;
                 } else {
-                    context.generate_label("final_else")
-                };
+                    // ELSE FINAL
+                    let else_val = expr.codegen(context);
+                    let else_type = context
+                        .symbol_table
+                        .get("__last_type__")
+                        .cloned()
+                        .unwrap_or("i32".to_string());
 
-                context.emit(&format!(
-                    "  {} = icmp ne i1 {}, 0",
-                    cond_bool, cond_val
-                ));
-                context.emit(&format!(
-                    "  br i1 {}, label %{}, label %{}",
-                    cond_bool, true_label, next_label
-                ));
+                    // Si la rama no retorna valor, asigna un valor por defecto
+                    let else_val = if else_val.is_empty() || else_val == "undef" {
+                        let tmp = context.generate_temp();
+                        context.emit(&format!("  {} = add i32 0, 0", tmp));
+                        tmp
+                    } else {
+                        else_val
+                    };
 
-                // ELIF Body
-                context.emit(&format!("{}:", true_label));
-                let elif_val = expr.codegen(context);
-                let elif_type = context
-                    .symbol_table
-                    .get("__last_type__")
-                    .cloned()
-                    .unwrap_or("i32".to_string());
+                    if else_type != then_type {
+                        panic!(
+                            "Tipos incompatibles en ramas if/else: {} vs {}",
+                            then_type, else_type
+                        );
+                    }
 
-                if elif_type != then_type {
-                    panic!(
-                        "Tipos incompatibles en ramas if/elif: {} vs {}",
-                        then_type, elif_type
-                    );
+                    context.emit(&format!("  br label %{}", end_label));
+                    phi_entries.push((else_val.clone(), current_label.clone()));
+                    break;
                 }
-
-                context.emit(&format!("  br label %{}", end_label));
-                phi_entries.push((elif_val.clone(), true_label.clone()));
-                current_label = next_label;
-            } else {
-                // ELSE final
-                let else_val = expr.codegen(context);
-                let else_type = context
-                    .symbol_table
-                    .get("__last_type__")
-                    .cloned()
-                    .unwrap_or("i32".to_string());
-
-                if else_type != then_type {
-                    panic!(
-                        "Tipos incompatibles en ramas if/else: {} vs {}",
-                        then_type, else_type
-                    );
-                }
-
-                context.emit(&format!("  br label %{}", end_label));
-                phi_entries.push((else_val.clone(), current_label.clone()));
-                break;
             }
         }
-
-
 
         // ENDIF y PHI
         context.emit(&format!("{}:", end_label));
