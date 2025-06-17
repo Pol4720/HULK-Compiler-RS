@@ -1,0 +1,9 @@
+# Especificación de tokens para el generador de analizadores léxicos
+# Formato: NOMBRE_TOKEN : REGEX
+IDENTIFICADOR : [a-zA-Z_][a-zA-Z0-9_]*
+NUMERO : [0-9]+
+MAS : \+
+MENOS : -
+MULT : \*
+DIV : /
+ESPACIO : [ \t\n]+
