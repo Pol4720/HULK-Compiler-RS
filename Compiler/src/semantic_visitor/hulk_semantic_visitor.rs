@@ -127,6 +127,10 @@ impl SemanticVisitor {
         self.get_all_functions(node);
         self.get_all_types_def(node);
         self.add_type_inheritance();
+        // Procesa tanto definiciones como instrucciones
+        for definition in node.definitions.iter_mut() {
+            definition.accept(self);
+        }
         for instruction in node.instructions.iter_mut() {
             instruction.accept(self);
         }
@@ -401,6 +405,8 @@ impl Visitor<TypeNode> for SemanticVisitor {
             ));
             }
             return_type_node = func_type;
+            println!("{:?}", return_type_node);
+
         } else {
             self.new_error(SemanticError::UndefinedType(node.return_type.clone()));
         }
