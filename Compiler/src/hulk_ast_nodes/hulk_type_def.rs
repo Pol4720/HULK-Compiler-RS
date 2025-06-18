@@ -4,7 +4,6 @@
 //! Permite representar la definición de tipos (clases) en el lenguaje Hulk, incluyendo herencia, parámetros, atributos y métodos.
 //! Incluye métodos para construir tipos, agregar herencia, atributos y métodos, y establecer el tipo inferido o declarado.
 
-use std::collections::HashMap;
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
@@ -12,9 +11,10 @@ use crate::hulk_ast_nodes::hulk_function_def::{FunctionDef, FunctionParams};
 use crate::hulk_ast_nodes::hulk_identifier::Identifier;
 use crate::hulk_ast_nodes::hulk_inheritance::Inheritance;
 use crate::typings::types_node::TypeNode;
+use std::collections::HashMap;
 
 /// Representa la definición de un tipo (clase) en el AST.
-/// 
+///
 /// - `type_name`: nombre del tipo.
 /// - `parent`: nombre del tipo padre (si hay herencia).
 /// - `parent_args`: argumentos para el constructor del padre.
@@ -28,21 +28,21 @@ pub struct HulkTypeNode {
     pub type_name: String,
     pub parent: Option<String>,
     pub parent_args: Vec<Expr>,
-    pub parameters: Vec<FunctionParams>, 
-    pub inheritance_option: Option<Inheritance>, 
-    pub attributes: HashMap<String, AttributeDef>,   
-    pub methods: HashMap<String, FunctionDef>,       
-    pub _type: Option<TypeNode>
+    pub parameters: Vec<FunctionParams>,
+    pub inheritance_option: Option<Inheritance>,
+    pub attributes: HashMap<String, AttributeDef>,
+    pub methods: HashMap<String, FunctionDef>,
+    pub _type: Option<TypeNode>,
 }
 
 /// Representa un atributo (propiedad) de un tipo en el AST.
-/// 
+///
 /// - `name`: identificador del atributo.
 /// - `init_expr`: expresión de inicialización del atributo.
 #[derive(Debug, Clone)]
 pub struct AttributeDef {
     pub name: Identifier,
-    pub init_expr: Box<Expr>, 
+    pub init_expr: Box<Expr>,
 }
 
 impl HulkTypeNode {
@@ -53,7 +53,12 @@ impl HulkTypeNode {
     /// * `parent` - Nombre del tipo padre (opcional).
     /// * `parent_args` - Argumentos para el constructor del padre.
     /// * `parameters` - Parámetros del tipo.
-    pub fn new(type_name: String, parent: Option<String>, parent_args: Vec<Expr>, parameters: Vec<FunctionParams>) -> Self {
+    pub fn new(
+        type_name: String,
+        parent: Option<String>,
+        parent_args: Vec<Expr>,
+        parameters: Vec<FunctionParams>,
+    ) -> Self {
         HulkTypeNode {
             type_name,
             parent,
@@ -62,7 +67,7 @@ impl HulkTypeNode {
             inheritance_option: None,
             attributes: HashMap::new(),
             methods: HashMap::new(),
-            _type: None
+            _type: None,
         }
     }
 
@@ -89,141 +94,194 @@ impl HulkTypeNode {
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
     }
-}
 
-// impl Codegen for HulkTypeNode {
-//     fn codegen(&self, context: &mut CodegenContext) -> String {
-//         let mut method_map: HashMap<String, String> = HashMap::new();
-
-//         for (method_name, method_def) in &self.methods {
-//             // Genera un nombre único para evitar conflictos
-//             let unique_name = format!("{}_{}", self.type_name, method_name);
-
-//             // Clona y ajusta la función (si es necesario agregar el parámetro `self`)
-//             let mut method_clone = method_def.clone();
-
-//             // Registro en la VTable
-//             context.register_method(&self.type_name, method_name, &unique_name);
-
-//             // Emitir función global
-//             let llvm_code = method_clone.codegen_with_name_override(context, &unique_name);
-
-//             // Se almacena como código global
-//             context.emit_global(&llvm_code);
-
-//             method_map.insert(method_name.clone(), unique_name);
-//         }
-
-//         // Herencia: copiar métodos del padre si no están sobrescritos
-//         if let Some(ref parent) = self.parent {
-//             if let Some(parent_methods) = context.vtable.get(parent) {
-//                 for (meth, func) in parent_methods {
-//                     method_map.entry(meth.clone()).or_insert(func.clone());
-//                 }
-//             }
-//         }
-
-//         // Finalmente, actualiza la tabla virtual
-//         context.vtable.insert(self.type_name.clone(), method_map);
-
-//         String::new() // Nada se devuelve directamente
-//     }
-// }
-
-impl Codegen for HulkTypeNode {
-    fn codegen(&self, context: &mut CodegenContext) -> String {
-        let mut method_map: HashMap<String, String> = HashMap::new();
-        let mut struct_fields: Vec<(String, String)> = vec![]; // (field_name, llvm_type)
-
-        // === 1. Heredar atributos del padre ===
-        if let Some(ref parent) = self.parent {
-            if let Some(parent_fields) = context.struct_layouts.get(parent) {
-                struct_fields.extend(parent_fields.clone());
+    pub fn generate_type_table(&self, context: &mut CodegenContext) {
+        let type_name = self.type_name.clone();
+        let mut methods_list = Vec::new();
+        let mut methods_index = 0;
+        for method in self.methods {
+            if let Some(llvm_name) = context
+                .function_member_llvm_names
+                .get_mut(&(type_name.clone(), method.0.clone()))
+            {
+                methods_list.push(llvm_name.clone());
+                context
+                    .type_functions_ids
+                    .insert((type_name.clone(), method.0.clone()), methods_index);
+                methods_index += 1;
             }
         }
 
-        // === 2. Procesar atributos actuales ===
-        for (name, attr) in &self.attributes {
-            let attr_type = attr.name // Necesita implementar .get_type() o similar
-            let llvm_type = CodegenContext::to_llvm_type(attr_type.to_string());
-            struct_fields.push((name.clone(), llvm_type));
+        let table = format!("%{}_vtable", type_name);
+        let ptr_types = std::iter::repeat("ptr")
+            .take(methods_index as usize)
+            .collect::<Vec<_>>()
+            .join(", ");
+        context.emit(&format!("{} = type {{ {} }}", table, ptr_types));
+    }
+
+    pub fn generate_type_constructor(&self, context: &mut CodegenContext) {
+        let type_name = self.type_name.clone();
+        let type_reg = format!("%{}_type", type_name);
+        let mut params_list = Vec::new();
+        context.enter_scope();
+        for param in self.parameters {
+            let param_name = format!("%{}.{}", param.name.clone(), context.get_scope());
+            params_list.push(format!("ptr {}", param_name.clone()));
+            context.add_variable(
+                param_name.clone(),
+                CodegenContext::to_llvm_type(param.param_type.clone()),
+            );
         }
+        let params_str = params_list.join(", ");
 
-        // === 3. Registrar layout en contexto ===
-        context.register_type_struct_layout(&self.type_name, struct_fields.clone());
-
-        // === 4. Definir struct LLVM ===
-        let struct_llvm_def = context.allocate_struct_type(&self.type_name, struct_fields.clone());
-        context.emit_global(&struct_llvm_def);
-
-        // === 5. Emitir constructor "__init__" ===
-        let ctor_name = format!("{}_init", self.type_name);
-        let mut ctor_body = vec![];
-        let mut param_strs = vec![];
-
-        // Agregar parámetros desde los definidos en el type
-        for param in &self.parameters {
-            let llvm_type = CodegenContext::to_llvm_type(param.param_type.to_string());
-            param_strs.push(format!("{} %{}", llvm_type, param.name));
-        }
-
-        // Primer parámetro es un puntero a la instancia: %self
-        let self_type = format!("%{}*", self.type_name);
-        ctor_body.push(format!("define void @{}({} %self, {}) {{", ctor_name, self_type, param_strs.join(", ")));
-
-        // Seteo de campos
-        let mut field_index = if self.parent.is_some() {
-            context.struct_layouts.get(self.parent.as_ref().unwrap()).unwrap().len()
-        } else {
-            0
-        };
-
-        for (name, attr) in &self.attributes {
-            let value_reg = attr.init_expr.codegen(context);
-            let llvm_type = CodegenContext::to_llvm_type(attr.init_expr.get_type().to_string());
-            ctor_body.push(format!(
-                "  %ptr_{} = getelementptr inbounds %{}, %{}* %self, i32 0, i32 {}",
-                name, self.type_name, self.type_name, field_index
-            ));
-            ctor_body.push(format!(
-                "  store {} {}, {}* %ptr_{}",
-                llvm_type, value_reg, llvm_type, name
-            ));
-            field_index += 1;
-        }
-
-        ctor_body.push("  ret void".to_string());
-        ctor_body.push("}".to_string());
-
-        context.emit_global(&ctor_body.join("\n"));
-        context.register_constructor(&self.type_name, &ctor_name);
-
-        // === 6. Procesar métodos ===
-        for (method_name, method_def) in &self.methods {
-            let unique_name = format!("{}_{}", self.type_name, method_name);
-            let mut method_clone = method_def.clone();
-            context.register_method(&self.type_name, method_name, &unique_name);
-
-            let llvm_code = method_clone.codegen_with_name_override(context, &unique_name);
-            context.emit_global(&llvm_code);
-
-            method_map.insert(method_name.clone(), unique_name);
-        }
-
-        // === 7. Herencia de métodos ===
-        if let Some(ref parent) = self.parent {
-            if let Some(parent_methods) = context.vtable.get(parent) {
-                for (meth, func) in parent_methods {
-                    method_map.entry(meth.clone()).or_insert(func.clone());
-                }
+        let mut methods_list = Vec::new();
+        for method in self.methods {
+            if let Some(llvm_name) = context
+                .function_member_llvm_names
+                .get_mut(&(type_name.clone(), method.0.clone()))
+            {
+                methods_list.push(llvm_name.clone());
             }
         }
 
-        // === 8. Registrar VTable final ===
-        context.vtable.insert(self.type_name.clone(), method_map);
+        let table = format!("%{}_vtable", type_name);
 
-        String::new()
+        let table_id = context.new_id();
+        let type_table_instance = format!("@{}_vtable{}", type_name, table_id);
+
+        let method_ptrs = methods_list
+            .iter()
+            .map(|llvm_name| format!("ptr {}", llvm_name))
+            .collect::<Vec<_>>()
+            .join(", ");
+        context.emit(&format!(
+            "{} = global {} {{ {} }}",
+            type_table_instance, table, method_ptrs
+        )); //Esto va en el constructor 
+
+        context.emit(&format!(
+            "define ptr @{}_new( {} ) {{",
+            type_name.clone(),
+            params_str.clone()
+        ));
+
+        let size_temp = context.new_temp("Number".to_string());
+        context.emit(&format!(
+            "{} = ptrtoint ptr getelementptr({}, ptr null, i32 1) to i64",
+            size_temp, type_reg
+        ));
+        let mem_temp = context.new_temp(type_name.clone());
+        context.emit(&format!(
+            "{} = call ptr @malloc(i64 {})",
+            mem_temp, size_temp
+        ));
+
+        context.emit(&format!(
+            "%vtable_ptr = getelementptr {}, ptr {}, i32 0, i32 0",
+            type_reg, mem_temp
+        ));
+        context.emit(&format!(
+            "store ptr {}, ptr %vtable_ptr",
+            type_table_instance
+        ));
+
+        if let Some(parent_name) = self.parent.clone() {
+            let mut parent_args_values = Vec::new();
+            for arg in self.parent_args.iter_mut() {
+                let arg_result = arg.codegen(context);
+                let arg_reg = context.new_temp(arg_result);
+                context.emit(&format!(
+                    "{} = alloca {}",
+                    arg_reg.clone(),
+                    arg_result.llvm_type.clone()
+                ));
+                context.emit(&format!(
+                    "store {} {}, ptr {}",
+                    arg_result.llvm_type,
+                    arg_result.register,
+                    arg_reg.clone()
+                ));
+                parent_args_values.push(format!("ptr {}", arg_reg.clone()));
+            }
+            let args_regs_str = parent_args_values.join(", ");
+            let parent_ptr = context.new_temp(parent_name.clone());
+            let parent_constructor_name = format!("@{}_new", parent_name.clone());
+            context.emit(&format!(
+                "{} = call ptr {}({})",
+                parent_ptr.clone(),
+                parent_constructor_name,
+                args_regs_str
+            ));
+            context.emit(&format!(
+                "%parent_ptr = getelementptr {}, ptr {}, i32 0, i32 1",
+                type_reg, mem_temp
+            ));
+            context.emit(&format!(
+                "store ptr {}, ptr %parent_ptr",
+                parent_ptr.clone()
+            ));
+        }
+
+        for attribute in self.attributes {
+            let prop_reg = attribute.1.init_expr.codegen(context);
+            let result_reg = context.new_temp(prop_reg.clone());
+            let member_key = (type_name.clone(), attribute.1.name.clone());
+            let member_index = context
+                .type_members_ids
+                .get(&member_key)
+                .expect("Member index not found for type and param name");
+            context.emit(&format!(
+                "{} = getelementptr {}, ptr {}, i32 0, i32 {}",
+                result_reg, type_reg, mem_temp, member_index
+            ));
+            context.emit(&format!(
+                "store {} {}, ptr {}",
+                prop_reg.llvm_type, prop_reg.register, result_reg
+            ));
+        }
+
+        context.emit(&format!("ret ptr {}", mem_temp));
+        context.emit(&"}".to_string());
     }
 }
 
-
+impl Codegen for HulkTypeNode {
+    fn codegen(&self, context: &mut CodegenContext) -> String {
+        let type_name = self.type_name.clone();
+        let mut props_types = Vec::new();
+        for attr in self.attributes {
+            props_types.push(CodegenContext::to_llvm_type(
+                attr.1.name._type.clone().expect("Tipo de atributo no determinado").to_string(),
+            ));
+        }
+        let list_props_str = props_types
+            .iter()
+            .map(|llvm_name| format!("{}", llvm_name))
+            .collect::<Vec<_>>()
+            .join(", ");
+        // type (vtable , parent , props...)
+        if props_types.len() > 0 {
+            context.emit(&format!(
+                "%{}_type = type {{ ptr, ptr, {} }}",
+                type_name.clone(),
+                list_props_str
+            ));
+        } else {
+            context
+                .emit(&format!("%{}_type = type {{ ptr, ptr }}", type_name.clone()));
+        }
+        self.generate_type_table(context);
+        self.generate_type_constructor(context);
+        context.current_self = Some(self.type_name.clone());
+        for method in self.methods {
+           
+                 
+                     let method.1 = format!("{}_{}", type_name.clone(), method.name.clone());
+                    visit_function_def(method);
+                }
+    
+        context.current_self = None;
+        String::new();
+    }
+}
