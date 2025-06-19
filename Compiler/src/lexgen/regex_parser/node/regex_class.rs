@@ -1,3 +1,5 @@
+use super::regex_char::RegexChar;
+
 /// Representa una clase de caracteres en una expresión regular.
 ///
 /// Puede ser:

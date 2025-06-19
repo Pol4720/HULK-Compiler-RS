@@ -1,7 +1,4 @@
-use super::AstNode;
-use super::AstNodeImpl;
-use super::AstNodeKind;
-use crate::lexgen::regex_parser::regex_char::RegexChar;
+use super::ast_node_impl::{AstNode, AstNodeImpl, AstNodeKind};
 
 /// Representa un carácter en una expresión regular.
 ///
@@ -59,9 +56,102 @@ pub struct LiteralNode {
     pub value: RegexChar,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EpsilonNode {
+    pub value: RegexChar,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StarNode {
+    pub value: RegexChar,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EndNode {
+    pub value: RegexChar,
+}
+
+impl EpsilonNode {
+    /// Crea un nuevo nodo para la transición vacía (ε).
+    pub fn new() -> Self {
+        EpsilonNode {
+            value: RegexChar::Epsilon,
+        }
+    }
+}
+
+impl AstNode for EpsilonNode {
+    fn children(&self) -> Vec<&AstNodeImpl> {
+        vec![]
+    }
+
+    fn to_ast(&self) -> AstNodeImpl {
+        AstNodeImpl {
+            kind: AstNodeKind::RegexChar(self.value.clone()),
+        }
+    }
+
+    fn to_repr(&self) -> String {
+        format!("Epsilon({:?})", self.value)
+    }
+}
+
+impl StarNode {
+    /// Crea un nuevo nodo para el carácter de inicio de línea (^).
+    pub fn new() -> Self {
+        StarNode {
+            value: RegexChar::Start,
+        }
+    }
+}
+
+impl AstNode for StarNode {
+    fn children(&self) -> Vec<&AstNodeImpl> {
+        vec![]
+    }
+
+    fn to_ast(&self) -> AstNodeImpl {
+        AstNodeImpl {
+            kind: AstNodeKind::RegexChar(self.value.clone()),
+        }
+    }
+
+    fn to_repr(&self) -> String {
+        format!("Star({:?})", self.value)
+    }
+}
+
+impl EndNode {
+    /// Crea un nuevo nodo para el carácter de final de línea ($).
+    pub fn new() -> Self {
+        EndNode {
+            value: RegexChar::End,
+        }
+    }
+}
+
+impl AstNode for EndNode {
+    fn children(&self) -> Vec<&AstNodeImpl> {
+        vec![]
+    }
+
+    fn to_ast(&self) -> AstNodeImpl {
+        AstNodeImpl {
+            kind: AstNodeKind::RegexChar(self.value.clone()),
+        }
+    }
+
+    fn to_repr(&self) -> String {
+        format!("End({:?})", self.value)
+    }
+}
+
 impl LiteralNode {
-    pub fn new(value: RegexChar) -> Self {
-        LiteralNode { value }
+    /// Crea un nuevo nodo para un carácter literal.
+    pub fn new(value: char) -> Self {
+        LiteralNode {
+            value: RegexChar::Literal(value),
+        }
     }
 }
 
@@ -69,10 +159,14 @@ impl AstNode for LiteralNode {
     fn children(&self) -> Vec<&AstNodeImpl> {
         vec![]
     }
+
     fn to_ast(&self) -> AstNodeImpl {
-        AstNodeImpl::new(super::AstNodeKind::Literal(self.clone()))
+        AstNodeImpl {
+            kind: AstNodeKind::RegexChar(self.value.clone()),
+        }
     }
+
     fn to_repr(&self) -> String {
-        format!("Literal({:?})", self.value)
+        format!("Literal({})", self.value.as_char().unwrap_or(' '))
     }
 }
