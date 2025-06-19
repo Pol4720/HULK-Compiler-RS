@@ -35,6 +35,7 @@ use crate::hulk_ast_nodes::hulk_program::Definition;
 use crate::hulk_tokens::hulk_operators::BinaryOperatorToken;
 use crate::hulk_tokens::hulk_operators::UnaryOperator;
 use crate::hulk_ast_nodes::hulk_types_info::HulkTypesInfo;
+use crate::hulk_tokens::TokenPos;
 use crate::{
     hulk_ast_nodes::{
         BinaryExpr, Block, BooleanLiteral, DestructiveAssignment, Expr, ForExpr, FunctionAccess,
@@ -158,20 +159,21 @@ impl SemanticVisitor {
                     param.name.clone(),
                     func_def.function_def.name.clone(),
                     "function".to_string(),
+                    param.token_pos,
                 ));
                 }
 
                 let param_type = if let Some(ty) = self.type_ast.get_type(&param.param_type) {
                 ty.type_name.clone()
                 } else {
-                self.new_error(SemanticError::UndefinedType(param.param_type.clone()));
+                self.new_error(SemanticError::UndefinedType(param.param_type.clone(), param.token_pos));
                 self.get_type(&HulkTypesInfo::Unknown).type_name
                 };
                 arg_types.push((param.name.clone(), param_type));
             }
 
             if self.current_scope.declared_functions.contains_key(&func_def.function_def.name) {
-                self.new_error(SemanticError::RedefinitionOfFunction(func_def.function_def.name.clone()));
+                self.new_error(SemanticError::RedefinitionOfFunction(func_def.function_def.name.clone(), func_def.function_def.token_pos));
             } else {
                 let return_type_node = self
                 .type_ast
@@ -201,12 +203,14 @@ impl SemanticVisitor {
                 {
                     self.new_error(SemanticError::RedefinitionOfType(
                         type_def.type_name.clone(),
+                        type_def.token_pos.clone(),
                     ));
                 } else {
                     if let Some(parent_type) = &type_def.parent {
                         if type_def.type_name == *parent_type {
                             self.new_error(SemanticError::UnknownError(
                                 "Type cannot inherit from itself".to_string(),
+                                type_def.token_pos.clone(),
                             ));
                         }
                     }
@@ -237,7 +241,7 @@ impl SemanticVisitor {
                 let parent_type_name = parent_type.clone();
                 let child_type_name = type_name.clone();
                 if !self.type_ast.nodes.contains_key(&parent_type_name) {
-                    self.new_error(SemanticError::UndefinedType(parent_type_name));
+                    self.new_error(SemanticError::UndefinedType(parent_type_name, type_def.token_pos));
                 } else {
                     let parent_params;
                     let parent_node = self.type_ast.nodes.get_mut(&parent_type_name).unwrap();
@@ -248,13 +252,18 @@ impl SemanticVisitor {
                     if type_node.params.len() == 0 {
                         type_node.params = parent_params;
                     } else if type_def.parent_args.len() != parent_params.len() {
-                        self.new_error(SemanticError::UnknownError(format!("Error: On definition of type {} parameters, type {} must receive {} arguments , but {} were provided", child_type_name, parent_type_name, parent_params.len(), type_def.parent_args.len())));
+                        self.new_error(SemanticError::UnknownError(format!("Error: On definition of type {} parameters, type {} must receive {} arguments , but {} were provided", child_type_name, parent_type_name, parent_params.len(), type_def.parent_args.len()), type_def.token_pos));
                     }
                 }
             }
         }
         if let Some(cycle_node) = self.type_ast.inheritance_cicle() {
-            self.new_error(SemanticError::CicleDetected(cycle_node));
+                let token_pos = self.current_scope.declared_types_def
+                .get(&cycle_node)
+                .map(|td| td.token_pos)
+                .unwrap_or_else(|| TokenPos::new(0, 0));
+            
+            self.new_error(SemanticError::CycleDetected(cycle_node,token_pos));
         }
     }
 
@@ -271,6 +280,7 @@ impl SemanticVisitor {
                                     node.arguments.len(),
                                     func.params.len(),
                                     current_function.clone(),
+                                    node.token_pos.clone(),
                                 ));
                             } else {
                                 for (index, arg) in node.arguments.iter_mut().enumerate() {
@@ -282,6 +292,7 @@ impl SemanticVisitor {
                                             func.params[index].param_type.clone(),
                                             index,
                                             func.name.clone(),
+                                            node.token_pos.clone(),
                                         ));
                                     }
                                 }
@@ -293,6 +304,7 @@ impl SemanticVisitor {
                             } else {
                                 self.new_error(SemanticError::UndefinedType(
                                     func.return_type.clone(),
+                                    func.token_pos.clone(),
                                 ));
                                 return Some(self.get_type(&HulkTypesInfo::Unknown));
                             }
@@ -331,7 +343,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     node.set_expression_type(new_type.clone());
                     new_type
                 } else {
-                    self.new_error(SemanticError::UndefinedIdentifier(id.id.clone()));
+                    self.new_error(SemanticError::UndefinedIdentifier(id.id.clone(), id.token_pos.clone()));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
             }
@@ -354,12 +366,16 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     self.new_error(SemanticError::InvalidTypePropertyAccess(
                         object_type.type_name.clone(),
                         access_node.member.id.clone(),
+                        access_node.member.token_pos.clone()
                     ));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
             }
             _ => {
-                self.new_error(SemanticError::UnknownError("Destructive assignment can only be done to an identifier or type property access".to_string()));
+                self.new_error(SemanticError::UnknownError(
+                    "Destructive assignment can only be done to an identifier or type property access".to_string(),
+                    node.token_pos.clone(),
+                ));
                 self.get_type(&HulkTypesInfo::Unknown)
             }
         }
@@ -377,15 +393,15 @@ impl Visitor<TypeNode> for SemanticVisitor {
             if let Some(function) = type_node.methods.get(&node.name) {
                 function.params.iter().map(|p| (p.name.clone(), p.param_type.clone())).collect::<Vec<_>>()
             } else {
-                self.new_error(SemanticError::UndeclaredFunction(node.name.clone()));
+                self.new_error(SemanticError::UndeclaredFunction(node.name.clone(),node.token_pos.clone()));
                 Vec::new()
             }
             } else {
-            self.new_error(SemanticError::UndefinedType(current_type_def));
+            self.new_error(SemanticError::UndefinedType(current_type_def,node.token_pos.clone()));
             Vec::new()
             }
         } else {
-            self.new_error(SemanticError::UndeclaredFunction(node.name.clone()));
+            self.new_error(SemanticError::UndeclaredFunction(node.name.clone(),node.token_pos.clone()));
             Vec::new()
         };
 
@@ -402,13 +418,14 @@ impl Visitor<TypeNode> for SemanticVisitor {
                 body_type,
                 func_type.clone(),
                 node.name.clone(),
+                node.token_pos.clone(),
             ));
             }
             return_type_node = func_type;
             println!("{:?}", return_type_node);
 
         } else {
-            self.new_error(SemanticError::UndefinedType(node.return_type.clone()));
+            self.new_error(SemanticError::UndefinedType(node.return_type.clone(),node.token_pos.clone()));
         }
 
         self.pop_scope();
@@ -437,7 +454,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                 node.set_expression_type(node_type.clone());
                 node_type.clone()
             } else {
-                self.new_error(SemanticError::UndefinedType(return_type.clone()));
+                self.new_error(SemanticError::UndefinedType(return_type.clone(), node.token_pos.clone()));
                 self.get_type(&HulkTypesInfo::Unknown)
             }
         } else if node.id == "self" {
@@ -446,15 +463,15 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     node.set_expression_type(type_node.clone());
                     type_node.clone()
                 } else {
-                    self.new_error(SemanticError::UndefinedType(current_type_def.clone()));
+                    self.new_error(SemanticError::UndefinedType(current_type_def.clone(),node.token_pos.clone()));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
             } else {
-                self.new_error(SemanticError::UndefinedIdentifier(node.id.clone()));
+                self.new_error(SemanticError::UndefinedIdentifier(node.id.clone(),node.token_pos.clone()));
                 self.get_type(&HulkTypesInfo::Unknown)
             }
         } else {
-            self.new_error(SemanticError::UndefinedIdentifier(node.id.clone()));
+            self.new_error(SemanticError::UndefinedIdentifier(node.id.clone(), node.token_pos.clone()));
             self.get_type(&HulkTypesInfo::Unknown)
         }
     }
@@ -474,6 +491,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     node.arguments.len(),
                     arguments_types.len(),
                     node.funct_name.clone(),
+                    node.token_pos.clone()
                 ));
             } else {
                 for (index, arg) in node.arguments.iter_mut().enumerate() {
@@ -485,6 +503,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                             arguments_types[index].1.clone(),
                             index,
                             func_name.clone(),
+                            node.token_pos.clone(),
                         ));
                     }
                 }
@@ -493,11 +512,11 @@ impl Visitor<TypeNode> for SemanticVisitor {
                 node.set_expression_type(func_type_node.clone());
                 func_type_node
             } else {
-                self.new_error(SemanticError::UndefinedType(func_type.clone()));
+                self.new_error(SemanticError::UndefinedType(func_type.clone(), node.token_pos.clone()));
                 self.get_type(&HulkTypesInfo::Unknown)
             }
         } else {
-            self.new_error(SemanticError::UndeclaredFunction(node.funct_name.clone()));
+            self.new_error(SemanticError::UndeclaredFunction(node.funct_name.clone(), node.token_pos.clone()));
             self.get_type(&HulkTypesInfo::Unknown)
         }
     }
@@ -505,7 +524,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
     fn visit_while_loop(&mut self, node: &mut WhileLoop) -> TypeNode {
         let condition_type = node.condition.accept(self);
         if condition_type != self.get_type(&HulkTypesInfo::Boolean) {
-            self.new_error(SemanticError::InvalidConditionType(condition_type));
+            self.new_error(SemanticError::InvalidConditionType(condition_type, node.token_pos.clone()));
         }
         let body_type = node.body.accept(self);
         node.set_expression_type(body_type.clone());
@@ -544,6 +563,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                         left_type,
                         right_type,
                         node.operator.clone(),
+                        node.token_pos.clone()
                     ));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
@@ -567,6 +587,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                         left_type,
                         right_type,
                         node.operator.clone(),
+                        node.token_pos.clone()
                     ));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
@@ -586,7 +607,9 @@ impl Visitor<TypeNode> for SemanticVisitor {
                         left_type,
                         right_type,
                         node.operator.clone(),
+                        node.token_pos.clone()
                     ));
+
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
             }
@@ -601,15 +624,19 @@ impl Visitor<TypeNode> for SemanticVisitor {
                         left_type,
                         right_type,
                         node.operator.clone(),
+                        node.token_pos.clone()
                     ));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
             }
             _ => {
-                self.new_error(SemanticError::UnknownError(format!(
-                    "Operator ( {:?} ) not supported in binary operation",
-                    node.operator
-                )));
+                self.new_error(SemanticError::UnknownError(
+                    format!(
+                        "Operator ( {:?} ) not supported in binary operation",
+                        node.operator
+                    ),
+                    node.token_pos.clone(),
+                ));
                 self.get_type(&HulkTypesInfo::Unknown)
             }
         }
@@ -627,6 +654,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     self.new_error(SemanticError::InvalidUnaryOperation(
                         operand_type,
                         node.operator.clone(),
+                        node.token_pos.clone()
                     ));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
@@ -639,6 +667,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     self.new_error(SemanticError::InvalidUnaryOperation(
                         operand_type,
                         node.operator.clone(),
+                        node.token_pos.clone()
                     ));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
@@ -647,7 +676,8 @@ impl Visitor<TypeNode> for SemanticVisitor {
                 self.new_error(SemanticError::UnknownError(format!(
                     "Operator ( {:?} ) not supported in unary operation",
                     node.operator.clone()
-                )));
+                ), node.token_pos.clone()));
+
                 self.get_type(&HulkTypesInfo::Unknown)
             }
         }
@@ -656,7 +686,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
     fn visit_if_else(&mut self, node: &mut IfExpr) -> TypeNode {
         let if_condition_type = node.condition.accept(self);
         if if_condition_type != self.get_type(&HulkTypesInfo::Boolean) {
-            self.new_error(SemanticError::InvalidConditionType(if_condition_type));
+            self.new_error(SemanticError::InvalidConditionType(if_condition_type, node.token_pos.clone()));
         }
         let if_expr_type = node.then_branch.accept(self);
         let result = if_expr_type.clone();
@@ -665,12 +695,12 @@ impl Visitor<TypeNode> for SemanticVisitor {
             if let Some(cond) = condition {
                 let cond_type = cond.accept(self);
                 if cond_type != self.get_type(&HulkTypesInfo::Boolean) {
-                    self.new_error(SemanticError::InvalidConditionType(cond_type));
+                    self.new_error(SemanticError::InvalidConditionType(cond_type, node.token_pos.clone()));
                 }
             }
             if result != expr_type {
                 
-                self.new_error(SemanticError::UnknownError("Incompatible types in if-else branches".to_string()));
+                self.new_error(SemanticError::UnknownError("Incompatible types in if-else branches".to_string(), node.token_pos.clone()));
 
             }
         }
@@ -720,7 +750,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
         {
             self.new_error(SemanticError::RedefinitionOfVariable(
                 node.identifier.id.clone(),
-            ));
+                node.token_pos.clone()));
         } else {
             self.current_scope
                 .variables
@@ -739,6 +769,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     param.name.clone(),
                     node.type_name.clone(),
                     "type".to_string(),
+                    param.token_pos,
                 ));
             }
             if let Some(type_node) = self.type_ast.get_type(&param.param_type) {
@@ -746,7 +777,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     .variables
                     .insert(param.name.clone(), type_node.type_name.clone());
             } else {
-                self.new_error(SemanticError::UndefinedType(param.param_type.clone()));
+                self.new_error(SemanticError::UndefinedType(param.param_type.clone(), param.token_pos));
                 self.current_scope
                     .variables
                     .insert(param.name.clone(), "Unknown".to_string());
@@ -761,6 +792,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                         node.parent_args.len(),
                         parent_node.params.len(),
                         parent_node.type_name.clone(),
+                        node.token_pos.clone(),
                     ));
                 } else {
                     for (index, arg) in node.parent_args.iter_mut().enumerate() {
@@ -772,12 +804,13 @@ impl Visitor<TypeNode> for SemanticVisitor {
                                 parent_node.params[index].name.clone(),
                                 index,
                                 node.type_name.clone(),
+                                node.token_pos.clone()
                             ));
                         }
                     }
                 }
             } else {
-                self.new_error(SemanticError::UndefinedType(parent_name.clone().to_owned()));
+                self.new_error(SemanticError::UndefinedType(parent_name.clone().to_owned(), node.token_pos.clone()));
             }
         }
         for prop in node.attributes.values_mut() {
@@ -803,6 +836,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     node.arguments.len(),
                     type_node.params.len(),
                     node.type_name.id.clone(),
+                    node.token_pos.clone(),
                 ));
                 self.get_type(&HulkTypesInfo::Unknown)
             } else {
@@ -815,6 +849,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                             type_node.params[index].param_type.clone(),
                             index,
                             node.type_name.id.clone(),
+                            node.token_pos.clone()
                         ));
                     }
                 }
@@ -822,7 +857,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                 type_node
             }
         } else {
-            self.new_error(SemanticError::UndefinedType(node.type_name.id.clone()));
+            self.new_error(SemanticError::UndefinedType(node.type_name.id.clone(), node.token_pos.clone()));
             self.get_type(&HulkTypesInfo::Unknown)
         }
     }
@@ -838,6 +873,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     node.member.arguments.len(),
                     func.params.len(),
                     node.member.funct_name.clone(),
+                    node.member.token_pos.clone(),
                 ));
                 self.get_type(&HulkTypesInfo::Unknown)
             } else {
@@ -850,6 +886,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                             func.params[index].param_type.clone(),
                             index,
                             node.member.funct_name.clone(),
+                            node.member.token_pos.clone()
                         ));
                     }
                 }
@@ -857,7 +894,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     node.set_expression_type(function_return_type.clone());
                     function_return_type
                 } else {
-                    self.new_error(SemanticError::UndefinedType(func.return_type.clone()));
+                    self.new_error(SemanticError::UndefinedType(func.return_type.clone(), node.member.token_pos.clone()));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
             }
@@ -865,6 +902,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
             self.new_error(SemanticError::InvalidTypeFunctionAccess(
                 object.type_name.clone(),
                 node.member.funct_name.clone(),
+                node.member.token_pos.clone()
             ));
             self.get_type(&HulkTypesInfo::Unknown)
         }
@@ -883,17 +921,19 @@ impl Visitor<TypeNode> for SemanticVisitor {
                     self.new_error(SemanticError::InvalidTypeProperty(
                         object.type_name.clone(),
                         node.member.id.clone(),
+                        node.member.token_pos.clone()
                     ));
                     self.get_type(&HulkTypesInfo::Unknown)
                 }
             } else {
-                self.new_error(SemanticError::UndefinedType(current_type_def.clone()));
+                self.new_error(SemanticError::UndefinedType(current_type_def.clone(),node.member.token_pos.clone()));
                 self.get_type(&HulkTypesInfo::Unknown)
             }
         } else {
             self.new_error(SemanticError::InvalidTypePropertyAccess(
                 object.type_name.clone(),
                 node.member.id.clone(),
+                node.member.token_pos.clone()
             ));
             self.get_type(&HulkTypesInfo::Unknown)
         }

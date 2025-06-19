@@ -8,6 +8,8 @@ use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::hulk_ast_nodes::hulk_expression::ExprKind;
+use crate::hulk_tokens::token_pos;
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 
 /// Representa una asignación destructiva en el AST.
@@ -22,6 +24,7 @@ pub struct DestructiveAssignment {
     pub identifier: Box<Expr>,
     pub expression: Box<Expr>,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl DestructiveAssignment {
@@ -30,11 +33,12 @@ impl DestructiveAssignment {
     /// # Arguments
     /// * `identifier` - Expresión que representa el identificador o propiedad.
     /// * `expression` - Expresión a asignar.
-    pub fn new(identifier: Box<Expr>, expression: Expr) -> Self {
+    pub fn new(identifier: Box<Expr>, expression: Expr, token_pos: TokenPos) -> Self {
         Self {
             identifier,
             expression: Box::new(expression),
             _type: None,
+            token_pos,
         }
     }
 

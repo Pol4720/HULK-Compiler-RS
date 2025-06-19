@@ -1,5 +1,6 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
+use crate::hulk_tokens::{token_pos, TokenPos};
 use crate::{hulk_ast_nodes::Expr, typings::types_node::TypeNode};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -7,11 +8,12 @@ use crate::{hulk_ast_nodes::Expr, typings::types_node::TypeNode};
 pub struct PrintExpr {
     pub expr: Box<Expr>,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl PrintExpr {
-    pub fn new(expr: Box<Expr>, _type: Option<TypeNode>) -> Self {
-        PrintExpr { expr, _type }
+    pub fn new(expr: Box<Expr>, _type: Option<TypeNode>, token_pos: TokenPos) -> Self {
+        PrintExpr { expr, _type , token_pos }
     }
 
     pub fn set_expression_type(&mut self, _type: TypeNode) {

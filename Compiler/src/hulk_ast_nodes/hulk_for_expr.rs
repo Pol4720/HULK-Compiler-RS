@@ -7,6 +7,7 @@
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::codegen::traits::Codegen;
 use crate::codegen::context::CodegenContext;
+use crate::hulk_tokens::{token_pos, TokenPos};
 use crate::typings::types_node::TypeNode;
 
 /// Representa una expresión de bucle `for` en el AST.
@@ -25,6 +26,7 @@ pub struct ForExpr {
     pub end: Box<Expr>,
     pub body: Box<Expr>,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl ForExpr {
@@ -35,13 +37,14 @@ impl ForExpr {
     /// * `start` - Expresión de valor inicial.
     /// * `end` - Expresión de valor final.
     /// * `body` - Cuerpo del bucle.
-    pub fn new(variable: String, start: Expr, end: Expr, body: Expr) -> Self {
+    pub fn new(variable: String, start: Expr, end: Expr, body: Expr, token_pos: TokenPos) -> Self {
         ForExpr {
             variable,
             start: Box::new(start),
             end: Box::new(end),
             body: Box::new(body),
             _type: None,
+            token_pos,
         }
     }
 

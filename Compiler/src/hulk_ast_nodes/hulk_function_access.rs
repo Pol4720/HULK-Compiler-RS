@@ -4,7 +4,7 @@
 //! Permite representar llamadas a métodos sobre objetos, como `obj.metodo()`.
 //! Incluye la estructura, métodos asociados y el tipo inferido o declarado de la expresión.
 
-use crate::{hulk_ast_nodes::{Expr, FunctionCall}, typings::types_node::TypeNode};
+use crate::{hulk_ast_nodes::{Expr, FunctionCall}, hulk_tokens::{token_pos, TokenPos}, typings::types_node::TypeNode};
 
 /// Representa el acceso a una función (método) de un objeto en el AST.
 /// 
@@ -18,6 +18,7 @@ pub struct FunctionAccess {
     pub object: Box<Expr>,
     pub member: Box<FunctionCall>,
     pub _type: Option<TypeNode>, 
+    pub token_pos: TokenPos
 }
 
 impl FunctionAccess {
@@ -26,11 +27,12 @@ impl FunctionAccess {
     /// # Arguments
     /// * `object` - Expresión del objeto.
     /// * `member` - Llamada a función (método) sobre el objeto.
-    pub fn new(object: Expr, member: FunctionCall) -> Self {
+    pub fn new(object: Expr, member: FunctionCall, token_pos: TokenPos) -> Self {
         Self {
             object: Box::new(object),
             member: Box::new(member),
             _type: None,
+            token_pos
         }
     }
 

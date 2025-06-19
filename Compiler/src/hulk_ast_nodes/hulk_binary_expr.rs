@@ -6,6 +6,7 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 use crate::hulk_tokens::hulk_operators::BinaryOperatorToken;
 
@@ -24,6 +25,7 @@ pub struct BinaryExpr {
     pub operator: BinaryOperatorToken,
     pub right: Box<Expr>,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl BinaryExpr {
@@ -33,8 +35,8 @@ impl BinaryExpr {
     /// * `left` - Expresión del lado izquierdo.
     /// * `operator` - Operador binario.
     /// * `right` - Expresión del lado derecho.
-    pub fn new(left: Box<Expr>, operator: BinaryOperatorToken, right: Box<Expr>) -> Self {
-        BinaryExpr { left, operator, right, _type: None }
+    pub fn new(left: Box<Expr>, operator: BinaryOperatorToken, right: Box<Expr>, token_pos: TokenPos) -> Self {
+        BinaryExpr { left, operator, right, _type: None, token_pos }
     }
 
     /// Establece el tipo de la expresión binaria.
