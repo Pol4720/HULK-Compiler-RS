@@ -9,6 +9,7 @@ use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::{Expr, ExprKind};
 use crate::hulk_ast_nodes::{Block};
+use crate::hulk_tokens::{token_pos, TokenPos};
 use crate::typings::types_node::TypeNode;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
@@ -89,6 +90,7 @@ impl Accept for FunctionBody {
 pub struct FunctionParams {
     pub name: String,
     pub param_type: String,
+    pub token_pos: TokenPos,
 }
 
 impl FunctionParams {
@@ -97,8 +99,8 @@ impl FunctionParams {
     /// # Arguments
     /// * `name` - Nombre del parámetro.
     /// * `param_type` - Tipo del parámetro.
-    pub fn new(name: String, param_type: String) -> Self {
-        FunctionParams { name, param_type }
+    pub fn new(name: String, param_type: String, token_pos: TokenPos) -> Self {
+        FunctionParams { name, param_type, token_pos  }
     }
 }
 
@@ -113,6 +115,7 @@ pub struct FunctionHeaderStruct {
     pub name: String,
     pub params: Vec<FunctionParams>,
     pub signature: String,
+    pub token_pos: TokenPos,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -148,6 +151,7 @@ pub struct FunctionDef {
     pub return_type: String,
     pub body: FunctionBody,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl FunctionDef {
@@ -158,23 +162,25 @@ impl FunctionDef {
     /// * `params` - Vector de parámetros.
     /// * `return_type` - Tipo de retorno.
     /// * `expr` - Cuerpo de la función.
-    pub fn new_expr(name: String, params: Vec<FunctionParams>, return_type: String, body: Box<Expr>) -> Self {
+    pub fn new_expr(name: String, params: Vec<FunctionParams>, return_type: String, body: Box<Expr>, token_pos:TokenPos) -> Self {
         FunctionDef {
             name,
             params,
             return_type,
             body: FunctionBody::from(body),
             _type: None,
+            token_pos,
         }
     }
 
-    pub fn from_header(header: FunctionHeaderStruct, body: FunctionBody) -> Self {
+    pub fn from_header(header: FunctionHeaderStruct, body: FunctionBody, token_pos: TokenPos) -> Self {
         FunctionDef {
             name: header.name,
             params: header.params,
             return_type: header.signature,
             body,
             _type: None,
+            token_pos,
         }
     }
 
@@ -183,8 +189,8 @@ impl FunctionDef {
         self._type = Some(_type);
     }
      pub fn codegen_with_name_override(&self, context: &mut CodegenContext, new_name: &str) -> String {
-        let mut backup_code = std::mem::take(&mut context.code); // 🔒 Backup del main
-        let mut backup_symbols = std::mem::take(&mut context.symbol_table);
+        let backup_code = std::mem::take(&mut context.code); // 🔒 Backup del main
+        let backup_symbols = std::mem::take(&mut context.symbol_table);
 
         let params_ir: Vec<String> = self
             .params

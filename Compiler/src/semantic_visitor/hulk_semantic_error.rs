@@ -1,127 +1,179 @@
-//! # SemanticError Enum
-//!
-//! Este módulo define el enum `SemanticError` para el compilador Hulk.
-//! Representa los posibles errores semánticos que pueden ocurrir durante el análisis semántico del AST.
-//! Incluye errores como división por cero, identificadores indefinidos, operaciones inválidas, redefiniciones, errores de tipos y más.
-//! Provee un método para obtener un mensaje de error legible para cada caso.
+use crate::{hulk_tokens::{BinaryOperatorToken, TokenPos, UnaryOperator}, typings::types_node::TypeNode};
 
-use crate::hulk_tokens::hulk_operators::{BinaryOperatorToken, UnaryOperator};
-use crate::typings::types_node::TypeNode;
-
-/// Enum que representa los errores semánticos posibles durante el análisis del AST.
-/// 
-/// - `DivisionByZero`: intento de dividir por cero.
-/// - `UndefinedIdentifier`: uso de un identificador no declarado.
-/// - `InvalidConditionType`: tipo inválido en una condición.
-/// - `InvalidBinaryOperation`: operación binaria inválida entre tipos.
-/// - `InvalidUnaryOperation`: operación unaria inválida.
-/// - `RedefinitionOfFunction`: redefinición de una función.
-/// - `UndeclaredFunction`: uso de una función no declarada.
-/// - `UnknownError`: error semántico genérico.
-/// - `InvalidArgumentsCount`: número incorrecto de argumentos en llamada a función.
-/// - `InvalidTypeArgument`: tipo de argumento incorrecto.
-/// - `InvalidFunctionReturn`: tipo de retorno incorrecto en función.
-/// - `RedefinitionOfVariable`: redefinición de variable.
-/// - `UndefinedType`: uso de un tipo no declarado.
-/// - `ParamNameAlreadyExist`: nombre de parámetro repetido.
-/// - `RedefinitionOfType`: redefinición de tipo.
-/// - `CicleDetected`: ciclo de herencia o dependencia.
-/// - `InvalidTypeArgumentCount`: número incorrecto de argumentos de tipo.
-/// - `InvalidTypeFunctionAccess`: acceso a función inexistente en un tipo.
-/// - `InvalidTypePropertyAccess`: acceso a propiedad privada.
-/// - `InvalidTypeProperty`: acceso a propiedad inexistente.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SemanticError {
-    DivisionByZero,
-    UndefinedIdentifier(String),
-    InvalidConditionType(TypeNode),
-    InvalidBinaryOperation(TypeNode, TypeNode, BinaryOperatorToken),
-    InvalidUnaryOperation(TypeNode, UnaryOperator),
-    RedefinitionOfFunction(String),
-    UndeclaredFunction(String),
-    UnknownError(String),
-    InvalidArgumentsCount(usize,usize,String),
-    InvalidTypeArgument(String,String,String,usize,String),
-    InvalidFunctionReturn(TypeNode,TypeNode,String),
-    RedefinitionOfVariable(String),
-    UndefinedType(String),
-    ParamNameAlreadyExist(String,String,String),
-    RedefinitionOfType(String),
-    CicleDetected(String),
-    InvalidTypeArgumentCount(usize,usize,String),
-    InvalidTypeFunctionAccess(String,String),
-    InvalidTypePropertyAccess(String,String),
-    InvalidTypeProperty(String, String),
+    DivisionByZero(TokenPos),
+    UndefinedIdentifier(String, TokenPos),
+    InvalidConditionType(TypeNode, TokenPos),
+    InvalidBinaryOperation(TypeNode, TypeNode, BinaryOperatorToken, TokenPos),
+    InvalidUnaryOperation(TypeNode, UnaryOperator, TokenPos),
+    RedefinitionOfFunction(String, TokenPos),
+    UndeclaredFunction(String, TokenPos),
+    UnknownError(String, TokenPos),
+    InvalidArgumentsCount(usize, usize, String, TokenPos),
+    InvalidTypeArgument(String, String, String, usize, String, TokenPos),
+    InvalidFunctionReturn(TypeNode, TypeNode, String, TokenPos),
+    RedefinitionOfVariable(String, TokenPos),
+    UndefinedType(String, TokenPos),
+    ParamNameAlreadyExist(String, String, String, TokenPos),
+    RedefinitionOfType(String, TokenPos),
+    CycleDetected(String, TokenPos),
+    InvalidTypeArgumentCount(usize, usize, String, TokenPos),
+    InvalidTypeFunctionAccess(String, String, TokenPos),
+    InvalidTypePropertyAccess(String, String, TokenPos),
+    InvalidTypeProperty(String, String, TokenPos),
+    InvalidPrint(String, TokenPos),
+    InvalidIterable(String, usize, TokenPos),
 }
 
 impl SemanticError {
-    /// Devuelve un mensaje de error legible para el usuario según el tipo de error semántico.
     pub fn message(&self) -> String {
         match self {
-            SemanticError::DivisionByZero => "Error: Division by zero is not allowed".to_string(),
-            SemanticError::UndefinedIdentifier(identifier) => {
-                format!("Error: Undefined identifier: {}.", identifier)
+            SemanticError::DivisionByZero(_) => "Division by zero is not allowed".to_string(),
+            SemanticError::UndefinedIdentifier(id, _) => {
+                format!("Undefined identifier: {id}")
             }
-            SemanticError::InvalidConditionType(return_type) => {
-                format!("Error: Invalid condition type: {:?}.", return_type.type_name)
+            SemanticError::InvalidConditionType(t, _) => {
+                format!("Invalid condition type: {}", t.type_name)
             }
-            SemanticError::InvalidBinaryOperation(left, right, op) => {
+            SemanticError::InvalidBinaryOperation(l, r, op, _) => format!(
+                "Invalid binary operation between types {} and {} with operator {}",
+                l.type_name, r.type_name, op
+            ),
+            SemanticError::InvalidUnaryOperation(t, op, _) => format!(
+                "Invalid unary operation on type {} with operator {}",
+                t.type_name, op
+            ),
+            SemanticError::RedefinitionOfFunction(name, _) => {
+                format!("Function '{name}' is already defined")
+            }
+            SemanticError::UndeclaredFunction(name, _) => {
+                format!("Function '{name}' is not defined")
+            }
+            SemanticError::InvalidArgumentsCount(found, expected, fname, _) => {
+                format!("Function '{fname}' expects {expected} arguments, found {found}")
+            }
+            SemanticError::InvalidTypeArgument(_, found, expected, pos, stmt_name, _) => {
                 format!(
-                    "Error: Invalid binary operation between types {:?} and {:?} with operator {:?}.",
-                    left.type_name, right.type_name, op
+                    "{stmt_name}: Argument {} should be {expected}, found {found}",
+                    pos + 1
                 )
             }
-            SemanticError::InvalidUnaryOperation(return_type, op) => {
-                format!(
-                    "Error: Invalid unary operation on type {:?} with operator {:?}.",
-                    return_type.type_name, op
-                )
+            SemanticError::InvalidFunctionReturn(body, ret, fname, _) => format!(
+                "Function '{fname}' should return {}, found {}",
+                ret.type_name, body.type_name
+            ),
+            SemanticError::RedefinitionOfVariable(var, _) => {
+                format!("Variable '{var}' is already defined")
             }
-            SemanticError::UnknownError(message) => {
-                format!("Error: {}", message)
+            SemanticError::UndefinedType(ty, _) => {
+                format!("Type '{ty}' is not defined")
             }
-            SemanticError::RedefinitionOfFunction(function_name) => {
-                format!("Error: function with name {} already exist.", function_name)
+            SemanticError::ParamNameAlreadyExist(param, stmt_name, kind, _) => {
+                format!("Duplicate parameter '{param}' in {kind} '{stmt_name}'")
             }
-            SemanticError::UndeclaredFunction(function_name) => {
-                format!("Error: function {} is not declared in this context.", function_name)
+            SemanticError::RedefinitionOfType(ty, _) => {
+                format!("Type '{ty}' is already defined")
             }
-            SemanticError::InvalidArgumentsCount(curr_arg_count,func_arg_count,func_name) => {
-                format!("Error: function call to {}, expected {} arguments, found {}.",func_name,func_arg_count,curr_arg_count)
+            SemanticError::CycleDetected(node, _) => {
+                format!("Type dependency cycle detected: {node}")
             }
-            SemanticError::InvalidTypeArgument(stmt,curr_type,arg_type,arg_pos ,stmt_name ) => {
-                format!("Error: {} {} receives {} on argument {} but {} was found.",stmt,stmt_name,arg_type,arg_pos + 1,curr_type)
+            SemanticError::InvalidTypeArgumentCount(found, expected, ty, _) => {
+                format!("Type '{ty}' expects {expected} arguments, found {found}")
             }
-            SemanticError::InvalidFunctionReturn(body_type,func_return ,func_name ) => {
-                format!("Error: function {} returns {} but function's body returns {}",func_name,func_return.type_name,body_type.type_name)
+            SemanticError::InvalidTypeFunctionAccess(ty, fn_name, _) => {
+                format!("Type '{ty}' has no method '{fn_name}'")
             }
-            SemanticError::RedefinitionOfVariable(var_name) => {
-                format!("Error: variable {} already defined in this context.", var_name)
+            SemanticError::InvalidTypePropertyAccess(ty, prop, _) => {
+                format!("Property '{prop}' of type '{ty}' is private")
             }
-            SemanticError::UndefinedType(type_name) => {
-                format!("Error: type {} is not defined.", type_name)
+            SemanticError::InvalidTypeProperty(ty, prop, _) => {
+                format!("Type '{ty}' has no property '{prop}'")
             }
-            SemanticError::ParamNameAlreadyExist(param_name, stmt_name, stmt) => {
-                format!("Error: parameter name {} already exists in the context of {} {}.", param_name, stmt, stmt_name )
+            SemanticError::InvalidPrint(ty, _) => {
+                format!("Cannot print values of type '{ty}'")
             }
-            SemanticError::RedefinitionOfType(type_name) => {
-                format!("Error: type {} already defined in this context.", type_name)
+            SemanticError::InvalidIterable(fn_name, cnt, _) => {
+                format!("For loops require range() function, found '{fn_name}({cnt} arguments)'")
             }
-            SemanticError::CicleDetected(cycle_node) => {
-                format!("Error: Cicle detected on type {}", cycle_node)
-            }
-            SemanticError::InvalidTypeArgumentCount(curr_arg_count, expected_arg_count, type_name) => {
-                format!("Error: type {} expected {} arguments, found {}.", type_name, expected_arg_count, curr_arg_count)
-            }
-            SemanticError::InvalidTypeFunctionAccess(type_name, function_name) => {
-                format!("Error: type {} does not have a function named {}.", type_name, function_name)
-            }
-            SemanticError::InvalidTypePropertyAccess(type_name, property_name) => {
-                format!("Error: can not access property {} of type {} because properties are private.", property_name, type_name)
-            }
-            SemanticError::InvalidTypeProperty(type_name, property_name) => {
-                format!("Error: type {} does not have a property named {}.", type_name, property_name)
-            }
+            SemanticError::UnknownError(msg, _) => msg.clone(),
         }
     }
+
+    fn token_pos(&self) -> &TokenPos {
+        match self {
+            SemanticError::DivisionByZero(sp)
+            | SemanticError::UndefinedIdentifier(_, sp)
+            | SemanticError::InvalidConditionType(_, sp)
+            | SemanticError::InvalidBinaryOperation(_, _, _, sp)
+            | SemanticError::InvalidUnaryOperation(_, _, sp)
+            | SemanticError::RedefinitionOfFunction(_, sp)
+            | SemanticError::UndeclaredFunction(_, sp)
+            | SemanticError::UnknownError(_, sp)
+            | SemanticError::InvalidArgumentsCount(_, _, _, sp)
+            | SemanticError::InvalidTypeArgument(_, _, _, _, _, sp)
+            | SemanticError::InvalidFunctionReturn(_, _, _, sp)
+            | SemanticError::RedefinitionOfVariable(_, sp)
+            | SemanticError::UndefinedType(_, sp)
+            | SemanticError::ParamNameAlreadyExist(_, _, _, sp)
+            | SemanticError::RedefinitionOfType(_, sp)
+            | SemanticError::CycleDetected(_, sp)
+            | SemanticError::InvalidTypeArgumentCount(_, _, _, sp)
+            | SemanticError::InvalidTypeFunctionAccess(_, _, sp)
+            | SemanticError::InvalidTypePropertyAccess(_, _, sp)
+            | SemanticError::InvalidTypeProperty(_, _, sp)
+            | SemanticError::InvalidPrint(_, sp)
+            | SemanticError::InvalidIterable(_, _, sp) => sp,
+        }
+    }
+
+    pub fn report(&self, input: &str) -> String {
+        let token_pos = self.token_pos();
+        let (line, col, line_str, _) = get_line_context(input, token_pos.start);
+        let caret = build_caret_point(col);
+
+        let message = self.message();
+        let location = format!("(line {line}, column {col})");
+
+        format!(
+            "\x1b[31mError {location}: {message}\n  {}\n  {}\x1b[0m",
+            line_str, caret
+        )
+    }
+}
+
+fn get_line_context(
+    input: &str,
+    offset: usize,
+) -> (usize, usize, String, usize) {
+    if input.is_empty() {
+        return (1, 1, String::new(), 0);
+    }
+    let mut line_start = 0;
+    let mut line_number = 1;
+    for (idx, c) in input.char_indices() {
+        if idx > offset {
+            break;
+        }
+        if c == '\n' {
+            line_number += 1;
+            line_start = idx + 1;
+        }
+    }
+    let rest = &input[line_start..];
+    let line_end = rest
+        .find('\n')
+        .map(|p| line_start + p)
+        .unwrap_or(input.len());
+    let line_str = input[line_start..line_end].to_string();
+
+    let byte_in_line = offset.saturating_sub(line_start);
+    let chars_before = input[line_start..line_start + byte_in_line].chars().count();
+    let column = chars_before + 1;
+
+    (line_number, column, line_str, line_start)
+}
+
+fn build_caret_point(col: usize) -> String {
+    " ".repeat(col.saturating_sub(1)) + "^"
 }

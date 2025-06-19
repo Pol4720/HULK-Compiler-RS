@@ -9,63 +9,35 @@ pub mod semantic_visitor;
 pub mod typings;
 pub mod visitor;
 
+pub mod helper_error_reporter;
+
+// #[cfg(test)]
+// mod test {
+//     mod code_block; 
+// }
+
 lalrpop_mod!(pub parser);
 
 use crate::codegen::CodeGenerator;
-use crate::parser::ProgramParser;
+use crate::helper_error_reporter::HulkParser;
 use crate::visitor::hulk_ast_visitor_print::PreetyPrintVisitor;
 use std::fs;
 use std::fs::File;
 use std::io::{self, Write};
 
 fn main() {
-    let parser = ProgramParser::new();
 
     let ex = r#"
-        type Point (x: Number, y: Number) {
-            x = x;
-            y = y;
 
-            getX() : Number => self.x;
-            getY() : Number => self.y;
-
-            setX(x: Number) : Number => self.x := x ;
-            setY(y: Number) : Number => self.y := y ;
-        }
-
-        let x = new Point(3, 4) in (x.getX() + x.getY()) ;
-
-        function SumLet (a: Number , b : Number) : Object {
+        function SumLet(a: Number, b: Number): Object {
             if ( a > b ) {
-                5 ;
-            } else {
-                \"hola\" ;
-            }
-        } 
-
-        function SumPro ( a: Number , b : Number ) : Object {
-            if ( a > b ) {
-                5 ;
-            } else {
-                SumLet( a, b ) ;
-            }
-        }
-
-        for ( i in range(1,10) ) {
-            if ( i > 5 ) {
-                i;
-            } else {
+                5;
+            } 
+            else {
                 \"hola\";
             }
-        };
+        }
 
-        let x = 5 in ( x + x ) ;
-        let y = 4 , z = 3 in ( y + z ) ;
-        while ( !(3 < 4) ) { 
-            \"hola\" ;
-        };
-
-        let x = SumLet( 5, 5) in x ;
     "#;
 
     let test_lca = r#"
@@ -147,20 +119,21 @@ fn main() {
             setY(y: Number) : Number => self.y := y ;
         }
 
-        let x = new Point(3, 4) in (x.getX() + x.getY()) ;
+        let x = new Point(3, 4) in (x.getX() + x.getY());
 
         function SumLet (a: Number , b : Number) : Object {
             if ( a > b ) {
-                5 ;
+                5;
             } else {
-                \"hola\" ;
+                \"hola\";
             }
         }
+
         function SumPro ( a: Number , b : Number ) : Object {
             if ( a > b ) {
-                5 ;
+                5;
             } else {
-                SumLet( a, b ) ;
+                SumLet( a, b );
             }
         }
 
@@ -172,13 +145,13 @@ fn main() {
             }
         };
 
-        let x = 5 in ( x + x ) ;
-        let y = 4 , z = 3 in ( y + z ) ;
+        let x = 5 in ( x + x );
+        let y = 4 , z = 3 in ( y + z );
         while ( !(3 < 4) ) { 
-            \"hola\" ;
+            \"hola\";
         };
 
-        let x = SumLet( 5, 5) in x ;
+        let x = SumLet( 5, 5) in x;
     "#;
 
     let test_type = r#"
@@ -212,9 +185,6 @@ fn main() {
         let a = 2 in (a + 2);
     "#;
 
-    let boolean_test = r#"
-        let a = "2" in print(a);
-    "#;
 
     let recursive_test = r#"
         function factorial(n: Number): Number {
@@ -271,13 +241,31 @@ fn main() {
         print(log10(1));
     "#;
 
+    let boolean_test = r#"
+        let a = 2 in print(a + true);
+        
+"#;
+
     let input_hulk = fs::read_to_string("../script.hulk")
         .expect("Failed to read input file");
 
     print!("> ");
     io::stdout().flush().unwrap();
 
-    let mut parsed_expr = parser.parse(&if_el).unwrap();
+    let parser = HulkParser::new();
+    let parsed_result = parser.parse(&recursive_test);
+
+    let mut parsed_expr = match parsed_result {
+        Ok(expr) => expr,
+        Err(parse_err) => {
+            println!("\x1b[31mSyntax Error:\x1b[0m");
+            for err in parse_err.iter() {
+                println!("{}", err);
+            }
+            std::process::exit(1);
+        }
+    };
+
     let mut print_visitor = PreetyPrintVisitor;
     let mut semantic_visitor = SemanticVisitor::new();
     let res = semantic_visitor.check(&mut parsed_expr);
@@ -287,11 +275,12 @@ fn main() {
             println!("Parsed successfully And zero semantic errors!");
         }
         Err(errors) => {
-            println!("\x1b[31mErrors:");
+            println!("\x1b[31mSemantic Errors:");
             for err in errors.iter() {
-                println!("{}", err.message());
+                println!("{}", err.report(&boolean_test));
             }
             println!("\x1b[0m");
+            std::process::exit(3);
         }
     }
     println!("");

@@ -6,6 +6,7 @@
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
+use crate::hulk_tokens::{token_pos, TokenPos};
 use crate::typings::types_node::TypeNode;
 use std::fmt;
 
@@ -18,7 +19,8 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Identifier {
     pub id: String,
-    pub _type: Option<TypeNode>
+    pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos
 }
 
 impl Identifier {
@@ -26,10 +28,11 @@ impl Identifier {
     ///
     /// # Arguments
     /// * `id` - Nombre del identificador.
-    pub fn new(id: &str) -> Self {
+    pub fn new(id: &str, token_pos: TokenPos) -> Self {
         Self {
             id: id.to_string(),
             _type: None,
+            token_pos:  token_pos
         }
     }
 

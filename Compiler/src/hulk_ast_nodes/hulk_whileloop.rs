@@ -7,6 +7,7 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_tokens::{token_pos, TokenPos};
 use crate::typings::types_node::TypeNode;
 
 /// Representa una expresión de bucle `while` en el AST.
@@ -23,7 +24,8 @@ use crate::typings::types_node::TypeNode;
 pub struct WhileLoop {
     pub condition: Box<Expr>,
     pub body: Box<Expr>,
-    pub _type: Option<TypeNode>
+    pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl WhileLoop {
@@ -32,11 +34,12 @@ impl WhileLoop {
     /// # Arguments
     /// * `condition` - Expresión booleana de condición.
     /// * `body` - Cuerpo del bucle.
-    pub fn new(condition: Box<Expr>, body: Box<Expr>) -> Self {
+    pub fn new(condition: Box<Expr>, body: Box<Expr>, token_pos: TokenPos) -> Self {
         Self {
             condition,
             body,
             _type: None,
+            token_pos:  token_pos,
         }
     }
 

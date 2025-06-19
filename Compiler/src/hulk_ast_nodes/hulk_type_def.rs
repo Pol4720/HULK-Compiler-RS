@@ -11,6 +11,7 @@ use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::hulk_ast_nodes::hulk_function_def::{FunctionDef, FunctionParams};
 use crate::hulk_ast_nodes::hulk_identifier::Identifier;
 use crate::hulk_ast_nodes::hulk_inheritance::Inheritance;
+use crate::hulk_tokens::{token_pos, TokenPos};
 use crate::typings::types_node::TypeNode;
 
 /// Representa la definición de un tipo (clase) en el AST.
@@ -32,7 +33,8 @@ pub struct HulkTypeNode {
     pub inheritance_option: Option<Inheritance>, 
     pub attributes: HashMap<String, AttributeDef>,   
     pub methods: HashMap<String, FunctionDef>,       
-    pub _type: Option<TypeNode>
+    pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 /// Representa un atributo (propiedad) de un tipo en el AST.
@@ -53,7 +55,7 @@ impl HulkTypeNode {
     /// * `parent` - Nombre del tipo padre (opcional).
     /// * `parent_args` - Argumentos para el constructor del padre.
     /// * `parameters` - Parámetros del tipo.
-    pub fn new(type_name: String, parent: Option<String>, parent_args: Vec<Expr>, parameters: Vec<FunctionParams>) -> Self {
+    pub fn new(type_name: String, parent: Option<String>, parent_args: Vec<Expr>, parameters: Vec<FunctionParams>, token_pos: TokenPos) -> Self {
         HulkTypeNode {
             type_name,
             parent,
@@ -62,7 +64,8 @@ impl HulkTypeNode {
             inheritance_option: None,
             attributes: HashMap::new(),
             methods: HashMap::new(),
-            _type: None
+            _type: None,
+            token_pos,
         }
     }
 

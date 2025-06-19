@@ -6,6 +6,7 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_tokens::{token_pos, TokenPos};
 use crate::typings::types_node::TypeNode;
 
 /// Representa una llamada a función en el AST.
@@ -20,6 +21,7 @@ pub struct FunctionCall {
     pub funct_name: String,             
     pub arguments: Vec<Expr>,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos
 }
 
 impl FunctionCall {
@@ -28,8 +30,8 @@ impl FunctionCall {
     /// # Arguments
     /// * `funct_name` - Nombre de la función.
     /// * `arguments` - Vector de expresiones como argumentos.
-    pub fn new(funct_name: String, arguments: Vec<Expr>) -> Self {
-        FunctionCall { funct_name, arguments, _type: None }
+    pub fn new(funct_name: String, arguments: Vec<Expr>, token_pos:TokenPos) -> Self {
+        FunctionCall { funct_name, arguments, _type: None , token_pos }
     }
 
     /// Establece el tipo de la expresión de la llamada a función.

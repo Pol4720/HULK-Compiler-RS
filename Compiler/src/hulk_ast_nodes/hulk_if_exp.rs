@@ -8,6 +8,7 @@ use crate::hulk_tokens::hulk_keywords::KeywordToken;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::codegen::traits::Codegen;
 use crate::codegen::context::CodegenContext;
+use crate::hulk_tokens::{token_pos, TokenPos};
 use crate::typings::types_node::TypeNode;
 
 /// Representa una expresión condicional `if` en el AST.
@@ -29,7 +30,8 @@ pub struct IfExpr {
     pub condition: Box<Expr>,
     pub then_branch: Box<Expr>,
     pub else_branch: Vec<(Option<Expr>,Expr)>,
-    pub _type: Option<TypeNode>
+    pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 
@@ -42,8 +44,8 @@ impl IfExpr {
     /// * `condition` - Expresión de condición.
     /// * `then_branch` - Rama `then`.
     /// * `else_branch` - Rama `else` (opcional).
-    pub fn new(if_keyword: KeywordToken, condition: Box<Expr>, then_branch: Box<Expr>, else_branch: Vec<(Option<Expr>, Expr)>) -> Self {
-        IfExpr { if_keyword, condition, then_branch, else_branch, _type: None }
+    pub fn new(if_keyword: KeywordToken, condition: Box<Expr>, then_branch: Box<Expr>, else_branch: Vec<(Option<Expr>, Expr)> , token_pos: TokenPos) -> Self {
+        IfExpr { if_keyword, condition, then_branch, else_branch, _type: None , token_pos }
     }
 
     /// Establece el tipo de la expresión condicional.
