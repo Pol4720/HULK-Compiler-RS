@@ -7,7 +7,7 @@ use super::ast_node_impl::{AstNode, AstNodeImpl, AstNodeKind};
 /// - `Epsilon`: la transición vacía (ε), usada en autómatas para representar ausencia de consumo de carácter.
 /// - `Start`: el carácter de inicio de línea (^).
 /// - `End`: el carácter de final de línea ($).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub enum RegexChar {
     /// Un carácter literal en la expresión regular.
     Literal(char),

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 // Definición de estados y transiciones del NFA
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct StateId(pub usize);
 
 #[derive(Debug, Clone)]

@@ -5,7 +5,7 @@ use super::state::{State, StateId};
 use std::collections::HashMap;
 
 /// Información de aceptación para un estado final
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct AcceptInfo {
     pub token_type: String,
     pub priority: usize,

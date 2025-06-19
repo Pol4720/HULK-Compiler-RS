@@ -9,10 +9,12 @@ use regex_parser::regex_parser::parse_start;
 mod nfa;
 use nfa::join_nfa::JoinedNFA;
 use nfa::nfa::NFA;
+mod dfa;
+use dfa::dfa::DFA;
 
-fn main() {
-    println!("Generador de Analizador Léxico");
-    let specs = read_token_spec("tokens_spec.txt");
+/// Lee la especificación de tokens y construye los NFAs individuales.
+fn construir_nfas(path: &str) -> Vec<(NFA, String, usize)> {
+    let specs = read_token_spec(path);
     let mut nfas = Vec::new();
     let mut priority = 0;
     for spec in specs {
@@ -20,7 +22,7 @@ fn main() {
         // Generar el AST por cada expresión regular
         if let Some(ast) = parse_start(&spec.regex) {
             println!("  AST: {}", ast.to_repr());
-            // Genero la NFA
+            // Generar la NFA
             println!("  Generando NFA para el token '{}':", spec.name);
             let nfa = NFA::from_ast(&ast);
             println!("{}", nfa.to_string());
@@ -31,16 +33,38 @@ fn main() {
             println!("  AST: (no soportado por el parser actual)");
             println!("  No se puede generar NFA para el token '{}'.", spec.name);
         }
+    }
+    nfas
+}
 
-        // Genero el DFA
-        // Genro el código fuente del analizador léxico
+/// Combina los NFAs individuales en un solo NFA etiquetado y lo imprime.
+fn combinar_nfas(nfas: Vec<(NFA, String, usize)>) -> Option<JoinedNFA> {
+    if nfas.is_empty() {
+        println!("No se generaron NFAs válidos. Abortando.");
+        return None;
     }
-    // Combinar todos los NFAs en uno solo
-    if !nfas.is_empty() {
-        let joined_nfa = JoinedNFA::join(nfas);
-        println!("\nNFA combinado:");
-        println!("{}", joined_nfa.to_string());
-        // Puedes imprimir transiciones o estados si lo deseas
+    let joined_nfa = JoinedNFA::join(nfas);
+    println!("\nNFA combinado:");
+    println!("{}", joined_nfa.to_string());
+    Some(joined_nfa)
+}
+
+/// Construye el DFA a partir del NFA combinado y lo retorna.
+fn construir_dfa(joined_nfa: &JoinedNFA) -> DFA {
+    DFA::from_joined_nfa(joined_nfa)
+}
+
+/// Función principal: orquesta el proceso de generación léxica.
+fn main() {
+    println!("Generador de Analizador Léxico");
+    // 1. Construir NFAs individuales a partir de la especificación de tokens
+    let nfas = construir_nfas("tokens_spec.txt");
+    // 2. Combinar los NFAs en un solo NFA etiquetado
+    if let Some(joined_nfa) = combinar_nfas(nfas) {
+        // 3. Construir el DFA resultante
+        let dfa = construir_dfa(&joined_nfa);
+        // 4. Imprimir el DFA usando el método asociado
+        dfa.imprimir();
+        // Aquí se puede continuar con la generación de código fuente del analizador léxico
     }
-    // Aquí puedes continuar con la construcción del DFA, etc.
 }
