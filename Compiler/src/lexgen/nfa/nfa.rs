@@ -31,6 +31,24 @@ impl NFA {
         }
         nfa
     }
+
+    pub fn to_string(&self) -> String {
+        let mut s = String::new();
+        s.push_str(&format!("Inicio: {:?}\n", self.start));
+        s.push_str(&format!("Finales: {:?}\n", self.accepts));
+        for (id, state) in &self.states {
+            for (input, targets) in &state.transitions {
+                let label = match input {
+                    Some(c) => format!("{:?}", c),
+                    None => "ε".to_string(),
+                };
+                for t in targets {
+                    s.push_str(&format!("  {:?} --{}--> {:?}\n", id, label, t));
+                }
+            }
+        }
+        s
+    }
 }
 
 struct NFABuilder {
