@@ -5,7 +5,7 @@ use spec::read_token_spec;
 
 mod regex_parser;
 use regex_parser::node::ast_node_impl::AstNode;
-use regex_parser::regex_parser::parse_start;
+use regex_parser::regex_parser::parse_regex;
 mod nfa;
 use nfa::join_nfa::JoinedNFA;
 use nfa::nfa::NFA;
@@ -24,7 +24,7 @@ fn construir_nfas(path: &str) -> Vec<(NFA, String, usize)> {
     for spec in specs {
         println!("Token: {} => {}", spec.name, spec.regex);
         // Generar el AST por cada expresión regular
-        if let Some(ast) = parse_start(&spec.regex) {
+        if let Some(ast) = parse_regex(&spec.regex) {
             println!("  AST: {}", ast.to_repr());
             // Generar la NFA
             println!("  Generando NFA para el token '{}':", spec.name);
