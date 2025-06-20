@@ -11,6 +11,8 @@ use nfa::join_nfa::JoinedNFA;
 use nfa::nfa::NFA;
 mod dfa;
 use dfa::dfa::DFA;
+mod lexemes;
+use lexemes::extract_lexemes;
 
 /// Lee la especificación de tokens y construye los NFAs individuales.
 fn construir_nfas(path: &str) -> Vec<(NFA, String, usize)> {
@@ -63,8 +65,21 @@ fn main() {
     if let Some(joined_nfa) = combinar_nfas(nfas) {
         // 3. Construir el DFA resultante
         let dfa = construir_dfa(&joined_nfa);
-        // 4. Imprimir el DFA usando el método asociado
-        dfa.imprimir();
-        // Aquí se puede continuar con la generación de código fuente del analizador léxico
+        // 4. Probar extracción de lexemas sobre un texto de ejemplo
+        let texto = "^"; // Cambia esto por el texto que quieras analizar
+        match extract_lexemes(texto, &dfa) {
+            Ok(lexs) => {
+                println!("\nLexemas reconocidos:");
+                for lex in lexs {
+                    println!("{:?}", lex);
+                }
+            }
+            Err(errors) => {
+                println!("\nErrores léxicos:");
+                for err in errors {
+                    println!("{:?}", err);
+                }
+            }
+        }
     }
 }

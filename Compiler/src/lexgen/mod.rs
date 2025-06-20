@@ -4,6 +4,7 @@ pub mod generator;
 // Aquí se pueden agregar utilidades y estructuras comunes para el generador
 pub mod codegen;
 pub mod dfa;
+pub mod lexemes;
 pub mod nfa;
 pub mod spec;
 
