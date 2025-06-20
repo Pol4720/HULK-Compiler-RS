@@ -1,9 +1,11 @@
 use super::ast_node_impl::{AstNode, AstNodeImpl, AstNodeKind};
+use super::regex_escape::RegexEscape;
 
 /// Representa un carácter en una expresión regular.
 ///
 /// Puede ser:
 /// - `Literal(char)`: un carácter literal específico.
+/// - `Escape(RegexEscape)`: un carácter de escape (\n, \t, etc.).
 /// - `Epsilon`: la transición vacía (ε), usada en autómatas para representar ausencia de consumo de carácter.
 /// - `Start`: el carácter de inicio de línea (^).
 /// - `End`: el carácter de final de línea ($).
@@ -11,6 +13,8 @@ use super::ast_node_impl::{AstNode, AstNodeImpl, AstNodeKind};
 pub enum RegexChar {
     /// Un carácter literal en la expresión regular.
     Literal(char),
+    /// Un carácter de escape (\n, \t, etc.)
+    Escape(RegexEscape),
     /// La transición vacía (ε).
     Epsilon,
     /// El carácter de inicio de línea (^).

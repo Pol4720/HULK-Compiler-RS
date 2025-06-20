@@ -7,7 +7,7 @@
 #MULT : \*
 #DIV : /
 
-Start : ^
+#Start : ^
 
 # Palabras clave (reservadas)
 #IF : if
@@ -23,3 +23,5 @@ Start : ^
 #CONTINUE : continue
 #TRUE : true
 #FALSE : false
+
+Letra_a : a
