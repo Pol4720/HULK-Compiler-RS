@@ -12,7 +12,9 @@ use nfa::nfa::NFA;
 mod dfa;
 use dfa::dfa::DFA;
 mod lexemes;
+mod simulation;
 use lexemes::extract_lexemes;
+use std::fs;
 
 /// Lee la especificación de tokens y construye los NFAs individuales.
 fn construir_nfas(path: &str) -> Vec<(NFA, String, usize)> {
@@ -63,11 +65,32 @@ fn main() {
     let nfas = construir_nfas("tokens_spec.txt");
     // 2. Combinar los NFAs en un solo NFA etiquetado
     if let Some(joined_nfa) = combinar_nfas(nfas) {
+        // Visualización del NFA combinado
+        // Si quieres visualizar el NFA de un token individual, hazlo antes de combinar
+        for (id, state) in &joined_nfa.states {
+            // Aquí podrías visualizar cada NFA individual si lo deseas
+        }
         // 3. Construir el DFA resultante
         let dfa = construir_dfa(&joined_nfa);
-        // 4. Probar extracción de lexemas sobre un texto de ejemplo
-        let texto = "^"; // Cambia esto por el texto que quieras analizar
-        match extract_lexemes(texto, &dfa) {
+        // 4. Leer la cadena de prueba desde un archivo externo
+        let test_str = fs::read_to_string("test_input.txt")
+            .expect("No se pudo leer test_input.txt")
+            .trim_end_matches(['\n', '\r'])
+            .to_string();
+        println!("\nSimulación de aceptación en el NFA combinado:");
+        let nfa_for_sim = NFA {
+            states: joined_nfa.states.clone(),
+            start: joined_nfa.start.clone(),
+            accepts: joined_nfa.accepts.keys().cloned().collect(),
+        };
+        nfa_for_sim.visualize();
+        let accepted = nfa_for_sim.accepts(&test_str);
+        println!(
+            "¿La cadena '{test_str}' es aceptada por el NFA? {}",
+            if accepted { "Sí" } else { "No" }
+        );
+        // 5. Probar extracción de lexemas sobre el texto leído
+        match extract_lexemes(&test_str, &dfa) {
             Ok(lexs) => {
                 println!("\nLexemas reconocidos:");
                 for lex in lexs {

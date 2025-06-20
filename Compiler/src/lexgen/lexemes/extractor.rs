@@ -25,8 +25,8 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
             let c = chars[i];
             // Mapeo especial para metacaracteres reconocidos por el DFA
             let symbol = match c {
-                '^' => crate::regex_parser::node::regex_char::RegexChar::Start,
-                '$' => crate::regex_parser::node::regex_char::RegexChar::End,
+                // '^' => crate::regex_parser::node::regex_char::RegexChar::Start,
+                // '$' => crate::regex_parser::node::regex_char::RegexChar::End,
                 _ => crate::regex_parser::node::regex_char::RegexChar::Literal(c),
             };
             if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), symbol.clone())) {
