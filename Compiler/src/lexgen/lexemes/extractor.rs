@@ -1,11 +1,16 @@
+// ===============================
+// extractor.rs: Extracción de Lexemas usando DFA
+// ===============================
+// Recorre el texto de entrada y extrae tokens reconocidos por el DFA.
+
 use super::error::LexicalError;
 use super::lexeme::Lexeme;
-use crate::dfa::dfa::DFA;
-use crate::dfa::dfa::DFAState;
+use crate::dfa::dfa::{DFA, DFAState};
 use crate::nfa::join_nfa::AcceptInfo;
 use crate::regex_parser::node::regex_char::RegexChar;
 
 /// Extrae los lexemas de un texto usando un DFA.
+/// Devuelve Ok(lexemas) o Err(errores léxicos).
 pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<LexicalError>> {
     let chars: Vec<char> = text.chars().collect();
     let mut index = 0;
@@ -17,27 +22,22 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
 
     while index < len {
         let mut state_key = dfa.start.clone();
-        // --- INICIO: Simulación de ^ (inicio de línea) ---
+        // Simulación de ^ (inicio de línea)
         let is_start_of_line = index == 0 || (index > 0 && chars[index - 1] == '\n');
         if is_start_of_line {
             if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), RegexChar::Start)) {
                 state_key = next_key.clone();
             }
         }
-        // --- FIN: Simulación de ^ (inicio de línea) ---
         let mut last_accept: Option<(usize, &DFAState)> = None;
         let mut i = index;
         let mut col = column;
         let mut last_accept_col = col;
-        // Buscar el match más largo
+        // Buscar el match más largo (greedy)
         while i < len {
             let c = chars[i];
             // Mapeo especial para metacaracteres reconocidos por el DFA
-            let symbol = match c {
-                // '^' => RegexChar::Start,
-                // '$' => RegexChar::End,
-                _ => RegexChar::Literal(c),
-            };
+            let symbol = RegexChar::Literal(c);
             if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), symbol.clone())) {
                 state_key = next_key.clone();
                 if let Some(state) = dfa.states.get(&state_key) {
@@ -53,7 +53,7 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
                 }
                 i += 1;
             } else {
-                // --- INICIO: Simulación de $ (fin de línea/texto) ---
+                // Simulación de $ (fin de línea/texto)
                 let at_end_of_line = i == len || (i < len && chars[i] == '\n');
                 if at_end_of_line {
                     if let Some(next_key) =
@@ -68,7 +68,6 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
                         }
                     }
                 }
-                // --- FIN: Simulación de $ (fin de línea/texto) ---
                 break;
             }
         }
@@ -82,7 +81,7 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
                 column_start: column,
                 column_end: last_accept_col + (end - index),
             });
-            // Actualizar posición
+            // Actualizar posición y columna
             for c in &chars[index..=end] {
                 if *c == '\n' {
                     line += 1;
@@ -93,7 +92,7 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
             }
             index = end + 1;
         } else {
-            // Error léxico
+            // Error léxico: carácter inesperado
             errors.push(LexicalError {
                 message: format!("Error léxico: carácter inesperado '{}'.", chars[index]),
                 line,

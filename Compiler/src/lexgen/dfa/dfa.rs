@@ -1,9 +1,13 @@
+// ===============================
+// dfa.rs: Conversión de NFA a DFA y estructura DFA
+// ===============================
+
 use crate::nfa::join_nfa::{AcceptInfo, JoinedNFA};
 use crate::nfa::state::StateId;
 use crate::regex_parser::node::regex_char::RegexChar;
 use std::collections::{BTreeSet, HashMap, VecDeque};
 
-/// Estado del DFA
+/// Estado del DFA: representa un subconjunto de estados del NFA
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DFAState {
     /// El subconjunto de estados del NFA que representa este estado del DFA
@@ -12,7 +16,7 @@ pub struct DFAState {
     pub accept: Option<AcceptInfo>,
 }
 
-/// DFA resultante de la conversión
+/// DFA resultante de la conversión desde un NFA
 pub struct DFA {
     pub states: HashMap<String, DFAState>, // key: subset string
     pub transitions: HashMap<(String, RegexChar), String>, // (from, symbol) -> to

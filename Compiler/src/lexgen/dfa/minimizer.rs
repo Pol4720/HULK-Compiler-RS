@@ -1,1 +1,0 @@
-// Minimización del DFA

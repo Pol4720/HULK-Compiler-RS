@@ -1,4 +1,7 @@
-// Punto de entrada para el generador de analizadores léxicos
+// ===============================
+// main.rs: Generador de Analizador Léxico
+// ===============================
+// Orquesta la construcción de NFAs, combinación, conversión a DFA, simulación y extracción de lexemas.
 
 pub mod spec;
 use spec::read_token_spec;
@@ -58,18 +61,15 @@ fn construir_dfa(joined_nfa: &JoinedNFA) -> DFA {
     DFA::from_joined_nfa(joined_nfa)
 }
 
-/// Función principal: orquesta el proceso de generación léxica.
+/// Orquesta el proceso de generación léxica, simulación y extracción de tokens.
 fn main() {
-    println!("Generador de Analizador Léxico");
+    println!("==============================");
+    println!("  Generador de Analizador Léxico");
+    println!("==============================");
     // 1. Construir NFAs individuales a partir de la especificación de tokens
     let nfas = construir_nfas("tokens_spec.txt");
     // 2. Combinar los NFAs en un solo NFA etiquetado
     if let Some(joined_nfa) = combinar_nfas(nfas) {
-        // Visualización del NFA combinado
-        // Si quieres visualizar el NFA de un token individual, hazlo antes de combinar
-        for (id, state) in &joined_nfa.states {
-            // Aquí podrías visualizar cada NFA individual si lo deseas
-        }
         // 3. Construir el DFA resultante
         let dfa = construir_dfa(&joined_nfa);
         // 4. Leer la cadena de prueba desde un archivo externo
@@ -77,7 +77,7 @@ fn main() {
             .expect("No se pudo leer test_input.txt")
             .trim_end_matches(['\n', '\r'])
             .to_string();
-        println!("\nSimulación de aceptación en el NFA combinado:");
+        // 5. Visualización y simulación del NFA
         let nfa_for_sim = NFA {
             states: joined_nfa.states.clone(),
             start: joined_nfa.start.clone(),
@@ -91,7 +91,7 @@ fn main() {
             "¿La cadena '{test_str}' es aceptada por el NFA? {}",
             if accepted { "Sí" } else { "No" }
         );
-        // 5. Probar extracción de lexemas sobre el texto leído
+        // 6. Probar extracción de lexemas sobre el texto leído
         match extract_lexemes(&test_str, &dfa) {
             Ok(lexs) => {
                 println!("\nLexemas reconocidos:");

@@ -8,7 +8,7 @@ use std::fmt::Debug;
 /// Enum que representa los diferentes tipos de nodos del AST de una expresión regular.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AstNodeKind {
-    RegexChar(RegexChar),
+    RegexChar(RegexChar), // Nodo hoja: carácter, escape, inicio/fin de línea, etc.
     BinOp {
         op: RegexBinOp,
         left: Box<AstNodeImpl>,
@@ -28,9 +28,13 @@ pub struct AstNodeImpl {
     pub kind: AstNodeKind,
 }
 
+/// Trait común para todos los nodos del AST de regex.
 pub trait AstNode: Debug + Clone + PartialEq {
+    /// Devuelve los hijos inmediatos del nodo (para recorridos).
     fn children(&self) -> Vec<&AstNodeImpl>;
+    /// Devuelve el nodo como AstNodeImpl (útil para conversión).
     fn to_ast(&self) -> AstNodeImpl;
+    /// Devuelve una representación string del nodo (debug).
     fn to_repr(&self) -> String;
 }
 

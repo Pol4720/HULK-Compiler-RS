@@ -1,3 +1,7 @@
+// ===============================
+// simulator.rs: Simulación de NFA (con épsilon)
+// ===============================
+
 use crate::nfa::nfa::NFA;
 use crate::nfa::state::{State, StateId};
 use crate::regex_parser::node::regex_char::RegexChar;
@@ -9,40 +13,32 @@ impl NFA {
         let chars: Vec<char> = input.chars().collect();
         // 1. Epsilon-clausura desde el estado inicial
         let mut current_states = epsilon_closure(&[self.start.clone()], &self.states);
-        // --- INICIO: Manejo de RegexChar::Start (corregido) ---
-        // Aplicar transición Start a todos los estados alcanzados por epsilon-clausura
+        // --- Manejo de RegexChar::Start ---
         let mut after_start = HashSet::new();
         for state_id in &current_states {
             if let Some(state) = self.states.get(state_id) {
                 if let Some(targets) = state.transitions.get(&Some(RegexChar::Start)) {
-                    for t in targets {
-                        after_start.insert(t.clone());
-                    }
+                    after_start.extend(targets.iter().cloned());
                 }
             }
         }
         if !after_start.is_empty() {
-            // Hacer epsilon-clausura de los nuevos estados alcanzados por Start
             let mut closure = epsilon_closure(
                 &after_start.iter().cloned().collect::<Vec<_>>(),
                 &self.states,
             );
             current_states.extend(closure.drain());
         }
-        // --- FIN: Manejo de RegexChar::Start ---
+        // --- Fin manejo Start ---
         for &c in &chars {
-            // 1. épsilon-clausura antes de consumir el símbolo (ya está hecho al inicio y después de cada transición)
             let mut next_states = HashSet::new();
             for state_id in &current_states {
                 if let Some(state) = self.states.get(state_id) {
                     if let Some(targets) = state.transitions.get(&Some(RegexChar::Literal(c))) {
-                        for t in targets {
-                            next_states.insert(t.clone());
-                        }
+                        next_states.extend(targets.iter().cloned());
                     }
                 }
             }
-            // 2. épsilon-clausura después de consumir el símbolo
             current_states = epsilon_closure(
                 &next_states.iter().cloned().collect::<Vec<_>>(),
                 &self.states,
@@ -56,14 +52,12 @@ impl NFA {
             &current_states.iter().cloned().collect::<Vec<_>>(),
             &self.states,
         );
-        // --- INICIO: Manejo de RegexChar::End ---
+        // --- Manejo de RegexChar::End ---
         let mut end_states = current_states.clone();
         for state_id in &current_states {
             if let Some(state) = self.states.get(state_id) {
                 if let Some(targets) = state.transitions.get(&Some(RegexChar::End)) {
-                    for t in targets {
-                        end_states.insert(t.clone());
-                    }
+                    end_states.extend(targets.iter().cloned());
                 }
             }
         }
@@ -71,7 +65,7 @@ impl NFA {
             &end_states.iter().cloned().collect::<Vec<_>>(),
             &self.states,
         );
-        // --- FIN: Manejo de RegexChar::End ---
+        // --- Fin manejo End ---
         // ¿Algún estado actual es de aceptación?
         current_states.iter().any(|s| self.accepts.contains(s))
     }
