@@ -21,6 +21,24 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
     let len = chars.len();
 
     while index < len {
+        // Saltar espacios, tabs, saltos de línea y retorno de carro como separadores de lexemas
+        while index < len
+            && (chars[index] == ' '
+                || chars[index] == '\t'
+                || chars[index] == '\n'
+                || chars[index] == '\r')
+        {
+            if chars[index] == '\n' {
+                line += 1;
+                column = 1;
+            } else {
+                column += 1;
+            }
+            index += 1;
+        }
+        if index >= len {
+            break;
+        }
         let mut state_key = dfa.start.clone();
         // Simulación de ^ (inicio de línea)
         let is_start_of_line = index == 0 || (index > 0 && chars[index - 1] == '\n');

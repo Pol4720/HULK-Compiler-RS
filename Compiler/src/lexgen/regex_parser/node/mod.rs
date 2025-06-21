@@ -3,6 +3,7 @@
 // ===============================
 // Expone todos los tipos de nodos y enums usados en el AST de expresiones regulares.
 
+pub mod alphabet; // Alfabeto permitido para el lexer
 pub mod ast_node_impl; // Definición del nodo base y trait AstNode
 pub mod bin_op; // Operadores binarios (Concat, Or)
 pub mod group; // Agrupaciones (paréntesis)

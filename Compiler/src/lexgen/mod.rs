@@ -2,6 +2,7 @@
 pub mod generator;
 
 // Aquí se pueden agregar utilidades y estructuras comunes para el generador
+pub mod alphabet;
 pub mod codegen;
 pub mod dfa;
 pub mod lexemes;
@@ -10,6 +11,7 @@ pub mod simulation;
 pub mod spec;
 
 // Reexportar las funciones principales para el main
+pub use alphabet::ALPHABET;
 pub use simulation::simulator;
 pub use simulation::visualizer;
 pub use spec::token_spec::TokenSpec;

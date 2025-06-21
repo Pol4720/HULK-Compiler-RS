@@ -27,4 +27,5 @@
 ################ Mis pruebas ############
 
 #Letra_a : aa
-Empieza_con_a : ^ab
+#Empieza_con_a : ^ab
+Termina_con_a : a$
