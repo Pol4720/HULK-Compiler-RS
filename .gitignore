@@ -10,3 +10,5 @@ Compiler/target
 *.exe
 *.hulk
 ast.txt
+
+*output_macos

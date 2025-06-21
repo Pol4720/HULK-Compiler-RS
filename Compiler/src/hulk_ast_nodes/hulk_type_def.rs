@@ -11,7 +11,8 @@ use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::hulk_ast_nodes::hulk_function_def::{FunctionDef, FunctionParams};
 use crate::hulk_ast_nodes::hulk_identifier::Identifier;
 use crate::hulk_ast_nodes::hulk_inheritance::Inheritance;
-use crate::hulk_tokens::{token_pos, TokenPos};
+use crate::hulk_ast_nodes::Assignment;
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 
 /// Representa la definición de un tipo (clase) en el AST.
@@ -44,7 +45,7 @@ pub struct HulkTypeNode {
 #[derive(Debug, Clone)]
 pub struct AttributeDef {
     pub name: Identifier,
-    pub init_expr: Box<Expr>, 
+    pub init_expr:Assignment, 
 }
 
 impl HulkTypeNode {
