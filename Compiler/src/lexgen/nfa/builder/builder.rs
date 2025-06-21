@@ -3,7 +3,7 @@
 // ===============================
 
 use crate::nfa::state::{NFAFragment, State, StateId};
-use crate::regex_parser::node::alphabet::ALPHABET;
+use crate::regex_parser::node::alphabet::{ALPHABET, test_a};
 use crate::regex_parser::node::ast_node_impl::{AstNodeImpl, AstNodeKind};
 use crate::regex_parser::node::bin_op::RegexBinOp;
 use crate::regex_parser::node::regex_char::RegexChar;
@@ -86,14 +86,14 @@ impl NFABuilder {
                         let dot_start = self.new_state();
                         let dot_accept = self.new_state();
                         // Nodo Dot después de la expresión
-                        for &c in ALPHABET {
+                        for &c in test_a {
                             self.states
                                 .get_mut(&dot_start)
                                 .unwrap()
                                 .add_transition(Some(RegexChar::Literal(c)), dot_accept.clone());
                         }
                         // Bucle en dot_accept para todos los caracteres del alfabeto
-                        for &c in ALPHABET {
+                        for &c in test_a {
                             self.states
                                 .get_mut(&dot_accept)
                                 .unwrap()
@@ -122,9 +122,16 @@ impl NFABuilder {
                         let dot_start = self.new_state();
                         let dot_accept = self.new_state();
                         // Nodo Dot antes de la expresión
-                        for &c in ALPHABET {
+                        for &c in test_a {
                             self.states
                                 .get_mut(&dot_start)
+                                .unwrap()
+                                .add_transition(Some(RegexChar::Literal(c)), dot_accept.clone());
+                        }
+                        // Bucle en dot_accept para todos los caracteres del alfabeto
+                        for &c in test_a {
+                            self.states
+                                .get_mut(&dot_accept)
                                 .unwrap()
                                 .add_transition(Some(RegexChar::Literal(c)), dot_accept.clone());
                         }
@@ -146,6 +153,11 @@ impl NFABuilder {
                                 .unwrap()
                                 .add_transition(None, dot_start.clone());
                         }
+                        // Transición epsilon desde dot_start a sí mismo para permitir múltiples intentos
+                        self.states
+                            .get_mut(&dot_start)
+                            .unwrap()
+                            .add_transition(None, dot_start.clone());
                         return NFAFragment {
                             start: dot_start,
                             accepts: vec![end],
@@ -256,7 +268,7 @@ impl NFABuilder {
                         // No implementado
                     }
                     RegexClass::Dot => {
-                        for &c in ALPHABET {
+                        for &c in test_a {
                             self.states
                                 .get_mut(&start)
                                 .unwrap()

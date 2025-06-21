@@ -52,7 +52,7 @@ fn combinar_nfas(nfas: Vec<(NFA, String, usize)>) -> Option<JoinedNFA> {
     }
     let joined_nfa = JoinedNFA::join(nfas);
     println!("\nNFA combinado:");
-    println!("{}", joined_nfa.to_string());
+    // println!("{}", joined_nfa.to_string());
     Some(joined_nfa)
 }
 

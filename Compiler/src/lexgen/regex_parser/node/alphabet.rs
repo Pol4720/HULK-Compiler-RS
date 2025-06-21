@@ -37,3 +37,5 @@ pub const ALPHABET: &[char] = &[
     '"', '\\', '|', '&', '%', '?', // Espacio y tabulación
     ' ', '\t',
 ];
+
+pub const test_a: &[char] = &['a', 'b', 'c'];
