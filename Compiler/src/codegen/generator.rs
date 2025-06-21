@@ -1,3 +1,31 @@
+//! # CodeGenerator
+//!
+//! Este módulo define la estructura principal para la generación de código LLVM IR a partir del AST de Hulk.
+//!
+//! ## Funcionalidad principal
+//! - Generar el código LLVM IR a partir de cualquier nodo del AST que implemente el trait `Codegen`.
+//! - Permitir obtener el código generado como un `String` (útil para pruebas).
+//! - Permitir generar, guardar y ejecutar el código LLVM IR en un archivo temporal.
+//!
+//! ## Métodos
+//!
+//! - `generate_only<T: CodegenTrait>(node: &T) -> String`  
+//!   Genera el código LLVM IR para el nodo dado y lo retorna como un string. No ejecuta ni guarda el resultado.
+//!
+//! - `generate_and_run<T: CodegenTrait>(node: &T, filename: &str)`  
+//!   Genera el código LLVM IR para el nodo dado, lo guarda en el archivo especificado y ejecuta el resultado usando el runner de LLVM.
+//!
+//! ## Detalles de implementación
+//! - Ambos métodos construyen el contexto de generación (`CodegenContext`) y ejecutan el codegen del nodo raíz.
+//! - Se agregan cabeceras, declaraciones y formatos estándar de LLVM IR para soportar operaciones y funciones comunes (como impresión y manejo de strings).
+//! - El método `generate_and_run` utiliza utilidades para escribir el archivo y ejecutar el código generado.
+//! - El método `generate_only` es útil para pruebas unitarias y para inspeccionar el IR generado sin ejecutarlo.
+//!
+//! ## Ejemplo de uso
+//! ```rust
+//! let ir_code = CodeGenerator::generate_only(&mi_ast);
+//! CodeGenerator::generate_and_run(&mi_ast,
+
 use crate::codegen::{
     context::CodegenContext, llvm_runner::run_llvm_ir, traits::Codegen as CodegenTrait,
     writer::write_to_file,

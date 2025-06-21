@@ -1,3 +1,29 @@
+//! # llvm_runner
+//!
+//! Este módulo proporciona utilidades para compilar y ejecutar código LLVM IR generado por el compilador Hulk.
+//!
+//! ## Funciones
+//!
+//! - `run_llvm_ir(filename: &str)`  
+//!   Compila el archivo LLVM IR especificado usando `clang` y ejecuta el binario resultante.
+//!
+//! ## Detalles de implementación
+//!
+//! - Detecta el sistema operativo (`windows`, `macos` o `linux`) y ajusta los argumentos de compilación y el nombre del ejecutable de salida.
+//! - Usa el comando `clang` para compilar el archivo LLVM IR a un ejecutable nativo.
+//! - Si la compilación falla, muestra un mensaje de error.
+//! - Si la compilación es exitosa, ejecuta el binario generado y muestra un mensaje si la ejecución falla.
+//!
+//! ## Ejemplo de uso
+//! ```rust
+//! run_llvm_ir("out.ll");
+//! ```
+//!
+//! ## Notas
+//! - Requiere que `clang` esté instalado y disponible en el PATH del sistema.
+//! - El ejecutable generado se llama `output.exe`, `output_macos` o `output_linux` según el sistema operativo.
+//! - Los argumentos de compilación incluyen el target adecuado para cada plataforma.
+
 use std::process::Command;
 // use std::env;
 

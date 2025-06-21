@@ -4,7 +4,7 @@
 //! Permite representar la herencia de tipos (clases) en el lenguaje Hulk, incluyendo el tipo padre y los argumentos de inicialización.
 //! Es útil para modelar la relación de herencia y la inicialización de clases base en el AST.
 
-use crate::{hulk_ast_nodes::hulk_expression::Expr, hulk_tokens::{token_pos, TokenPos}};
+use crate::{hulk_ast_nodes::hulk_expression::Expr, hulk_tokens::TokenPos};
 
 /// Representa una relación de herencia en el AST.
 /// 

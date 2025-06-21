@@ -6,7 +6,7 @@
 
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::hulk_ast_nodes::hulk_identifier::Identifier;
-use crate::hulk_tokens::{token_pos, TokenPos};
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 
 /// Representa el acceso a un miembro (propiedad o campo) de un objeto en el AST.

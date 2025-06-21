@@ -1,14 +1,41 @@
 //! # IfExpr y ElseBranch AST Nodes
 //!
 //! Este módulo define los nodos de expresión condicional `IfExpr` y `ElseBranch` del AST para el compilador Hulk.
+//!
+//! ## Descripción
 //! Permite representar expresiones condicionales tipo `if-else`, incluyendo la condición, las ramas y el tipo inferido.
 //! Incluye la estructura, métodos asociados, integración con el visitor pattern y la generación de código LLVM IR.
+//!
+//! ## Estructuras principales
+//!
+//! - `IfExpr`: Representa una expresión condicional `if` en el AST de Hulk.
+//!     - Campos:
+//!         - `if_keyword`: Token de palabra clave `if`.
+//!         - `condition`: Expresión booleana de condición.
+//!         - `then_branch`: Rama a ejecutar si la condición es verdadera.
+//!         - `else_branch`: Vector de ramas else/elif, cada una con una condición opcional y una expresión.
+//!         - `_type`: Tipo inferido o declarado de la expresión (opcional).
+//!         - `token_pos`: Posición del token en el código fuente.
+//!     - Métodos:
+//!         - `new`: Constructor de la expresión if.
+//!         - `set_expression_type`: Establece el tipo de la expresión.
+//!
+//! ## Implementación de Codegen
+//!
+//! Implementa el trait `Codegen` para permitir la generación de código LLVM IR de la expresión condicional, generando los saltos y almacenamiento de resultados necesarios para el flujo de control.
+//!
+//! ## Ejemplo de uso
+//!
+//! ```hulk
+//! if (condición) { ... } elif (otra_condición) { ... } else { ... }
+//! ```
+//!
 
 use crate::hulk_tokens::hulk_keywords::KeywordToken;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::codegen::traits::Codegen;
 use crate::codegen::context::CodegenContext;
-use crate::hulk_tokens::{token_pos, TokenPos};
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 
 /// Representa una expresión condicional `if` en el AST.

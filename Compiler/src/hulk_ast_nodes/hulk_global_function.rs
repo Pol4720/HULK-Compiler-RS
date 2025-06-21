@@ -1,3 +1,16 @@
+//! # GlobalFunctionDef
+//!
+//! Representa la definición de una función global en el AST de Hulk.
+//!
+//! ## Campos
+//! - `function_token`: Token de palabra clave que indica el inicio de la función (por ejemplo, `function`).
+//! - `token_pos`: Posición del token en el código fuente.
+//! - `function_def`: Definición detallada de la función (nombre, parámetros, tipo de retorno y cuerpo).
+//!
+//! ## Métodos
+//! - `new`: Crea una nueva función global a partir de los componentes básicos (token, nombre, parámetros, cuerpo y posición).
+//! - `from_header_and_body`: Crea una función global a partir de un encabezado (`FunctionHeaderStruct`) y un cuerpo (`FunctionBody`),
+
 use crate::{codegen::{context::CodegenContext, traits::Codegen}, hulk_ast_nodes::{hulk_function_def::{FunctionBody, FunctionHeaderStruct, FunctionParams}, Expr, FunctionDef}, hulk_tokens::{token_pos, KeywordToken, TokenPos}};
 
 #[derive(Debug, Clone)]

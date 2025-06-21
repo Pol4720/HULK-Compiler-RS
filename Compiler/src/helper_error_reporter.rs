@@ -1,3 +1,45 @@
+//! # helper_error_reporter
+//!
+//! Este módulo proporciona la estructura `HulkParser` y utilidades para el reporte amigable de errores de parsing en Hulk.
+//!
+//! ## Estructura principal
+//!
+//! - `HulkParser`  
+//!   Wrapper sobre el parser generado por LALRPOP (`ProgramParser`), que agrega reporte de errores enriquecido y contextualizado.
+//!
+//! ## Métodos principales
+//!
+//! - `new()`  
+//!   Crea una nueva instancia de `HulkParser`.
+//!
+//! - `parse(&self, input: &str) -> Result<ProgramNode, Vec<String>>`  
+//!   Intenta parsear el código fuente. Si hay errores, devuelve una lista de mensajes de error formateados con colores, línea, columna, contexto y carets (`^`) indicando la posición exacta del error.
+//!
+//! ## Funciones auxiliares
+//!
+//! - `extract_line_info(input: &str, offset: usize) -> (usize, usize, String, usize)`  
+//!   Calcula el número de línea, columna y el texto de la línea donde ocurrió el error.
+//!
+//! - `caret_for_point(col: usize) -> String`  
+//!   Construye una cadena con espacios y un caret (`^`) para señalar la columna del error.
+//!
+//! - `caret_for_token(line: &str, col: usize, token: &str) -> String`  
+//!   Construye una cadena con carets (`^`) subrayando el token inesperado.
+//!
+//! - `pretty_token(token: &str) -> String`  
+//!   Limpia el token para mostrarlo de forma legible en los mensajes de error.
+//!
+//! ## Uso típico
+//!
+//! Se utiliza para parsear código fuente Hulk y reportar errores de sintaxis de forma clara y amigable, mostrando el contexto y la ubicación exacta del problema.
+//!
+//! ## Ejemplo de uso
+//! ```rust
+//! let parser = HulkParser::new();
+//! match parser.parse("let x = 1") {
+//!     Ok(ast) => { /* ... */ }
+//!     Err(errors) => for err in errors { println!("{}", err); }
+//! }
 use std::collections::HashSet;
 
 use crate::hulk_ast_nodes::hulk_program::ProgramNode;
