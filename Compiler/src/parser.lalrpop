@@ -149,8 +149,13 @@ TypeMember: Either<AttributeDef, FunctionDef> = {
 
 TypeMemberAssignment: AttributeDef = {
     <s:@L> <id:Identifier> Assign <e:Expr> <e2:@R> => AttributeDef { 
-        name: Identifier { id: id.0, _type: None, token_pos: TokenPos::new(s, e2) }, 
-        init_expr: e 
+        name: Identifier { id: id.0.clone(), _type: None, token_pos: TokenPos::new(s, e2) }, 
+        init_expr: Assignment {
+            identifier: Identifier { id: id.0.clone(), _type: None, token_pos: id.1.clone() },
+            expression: e,
+            _type: None,
+            token_pos: TokenPos::new(s, e2),
+        }
     },
 }
 TypeMemberFunctionDef: FunctionDef = {

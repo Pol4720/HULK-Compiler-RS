@@ -7,7 +7,7 @@ use super::hulk_identifier::Identifier;
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
-use crate::hulk_tokens::{token_pos, TokenPos};
+use crate::hulk_tokens::{TokenPos};
 use crate::typings::types_node::TypeNode;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;

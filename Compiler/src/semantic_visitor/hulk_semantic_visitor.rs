@@ -125,9 +125,11 @@ impl SemanticVisitor {
     }
 
     pub fn check(&mut self, node: &mut ProgramNode) -> Result<(), Vec<SemanticError>> {
-        self.get_all_functions(node);
         self.get_all_types_def(node);
         self.add_type_inheritance();
+        self.get_all_functions(node);
+        println!("Declared types: {:?}", self.current_scope.declared_types_def.keys());
+                
         // Procesa tanto definiciones como instrucciones
         for definition in node.definitions.iter_mut() {
             definition.accept(self);
@@ -486,6 +488,7 @@ impl Visitor<TypeNode> for SemanticVisitor {
             let arguments_types = func_info.argument_types.clone();
             let func_name = func_info.function_name.clone();
             let func_type = func_info.return_type.clone();
+            println!("Func call: {} returns type: {}", node.funct_name, func_type);
             if node.arguments.len() != arguments_types.len() {
                 self.new_error(SemanticError::InvalidArgumentsCount(
                     node.arguments.len(),
@@ -496,13 +499,22 @@ impl Visitor<TypeNode> for SemanticVisitor {
             } else {
                 for (index, arg) in node.arguments.iter_mut().enumerate() {
                     let arg_type = arg.accept(self);
-                    if arg_type.type_name != arguments_types[index].1 {
-                        self.new_error(SemanticError::InvalidTypeArgument(
-                            "function".to_string(),
-                            arg_type.type_name,
-                            arguments_types[index].1.clone(),
-                            index,
-                            func_name.clone(),
+                    let expected_type_name = &arguments_types[index].1;
+                    if let Some(expected_type_node) = self.type_ast.get_type(expected_type_name) {
+                        // Permite subtipos: arg_type puede ser el tipo esperado o un subtipo
+                        if !self.type_ast.is_ancestor(&expected_type_node, &arg_type) {
+                            self.new_error(SemanticError::InvalidTypeArgument(
+                                "function".to_string(),
+                                arg_type.type_name,
+                                expected_type_name.clone(),
+                                index,
+                                func_name.clone(),
+                                node.token_pos.clone(),
+                            ));
+                        }
+                    } else {
+                        self.new_error(SemanticError::UndefinedType(
+                            expected_type_name.clone(),
                             node.token_pos.clone(),
                         ));
                     }
@@ -684,29 +696,27 @@ impl Visitor<TypeNode> for SemanticVisitor {
     }
 
     fn visit_if_else(&mut self, node: &mut IfExpr) -> TypeNode {
-        let if_condition_type = node.condition.accept(self);
-        if if_condition_type != self.get_type(&HulkTypesInfo::Boolean) {
-            self.new_error(SemanticError::InvalidConditionType(if_condition_type, node.token_pos.clone()));
-        }
-        let if_expr_type = node.then_branch.accept(self);
-        let result = if_expr_type.clone();
-        for (condition , body_expr) in node.else_branch.iter_mut() {
-            let expr_type = body_expr.accept(self);
-            if let Some(cond) = condition {
-                let cond_type = cond.accept(self);
-                if cond_type != self.get_type(&HulkTypesInfo::Boolean) {
-                    self.new_error(SemanticError::InvalidConditionType(cond_type, node.token_pos.clone()));
-                }
-            }
-            if result != expr_type {
-                
-                self.new_error(SemanticError::UnknownError("Incompatible types in if-else branches".to_string(), node.token_pos.clone()));
-
-            }
-        }
-        node.set_expression_type(result.clone());
-        result
+    let if_condition_type = node.condition.accept(self);
+    if if_condition_type != self.get_type(&HulkTypesInfo::Boolean) {
+        self.new_error(SemanticError::InvalidConditionType(if_condition_type, node.token_pos.clone()));
     }
+
+    let mut result_type = node.then_branch.accept(self);
+
+    for (condition, body_expr) in node.else_branch.iter_mut() {
+        if let Some(cond) = condition {
+            let cond_type = cond.accept(self);
+            if cond_type != self.get_type(&HulkTypesInfo::Boolean) {
+                self.new_error(SemanticError::InvalidConditionType(cond_type, node.token_pos.clone()));
+            }
+        }
+        let branch_type = body_expr.accept(self);
+        result_type = self.type_ast.find_lca(&result_type, &branch_type);
+    }
+
+    node.set_expression_type(result_type.clone());
+    result_type
+}
 
     fn visit_let_in(&mut self, node: &mut LetIn) -> TypeNode {
         self.build_scope();
@@ -776,7 +786,8 @@ impl Visitor<TypeNode> for SemanticVisitor {
                 self.current_scope
                     .variables
                     .insert(param.name.clone(), type_node.type_name.clone());
-            } else {
+            } 
+            else {
                 self.new_error(SemanticError::UndefinedType(param.param_type.clone(), param.token_pos));
                 self.current_scope
                     .variables
@@ -814,15 +825,17 @@ impl Visitor<TypeNode> for SemanticVisitor {
             }
         }
         for prop in node.attributes.values_mut() {
-            let prop_type = prop.init_expr.accept(self);
+            let prop_type = prop.init_expr.expression.accept(self);
             if let Some(type_node) = self.type_ast.nodes.get_mut(&node.type_name) {
                 type_node
                     .add_variable(prop.name.to_string().clone(), Box::new(prop_type.type_name));
             }
         }
+    
         for method in node.methods.values_mut() {
             self.visit_function_def(method);
         }
+
         self.pop_scope();
         let return_type = self.type_ast.get_type(&node.type_name).unwrap();
         node.set_expression_type(return_type.clone());

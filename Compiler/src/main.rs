@@ -242,7 +242,10 @@ fn main() {
     "#;
 
     let boolean_test = r#"
-        let a = 2 in print(a + true);
+            type Point (x: Number, y: Number) {
+            x = x;
+            y = y;
+        }
         
 "#;
 
@@ -253,7 +256,7 @@ fn main() {
     io::stdout().flush().unwrap();
 
     let parser = HulkParser::new();
-    let parsed_result = parser.parse(&recursive_test);
+    let parsed_result = parser.parse(&input_hulk);
 
     let mut parsed_expr = match parsed_result {
         Ok(expr) => expr,
@@ -277,7 +280,7 @@ fn main() {
         Err(errors) => {
             println!("\x1b[31mSemantic Errors:");
             for err in errors.iter() {
-                println!("{}", err.report(&boolean_test));
+                println!("{}", err.report(&input_hulk));
             }
             println!("\x1b[0m");
             std::process::exit(3);
@@ -297,11 +300,11 @@ fn main() {
                 .expect("No se pudo escribir en ast.txt");
             // Codegen y ejecución
             println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
-            CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
+            CodeGenerator::generate_and_run(&mut parsed_expr, "out.ll");
         }
         Err(_) => {
             println!("\x1b[32mGenerando código y ejecutando...\x1b[0m");
-            CodeGenerator::generate_and_run(&parsed_expr, "out.ll");
+            CodeGenerator::generate_and_run(&mut parsed_expr, "out.ll");
         }
     }
 
