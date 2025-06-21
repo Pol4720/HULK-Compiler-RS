@@ -1,3 +1,40 @@
+//! # main.rs
+//!
+//! Punto de entrada del compilador Hulk. Este archivo orquesta el flujo principal de compilación, incluyendo:
+//! - Lectura del archivo fuente Hulk (`script.hulk`)
+//! - Parsing del código fuente a un AST usando LALRPOP y el parser personalizado (`HulkParser`)
+//! - Reporte de errores de sintaxis con contexto y colores
+//! - Análisis semántico del AST usando el visitor semántico (`SemanticVisitor`)
+//! - Reporte de errores semánticos detallados
+//! - Impresión del AST en formato legible
+//! - Generación de código LLVM IR y ejecución del resultado
+//!
+//! ## Flujo principal
+//! 1. Lee el archivo fuente Hulk desde `../script.hulk`
+//! 2. Parsea el código fuente y reporta errores de sintaxis si existen
+//! 3. Si el parseo es exitoso, realiza el análisis semántico y reporta errores si los hay
+//! 4. Si no hay errores semánticos, imprime el AST y genera el código LLVM IR
+//! 5. Ejecuta el código generado usando el runner de LLVM
+//!
+//! ## Módulos utilizados
+//! - `codegen`: Generación de código LLVM IR
+//! - `hulk_ast_nodes`: Definición de nodos del AST
+//! - `hulk_tokens`: Definición de tokens y posiciones
+//! - `semantic_visitor`: Análisis semántico y reporte de errores
+//! - `typings`: Manejo de tipos y herencia
+//! - `visitor`: Visitors para impresión y análisis
+//! - `helper_error_reporter`: Reporte amigable de errores de parsing
+//!
+//! ## Ejecución
+//! El archivo espera que exista un archivo `script.hulk` en el directorio superior al de `Compiler`.
+//! El resultado del AST se guarda en `ast.txt` y el código LLVM IR generado se guarda y ejecuta como `out.ll`.
+//!
+//! ## Ejemplo de uso
+//! ```sh
+//! cargo run
+//! ```
+//!
+
 use lalrpop_util::lalrpop_mod;
 use semantic_visitor::hulk_semantic_visitor::SemanticVisitor;
 use visitor::hulk_visitor::Visitor;

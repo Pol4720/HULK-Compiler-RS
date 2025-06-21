@@ -6,7 +6,7 @@
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::hulk_tokens::{token_pos, TokenPos};
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 use std::fmt;
 

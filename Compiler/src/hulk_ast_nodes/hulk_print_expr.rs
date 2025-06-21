@@ -1,6 +1,6 @@
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::hulk_tokens::{token_pos, TokenPos};
+use crate::hulk_tokens::TokenPos;
 use crate::{hulk_ast_nodes::Expr, typings::types_node::TypeNode};
 
 #[derive(Debug, PartialEq, Clone)]

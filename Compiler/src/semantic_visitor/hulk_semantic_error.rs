@@ -1,3 +1,36 @@
+//! # SemanticError
+//!
+//! Enum y utilidades para representar y reportar errores semánticos durante el análisis del AST en Hulk.
+//!
+//! ## Enum `SemanticError`
+//! Cada variante representa un tipo de error semántico posible, incluyendo información relevante como el tipo, identificador, posición del token, etc.
+//!
+//! ### Ejemplos de variantes:
+//! - `DivisionByZero(TokenPos)`
+//! - `UndefinedIdentifier(String, TokenPos)`
+//! - `InvalidConditionType(TypeNode, TokenPos)`
+//! - `InvalidBinaryOperation(TypeNode, TypeNode, BinaryOperatorToken, TokenPos)`
+//! - `InvalidArgumentsCount(usize, usize, String, TokenPos)`
+//! - `InvalidTypeArgument(String, String, String, usize, String, TokenPos)`
+//! - ...y otros errores comunes en análisis semántico.
+//!
+//! ## Métodos principales
+//! - `message(&self) -> String`  
+//!   Devuelve un mensaje de error legible para el usuario, personalizado según la variante.
+//!
+//! - `report(&self, input: &str) -> String`  
+//!   Devuelve un mensaje de error formateado con color, línea, columna, contexto y un caret (`^`) indicando la posición del error en el código fuente.
+//!
+//! ## Funciones auxiliares
+//! - `get_line_context(input: &str, offset: usize) -> (usize, usize, String, usize)`  
+//!   Calcula el número de línea, columna y el texto de la línea donde ocurrió el error.
+//!
+//! - `build_caret_point(col: usize) -> String`  
+//!   Construye una cadena con espacios y un caret (`^`) para señalar la columna del error.
+//!
+//! ## Uso típico
+//! Se utiliza en el visitor semántico para reportar errores precisos y amigables al usuario, mostrando el contexto del código fuente y la ubicación exacta del
+
 use crate::{hulk_tokens::{BinaryOperatorToken, TokenPos, UnaryOperator}, typings::types_node::TypeNode};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,6 +59,20 @@ pub enum SemanticError {
     InvalidIterable(String, usize, TokenPos),
 }
 
+/// Implementa métodos para el tipo `SemanticError`, proporcionando utilidades para el reporte y la generación de mensajes de error semántico.
+///
+/// # Métodos
+///
+/// - `message(&self) -> String`  
+///   Devuelve un mensaje de error legible para el usuario que describe el error semántico.
+///
+/// - `token_pos(&self) -> &TokenPos`  
+///   Devuelve una referencia al `TokenPos` asociado al error, indicando la posición en el código fuente donde ocurrió.
+///
+/// - `report(&self, input: &str) -> String`  
+///   Genera un reporte de error formateado, incluyendo el mensaje, la ubicación (línea y columna) y una visualización con un caret que apunta al error en el código fuente.
+///
+/// Estos métodos se utilizan para proporcionar retroalimentación detallada y amigable al usuario cuando se encuentran errores semánticos durante la compilación.
 impl SemanticError {
     pub fn message(&self) -> String {
         match self {
