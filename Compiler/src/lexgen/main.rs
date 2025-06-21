@@ -84,6 +84,8 @@ fn main() {
             accepts: joined_nfa.accepts.keys().cloned().collect(),
         };
         nfa_for_sim.visualize();
+        println!("\nTabla de transición del NFA:");
+        nfa_for_sim.print_transition_table();
         let accepted = nfa_for_sim.accepts(&test_str);
         println!(
             "¿La cadena '{test_str}' es aceptada por el NFA? {}",

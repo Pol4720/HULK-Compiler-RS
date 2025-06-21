@@ -7,23 +7,71 @@ impl NFA {
     /// Verifica si la cadena de entrada es aceptada por el NFA (simulación completa con épsilon).
     pub fn accepts(&self, input: &str) -> bool {
         let chars: Vec<char> = input.chars().collect();
+        // 1. Epsilon-clausura desde el estado inicial
         let mut current_states = epsilon_closure(&[self.start.clone()], &self.states);
+        // --- INICIO: Manejo de RegexChar::Start (corregido) ---
+        // Aplicar transición Start a todos los estados alcanzados por epsilon-clausura
+        let mut after_start = HashSet::new();
+        for state_id in &current_states {
+            if let Some(state) = self.states.get(state_id) {
+                if let Some(targets) = state.transitions.get(&Some(RegexChar::Start)) {
+                    for t in targets {
+                        after_start.insert(t.clone());
+                    }
+                }
+            }
+        }
+        if !after_start.is_empty() {
+            // Hacer epsilon-clausura de los nuevos estados alcanzados por Start
+            let mut closure = epsilon_closure(
+                &after_start.iter().cloned().collect::<Vec<_>>(),
+                &self.states,
+            );
+            current_states.extend(closure.drain());
+        }
+        // --- FIN: Manejo de RegexChar::Start ---
         for &c in &chars {
+            // 1. épsilon-clausura antes de consumir el símbolo (ya está hecho al inicio y después de cada transición)
             let mut next_states = HashSet::new();
             for state_id in &current_states {
                 if let Some(state) = self.states.get(state_id) {
                     if let Some(targets) = state.transitions.get(&Some(RegexChar::Literal(c))) {
                         for t in targets {
-                            next_states.extend(epsilon_closure(&[t.clone()], &self.states));
+                            next_states.insert(t.clone());
                         }
                     }
                 }
             }
-            current_states = next_states;
+            // 2. épsilon-clausura después de consumir el símbolo
+            current_states = epsilon_closure(
+                &next_states.iter().cloned().collect::<Vec<_>>(),
+                &self.states,
+            );
             if current_states.is_empty() {
                 return false;
             }
         }
+        // 3. épsilon-clausura final (opcional, pero seguro)
+        current_states = epsilon_closure(
+            &current_states.iter().cloned().collect::<Vec<_>>(),
+            &self.states,
+        );
+        // --- INICIO: Manejo de RegexChar::End ---
+        let mut end_states = current_states.clone();
+        for state_id in &current_states {
+            if let Some(state) = self.states.get(state_id) {
+                if let Some(targets) = state.transitions.get(&Some(RegexChar::End)) {
+                    for t in targets {
+                        end_states.insert(t.clone());
+                    }
+                }
+            }
+        }
+        current_states = epsilon_closure(
+            &end_states.iter().cloned().collect::<Vec<_>>(),
+            &self.states,
+        );
+        // --- FIN: Manejo de RegexChar::End ---
         // ¿Algún estado actual es de aceptación?
         current_states.iter().any(|s| self.accepts.contains(s))
     }

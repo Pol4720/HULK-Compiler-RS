@@ -11,3 +11,4 @@ Compiler/target
 *.hulk
 ast.txt
 *.pdb
+*.pdb

@@ -3,6 +3,7 @@ use super::lexeme::Lexeme;
 use crate::dfa::dfa::DFA;
 use crate::dfa::dfa::DFAState;
 use crate::nfa::join_nfa::AcceptInfo;
+use crate::regex_parser::node::regex_char::RegexChar;
 
 /// Extrae los lexemas de un texto usando un DFA.
 pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<LexicalError>> {
@@ -16,6 +17,14 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
 
     while index < len {
         let mut state_key = dfa.start.clone();
+        // --- INICIO: Simulación de ^ (inicio de línea) ---
+        let is_start_of_line = index == 0 || (index > 0 && chars[index - 1] == '\n');
+        if is_start_of_line {
+            if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), RegexChar::Start)) {
+                state_key = next_key.clone();
+            }
+        }
+        // --- FIN: Simulación de ^ (inicio de línea) ---
         let mut last_accept: Option<(usize, &DFAState)> = None;
         let mut i = index;
         let mut col = column;
@@ -25,9 +34,9 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
             let c = chars[i];
             // Mapeo especial para metacaracteres reconocidos por el DFA
             let symbol = match c {
-                // '^' => crate::regex_parser::node::regex_char::RegexChar::Start,
-                // '$' => crate::regex_parser::node::regex_char::RegexChar::End,
-                _ => crate::regex_parser::node::regex_char::RegexChar::Literal(c),
+                // '^' => RegexChar::Start,
+                // '$' => RegexChar::End,
+                _ => RegexChar::Literal(c),
             };
             if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), symbol.clone())) {
                 state_key = next_key.clone();
@@ -44,6 +53,22 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
                 }
                 i += 1;
             } else {
+                // --- INICIO: Simulación de $ (fin de línea/texto) ---
+                let at_end_of_line = i == len || (i < len && chars[i] == '\n');
+                if at_end_of_line {
+                    if let Some(next_key) =
+                        dfa.transitions.get(&(state_key.clone(), RegexChar::End))
+                    {
+                        state_key = next_key.clone();
+                        if let Some(state) = dfa.states.get(&state_key) {
+                            if let Some(ref accept) = state.accept {
+                                last_accept = Some((i - 1, state));
+                                last_accept_col = col;
+                            }
+                        }
+                    }
+                }
+                // --- FIN: Simulación de $ (fin de línea/texto) ---
                 break;
             }
         }
