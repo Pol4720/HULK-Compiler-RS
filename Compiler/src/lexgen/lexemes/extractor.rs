@@ -89,6 +89,18 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
                 break;
             }
         }
+        // --- ARREGLO: Si llegamos al final del texto, intentamos la transición con $ ---
+        if i == len {
+            if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), RegexChar::End)) {
+                state_key = next_key.clone();
+                if let Some(state) = dfa.states.get(&state_key) {
+                    if let Some(ref accept) = state.accept {
+                        last_accept = Some((i - 1, state));
+                        last_accept_col = col;
+                    }
+                }
+            }
+        }
         if let Some((end, state)) = last_accept {
             let accept = state.accept.as_ref().unwrap();
             let value: String = chars[index..=end].iter().collect();

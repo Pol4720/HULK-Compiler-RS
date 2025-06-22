@@ -5,15 +5,15 @@ use super::regex_escape::RegexEscape;
 ///
 /// Puede ser:
 /// - `Set(Vec<RegexChar>)`: conjunto de caracteres (ej: [abc]).
-/// - `Range(char, char)`: rango de caracteres (ej: [a-z]).
+/// - `Ranges(Vec<(char, char)>)`: múltiples rangos de caracteres (ej: [a-zA-Z0-9]).
 /// - `Negated(Box<RegexClass>)`: negación de una clase ([^a], [^a-z]).
 /// - `Dot`: el metacarácter punto, que representa cualquier carácter excepto salto de línea (.)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RegexClass {
     /// Un conjunto de caracteres explícitos, como [abc]
     Set(Vec<RegexChar>),
-    /// Un rango de caracteres, como [a-z]
-    Range(char, char),
+    /// Uno o más rangos de caracteres, como [a-zA-Z0-9]
+    Ranges(Vec<(char, char)>),
     /// Una clase negada, como [^a] o [^a-z]
     Negated(Box<RegexClass>),
     /// El metacarácter punto, que representa cualquier carácter excepto salto de línea (.)
@@ -29,9 +29,9 @@ impl RegexClass {
     pub fn is_set(&self) -> bool {
         matches!(self, RegexClass::Set(_))
     }
-    /// Devuelve true si la clase es un rango.
-    pub fn is_range(&self) -> bool {
-        matches!(self, RegexClass::Range(_, _))
+    /// Devuelve true si la clase es uno o más rangos.
+    pub fn is_ranges(&self) -> bool {
+        matches!(self, RegexClass::Ranges(_))
     }
     /// Devuelve true si la clase es el metacarácter punto.
     pub fn is_dot(&self) -> bool {

@@ -32,7 +32,7 @@ impl NFA {
             }
         }
         // Encabezado
-        print!("{:>8}", "Estado");
+        print!("{:>8}", "  Estado  ");
         for sym in &symbols {
             print!(" | {:>12}", format!("{:?}", sym));
         }

@@ -26,10 +26,31 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
     if input == "$" {
         return Some(EndNode::new().to_ast());
     }
-    // Un solo carácter literal
-    if input.len() == 1 {
-        let c = input.chars().next().unwrap();
-        return Some(LiteralNode::new(c).to_ast());
+    // Operadores unarios: *, +, ?
+    if let Some((body, op)) = helpers::parse_unary_suffix(input) {
+        let expr = parse_regex(body)?;
+        let op = match op {
+            '*' => RegexUnOp::Star,
+            '+' => RegexUnOp::Plus,
+            '?' => RegexUnOp::Optional,
+            _ => return None,
+        };
+        return Some(AstNodeImpl {
+            kind: AstNodeKind::UnOp {
+                op,
+                expr: Box::new(expr),
+            },
+        });
+    }
+
+    // Clase de caracteres simple: [abc], [a-z]
+    if input.starts_with('[') && input.ends_with(']') {
+        let inner = &input[1..input.len() - 1];
+
+        let class = helpers::parse_class(inner)?;
+        return Some(AstNodeImpl {
+            kind: AstNodeKind::Class(class),
+        });
     }
     // Alternancia (|) de nivel superior
     if let Some(idx) = helpers::find_top_level(input, '|') {
@@ -67,30 +88,6 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
             kind: AstNodeKind::Group(RegexGroup::new(Box::new(expr))),
         });
     }
-    // Operadores unarios: *, +, ?
-    if let Some((body, op)) = helpers::parse_unary_suffix(input) {
-        let expr = parse_regex(body)?;
-        let op = match op {
-            '*' => RegexUnOp::Star,
-            '+' => RegexUnOp::Plus,
-            '?' => RegexUnOp::Optional,
-            _ => return None,
-        };
-        return Some(AstNodeImpl {
-            kind: AstNodeKind::UnOp {
-                op,
-                expr: Box::new(expr),
-            },
-        });
-    }
-    // Clase de caracteres simple: [abc], [a-z]
-    if input.starts_with('[') && input.ends_with(']') {
-        let inner = &input[1..input.len() - 1];
-        let class = helpers::parse_class(inner)?;
-        return Some(AstNodeImpl {
-            kind: AstNodeKind::Class(class),
-        });
-    }
     // Escape simple: \n, \t, etc.
     if input.starts_with("\\") && input.len() == 2 {
         if let Some(esc) = RegexEscape::from_char(input.chars().nth(1).unwrap()) {
@@ -98,6 +95,11 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
                 kind: AstNodeKind::RegexChar(RegexChar::Escape(esc)),
             });
         }
+    }
+    // Un solo carácter literal
+    if input.len() == 1 {
+        let c = input.chars().next().unwrap();
+        return Some(LiteralNode::new(c).to_ast());
     }
     None
 }
@@ -173,9 +175,34 @@ mod helpers {
         None
     }
 
-    /// Parsea una clase de caracteres simple (solo set, no rangos ni negaciones).
+    /// Parsea una clase de caracteres con múltiples rangos y literales.
     pub fn parse_class(input: &str) -> Option<RegexClass> {
-        let chars: Vec<RegexChar> = input.chars().map(RegexChar::Literal).collect();
-        Some(RegexClass::Set(chars))
+        let chars: Vec<char> = input.chars().collect();
+        let mut ranges = Vec::new();
+        let mut singles = Vec::new();
+        let mut i = 0;
+        while i < chars.len() {
+            if i + 2 < chars.len() && chars[i + 1] == '-' {
+                ranges.push((chars[i], chars[i + 2]));
+                i += 3;
+            } else {
+                singles.push(RegexChar::Literal(chars[i]));
+                i += 1;
+            }
+        }
+        if !ranges.is_empty() && singles.is_empty() {
+            Some(RegexClass::Ranges(ranges))
+        } else if !ranges.is_empty() && !singles.is_empty() {
+            // Mezcla: crea un set con los literales y expande los rangos
+            let mut set = singles;
+            for (a, b) in &ranges {
+                for ch in *a as u8..=*b as u8 {
+                    set.push(RegexChar::Literal(ch as char));
+                }
+            }
+            Some(RegexClass::Set(set))
+        } else {
+            Some(RegexClass::Set(singles))
+        }
     }
 }

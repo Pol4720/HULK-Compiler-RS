@@ -120,24 +120,17 @@ impl NFABuilder {
                         // ...$
                         let left_frag = self.build(left);
                         let dot_start = self.new_state();
-                        let dot_accept = self.new_state();
+                        // let dot_accept = self.new_state();
                         // Nodo Dot antes de la expresión
                         for &c in test_a {
                             self.states
                                 .get_mut(&dot_start)
                                 .unwrap()
-                                .add_transition(Some(RegexChar::Literal(c)), dot_accept.clone());
-                        }
-                        // Bucle en dot_accept para todos los caracteres del alfabeto
-                        for &c in test_a {
-                            self.states
-                                .get_mut(&dot_accept)
-                                .unwrap()
-                                .add_transition(Some(RegexChar::Literal(c)), dot_accept.clone());
+                                .add_transition(Some(RegexChar::Literal(c)), dot_start.clone());
                         }
                         // Transición de Dot a expresión
                         self.states
-                            .get_mut(&dot_accept)
+                            .get_mut(&dot_start)
                             .unwrap()
                             .add_transition(None, left_frag.start.clone());
                         // Transición de la expresión a End
@@ -153,11 +146,6 @@ impl NFABuilder {
                                 .unwrap()
                                 .add_transition(None, dot_start.clone());
                         }
-                        // Transición epsilon desde dot_start a sí mismo para permitir múltiples intentos
-                        self.states
-                            .get_mut(&dot_start)
-                            .unwrap()
-                            .add_transition(None, dot_start.clone());
                         return NFAFragment {
                             start: dot_start,
                             accepts: vec![end],
@@ -256,12 +244,14 @@ impl NFABuilder {
                                 .add_transition(Some(c.clone()), accept.clone());
                         }
                     }
-                    RegexClass::Range(a, b) => {
-                        for ch in (*a as u8)..=(*b as u8) {
-                            self.states.get_mut(&start).unwrap().add_transition(
-                                Some(RegexChar::Literal(ch as char)),
-                                accept.clone(),
-                            );
+                    RegexClass::Ranges(ranges) => {
+                        for (a, b) in ranges {
+                            for ch in (*a as u8)..=(*b as u8) {
+                                self.states.get_mut(&start).unwrap().add_transition(
+                                    Some(RegexChar::Literal(ch as char)),
+                                    accept.clone(),
+                                );
+                            }
                         }
                     }
                     RegexClass::Negated(_) => {
