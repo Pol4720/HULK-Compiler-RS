@@ -254,8 +254,41 @@ impl NFABuilder {
                             }
                         }
                     }
-                    RegexClass::Negated(_) => {
-                        // No implementado
+                    RegexClass::Negated(inner) => {
+                        // Expande la clase interna a un set de literales
+                        let mut excluidos = std::collections::HashSet::new();
+                        match &**inner {
+                            RegexClass::Set(chars) => {
+                                for c in chars {
+                                    if let RegexChar::Literal(ch) = c {
+                                        excluidos.insert(*ch);
+                                    }
+                                }
+                            }
+                            RegexClass::Ranges(ranges) => {
+                                for (a, b) in ranges {
+                                    for ch in (*a as u8)..=(*b as u8) {
+                                        excluidos.insert(ch as char);
+                                    }
+                                }
+                            }
+                            RegexClass::Dot => {
+                                // Si es negación de punto, solo salto de línea (\n)
+                                excluidos = test_a.iter().copied().collect();
+                                excluidos.remove(&'\n');
+                            }
+                            RegexClass::Negated(_) => {
+                                // Doble negación: no implementado
+                            }
+                        }
+                        for &c in test_a {
+                            if !excluidos.contains(&c) {
+                                self.states
+                                    .get_mut(&start)
+                                    .unwrap()
+                                    .add_transition(Some(RegexChar::Literal(c)), accept.clone());
+                            }
+                        }
                     }
                     RegexClass::Dot => {
                         for &c in test_a {

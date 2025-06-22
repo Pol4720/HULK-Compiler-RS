@@ -175,12 +175,18 @@ mod helpers {
         None
     }
 
-    /// Parsea una clase de caracteres con múltiples rangos y literales.
+    /// Parsea una clase de caracteres con múltiples rangos y literales, incluyendo negación ([^...]).
     pub fn parse_class(input: &str) -> Option<RegexClass> {
         let chars: Vec<char> = input.chars().collect();
+        let mut i = 0;
+        let mut negated = false;
+        // Detecta negación al inicio
+        if !chars.is_empty() && chars[0] == '^' {
+            negated = true;
+            i = 1;
+        }
         let mut ranges = Vec::new();
         let mut singles = Vec::new();
-        let mut i = 0;
         while i < chars.len() {
             if i + 2 < chars.len() && chars[i + 1] == '-' {
                 ranges.push((chars[i], chars[i + 2]));
@@ -190,8 +196,8 @@ mod helpers {
                 i += 1;
             }
         }
-        if !ranges.is_empty() && singles.is_empty() {
-            Some(RegexClass::Ranges(ranges))
+        let result = if !ranges.is_empty() && singles.is_empty() {
+            RegexClass::Ranges(ranges)
         } else if !ranges.is_empty() && !singles.is_empty() {
             // Mezcla: crea un set con los literales y expande los rangos
             let mut set = singles;
@@ -200,9 +206,14 @@ mod helpers {
                     set.push(RegexChar::Literal(ch as char));
                 }
             }
-            Some(RegexClass::Set(set))
+            RegexClass::Set(set)
         } else {
-            Some(RegexClass::Set(singles))
+            RegexClass::Set(singles)
+        };
+        if negated {
+            Some(RegexClass::Negated(Box::new(result)))
+        } else {
+            Some(result)
         }
     }
 }
