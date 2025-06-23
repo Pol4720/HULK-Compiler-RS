@@ -52,6 +52,15 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
             kind: AstNodeKind::Class(class),
         });
     }
+    // Agrupación con paréntesis
+    if input.starts_with('(') && input.ends_with(')') && helpers::is_balanced_parens(input) {
+        let inner = &input[1..input.len() - 1];
+        let expr = parse_regex(inner)?;
+        return Some(AstNodeImpl {
+            kind: AstNodeKind::Group(RegexGroup::new(Box::new(expr))),
+        });
+    }
+
     // Alternancia (|) de nivel superior
     if let Some(idx) = helpers::find_top_level(input, '|') {
         let left = &input[..idx];
@@ -80,14 +89,7 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
             },
         });
     }
-    // Agrupación con paréntesis
-    if input.starts_with('(') && input.ends_with(')') && helpers::is_balanced_parens(input) {
-        let inner = &input[1..input.len() - 1];
-        let expr = parse_regex(inner)?;
-        return Some(AstNodeImpl {
-            kind: AstNodeKind::Group(RegexGroup::new(Box::new(expr))),
-        });
-    }
+
     // Escape simple: \n, \t, etc.
     if input.starts_with("\\") && input.len() == 2 {
         if let Some(esc) = RegexEscape::from_char(input.chars().nth(1).unwrap()) {
@@ -129,14 +131,16 @@ mod helpers {
         let mut depth = 0;
         let chars: Vec<char> = input.chars().collect();
         for i in 1..chars.len() {
-            match chars[i] {
+            match chars[i - 1] {
                 '(' => depth += 1,
                 ')' => depth -= 1,
                 _ => {}
             }
             if depth == 0 {
-                // No separar en medio de un grupo
-                return Some(i);
+                // No separar justo después de '(', ni antes de ')'
+                if chars[i - 1] != '(' && chars[i] != ')' {
+                    return Some(i);
+                }
             }
         }
         None

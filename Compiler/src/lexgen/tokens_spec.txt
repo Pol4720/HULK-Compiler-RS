@@ -31,4 +31,4 @@
 #Termina_con_a : ab$
 #Emp_ter : ^ab$
 
-test : [a-zA-Z][a-z0-9X]*
+test : a(ab)c
