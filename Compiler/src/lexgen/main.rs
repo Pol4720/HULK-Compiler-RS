@@ -28,11 +28,11 @@ fn construir_nfas(path: &str) -> Vec<(NFA, String, usize)> {
         println!("Token: {} => {}", spec.name, spec.regex);
         // Generar el AST por cada expresión regular
         if let Some(ast) = parse_regex(&spec.regex) {
-            println!("  AST: {}", ast.to_repr());
+            // println!("  AST: {}", ast.to_repr());
             // Generar la NFA
-            println!("  Generando NFA para el token '{}':", spec.name);
+            // println!("  Generando NFA para el token '{}':", spec.name);
             let nfa = NFA::from_ast(&ast);
-            println!("{}", nfa.to_string());
+            // println!("{}", nfa.to_string());
             // Guardar NFA, tipo de token y prioridad
             nfas.push((nfa, spec.name.clone(), priority));
             priority += 1;
@@ -51,7 +51,7 @@ fn combinar_nfas(nfas: Vec<(NFA, String, usize)>) -> Option<JoinedNFA> {
         return None;
     }
     let joined_nfa = JoinedNFA::join(nfas);
-    println!("\nNFA combinado:");
+    // println!("\nNFA combinado:");
     // println!("{}", joined_nfa.to_string());
     Some(joined_nfa)
 }
@@ -78,19 +78,19 @@ fn main() {
             .trim_end_matches(['\n', '\r'])
             .to_string();
         // 5. Visualización y simulación del NFA
-        let nfa_for_sim = NFA {
-            states: joined_nfa.states.clone(),
-            start: joined_nfa.start.clone(),
-            accepts: joined_nfa.accepts.keys().cloned().collect(),
-        };
-        nfa_for_sim.visualize();
-        println!("\nTabla de transición del NFA:");
-        nfa_for_sim.print_transition_table();
-        let accepted = nfa_for_sim.accepts(&test_str);
-        println!(
-            "¿La cadena '{test_str}' es aceptada por el NFA? {}",
-            if accepted { "Sí" } else { "No" }
-        );
+        // let nfa_for_sim = NFA {
+        //     states: joined_nfa.states.clone(),
+        //     start: joined_nfa.start.clone(),
+        //     accepts: joined_nfa.accepts.keys().cloned().collect(),
+        // };
+        // nfa_for_sim.visualize();
+        // println!("\nTabla de transición del NFA:");
+        // nfa_for_sim.print_transition_table();
+        // let accepted = nfa_for_sim.accepts(&test_str);
+        // println!(
+        //     "¿La cadena '{test_str}' es aceptada por el NFA? {}",
+        //     if accepted { "Sí" } else { "No" }
+        // );
         // 6. Probar extracción de lexemas sobre el texto leído
         match extract_lexemes(&test_str, &dfa) {
             Ok(lexs) => {

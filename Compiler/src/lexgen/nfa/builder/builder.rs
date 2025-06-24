@@ -86,14 +86,14 @@ impl NFABuilder {
                         let dot_start = self.new_state();
                         let dot_accept = self.new_state();
                         // Nodo Dot después de la expresión
-                        for &c in test_a {
+                        for &c in ALPHABET {
                             self.states
                                 .get_mut(&dot_start)
                                 .unwrap()
                                 .add_transition(Some(RegexChar::Literal(c)), dot_accept.clone());
                         }
                         // Bucle en dot_accept para todos los caracteres del alfabeto
-                        for &c in test_a {
+                        for &c in ALPHABET {
                             self.states
                                 .get_mut(&dot_accept)
                                 .unwrap()
@@ -122,7 +122,7 @@ impl NFABuilder {
                         let dot_start = self.new_state();
                         // let dot_accept = self.new_state();
                         // Nodo Dot antes de la expresión
-                        for &c in test_a {
+                        for &c in ALPHABET {
                             self.states
                                 .get_mut(&dot_start)
                                 .unwrap()
@@ -274,14 +274,14 @@ impl NFABuilder {
                             }
                             RegexClass::Dot => {
                                 // Si es negación de punto, solo salto de línea (\n)
-                                excluidos = test_a.iter().copied().collect();
+                                excluidos = ALPHABET.iter().copied().collect();
                                 excluidos.remove(&'\n');
                             }
                             RegexClass::Negated(_) => {
                                 // Doble negación: no implementado
                             }
                         }
-                        for &c in test_a {
+                        for &c in ALPHABET {
                             if !excluidos.contains(&c) {
                                 self.states
                                     .get_mut(&start)
@@ -291,7 +291,7 @@ impl NFABuilder {
                         }
                     }
                     RegexClass::Dot => {
-                        for &c in test_a {
+                        for &c in ALPHABET {
                             self.states
                                 .get_mut(&start)
                                 .unwrap()
