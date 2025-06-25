@@ -19,11 +19,16 @@ pub const DIGITS: &[char] = &['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 // Símbolos comunes
 pub const SYMBOLS: &[char] = &[
     '+', '-', '*', '/', '=', ';', '.', ',', '(', ')', '{', '}', '[', ']', '_', '<', '>', '!', ':',
-    '"', '\\', '|', '&', '%', '?',
+    '"', '\\', '|', '&', '%', '?', '#', '^', '$', '\'',
+];
+
+// Caracteres acentuados y especiales
+pub const ACCENTED_CHARS: &[char] = &[
+    'á', 'é', 'í', 'ó', 'ú', 'Á', 'É', 'Í', 'Ó', 'Ú', 'ñ', 'Ñ', 'ü', 'Ü',
 ];
 
 // Espacio y tabulación
-pub const WHITESPACE: &[char] = &[' ', '\t'];
+pub const WHITESPACE: &[char] = &[' ', '\t', '\n', '\r'];
 
 // Alfabeto total
 pub const ALPHABET: &[char] = &[
@@ -34,8 +39,8 @@ pub const ALPHABET: &[char] = &[
     't', 'u', 'v', 'w', 'x', 'y', 'z', // Dígitos
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', // Símbolos
     '+', '-', '*', '/', '=', ';', '.', ',', '(', ')', '{', '}', '[', ']', '_', '<', '>', '!', ':',
-    '"', '\\', '|', '&', '%', '?', // Espacio y tabulación
-    ' ', '\t',
+    '"', '\\', '|', '&', '%', '?', '#', '^', '$', '\'', // Caracteres acentuados
+    'á', 'é', 'í', 'ó', 'ú', 'Á', 'É', 'Í', 'Ó', 'Ú', 'ñ', 'Ñ', 'ü', 'Ü',
+    // Espacio y caracteres de control
+    ' ', '\t', '\n', '\r',
 ];
-
-pub const test_a: &[char] = &['a', 'b', 'c'];

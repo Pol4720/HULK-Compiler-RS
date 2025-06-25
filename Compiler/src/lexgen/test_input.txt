@@ -25,14 +25,60 @@ minimo
 
 1453
 
-abcd
-bda
-abc
-ABC
-12345
-abc123
-DEF
-hola
-holaholahola
-def
-ghi
+# Operaciones aritmeticas
++
+-
+*
+/
+%
+
+# Operaciones combinadas de asignacion
++=
+-=
+*=
+/=
+%=
+
+# Operaciones de comparacion
+==
+!=
+<
+>
+<=
+>=
+
+# Operaciones logicas
+&&
+!
+
+# Incremento y decremento
+++
+--
+
+# Operaciones bitwise
+&
+~
+<<
+>>
+
+# Delimitadores
+=
+;
+,
+.
+(
+)
+{
+}
+[
+]
+:
+?
+
+# Literales numericos y de texto
+
+# Comentarios de prueba
+// Este es un comentario de linea
+
+# Espacios y saltos de linea para prueba
+    

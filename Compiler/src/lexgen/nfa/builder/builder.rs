@@ -3,7 +3,7 @@
 // ===============================
 
 use crate::nfa::state::{NFAFragment, State, StateId};
-use crate::regex_parser::node::alphabet::{ALPHABET, test_a};
+use crate::regex_parser::node::alphabet::ALPHABET;
 use crate::regex_parser::node::ast_node_impl::{AstNodeImpl, AstNodeKind};
 use crate::regex_parser::node::bin_op::RegexBinOp;
 use crate::regex_parser::node::regex_char::RegexChar;
@@ -41,10 +41,116 @@ impl NFABuilder {
             AstNodeKind::RegexChar(c) => {
                 let start = self.new_state();
                 let accept = self.new_state();
-                self.states
-                    .get_mut(&start)
-                    .unwrap()
-                    .add_transition(Some(c.clone()), accept.clone());
+
+                match c {
+                    RegexChar::Escape(escape) => {
+                        // Manejar diferentes tipos de escapes
+                        match escape {
+                            // Escapes que se expanden a múltiples caracteres
+                            crate::regex_parser::node::regex_escape::RegexEscape::Digit => {
+                                // \d -> [0-9]
+                                for digit in '0'..='9' {
+                                    self.states.get_mut(&start).unwrap().add_transition(
+                                        Some(RegexChar::Literal(digit)),
+                                        accept.clone(),
+                                    );
+                                }
+                            }
+                            crate::regex_parser::node::regex_escape::RegexEscape::NotDigit => {
+                                // \D -> todo excepto [0-9]
+                                for &ch in ALPHABET {
+                                    if !('0'..='9').contains(&ch) {
+                                        self.states.get_mut(&start).unwrap().add_transition(
+                                            Some(RegexChar::Literal(ch)),
+                                            accept.clone(),
+                                        );
+                                    }
+                                }
+                            }
+                            crate::regex_parser::node::regex_escape::RegexEscape::Word => {
+                                // \w -> [a-zA-Z0-9_]
+                                for ch in 'a'..='z' {
+                                    self.states.get_mut(&start).unwrap().add_transition(
+                                        Some(RegexChar::Literal(ch)),
+                                        accept.clone(),
+                                    );
+                                }
+                                for ch in 'A'..='Z' {
+                                    self.states.get_mut(&start).unwrap().add_transition(
+                                        Some(RegexChar::Literal(ch)),
+                                        accept.clone(),
+                                    );
+                                }
+                                for ch in '0'..='9' {
+                                    self.states.get_mut(&start).unwrap().add_transition(
+                                        Some(RegexChar::Literal(ch)),
+                                        accept.clone(),
+                                    );
+                                }
+                                self.states
+                                    .get_mut(&start)
+                                    .unwrap()
+                                    .add_transition(Some(RegexChar::Literal('_')), accept.clone());
+                            }
+                            crate::regex_parser::node::regex_escape::RegexEscape::NotWord => {
+                                // \W -> todo excepto [a-zA-Z0-9_]
+                                for &ch in ALPHABET {
+                                    if !ch.is_alphanumeric() && ch != '_' {
+                                        self.states.get_mut(&start).unwrap().add_transition(
+                                            Some(RegexChar::Literal(ch)),
+                                            accept.clone(),
+                                        );
+                                    }
+                                }
+                            }
+                            crate::regex_parser::node::regex_escape::RegexEscape::Space => {
+                                // \s -> espacios en blanco
+                                for &ch in &[' ', '\t', '\n', '\r'] {
+                                    if ALPHABET.contains(&ch) {
+                                        self.states.get_mut(&start).unwrap().add_transition(
+                                            Some(RegexChar::Literal(ch)),
+                                            accept.clone(),
+                                        );
+                                    }
+                                }
+                            }
+                            crate::regex_parser::node::regex_escape::RegexEscape::NotSpace => {
+                                // \S -> todo excepto espacios en blanco
+                                for &ch in ALPHABET {
+                                    if !matches!(ch, ' ' | '\t' | '\n' | '\r') {
+                                        self.states.get_mut(&start).unwrap().add_transition(
+                                            Some(RegexChar::Literal(ch)),
+                                            accept.clone(),
+                                        );
+                                    }
+                                }
+                            }
+                            // Escapes que representan un carácter literal
+                            _ => {
+                                if let Some(literal_char) = escape.as_char() {
+                                    self.states.get_mut(&start).unwrap().add_transition(
+                                        Some(RegexChar::Literal(literal_char)),
+                                        accept.clone(),
+                                    );
+                                } else {
+                                    // Si no se puede convertir a char, usar la transición original
+                                    self.states
+                                        .get_mut(&start)
+                                        .unwrap()
+                                        .add_transition(Some(c.clone()), accept.clone());
+                                }
+                            }
+                        }
+                    }
+                    // Para caracteres normales (no escapes)
+                    _ => {
+                        self.states
+                            .get_mut(&start)
+                            .unwrap()
+                            .add_transition(Some(c.clone()), accept.clone());
+                    }
+                }
+
                 NFAFragment {
                     start,
                     accepts: vec![accept],
