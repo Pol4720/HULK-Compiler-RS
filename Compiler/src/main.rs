@@ -282,9 +282,10 @@ fn main() {
             type Point (x: Number, y: Number) {
             x = x;
             y = y;
-        }
+        } 
         
 "#;
+
 
     let input_hulk = fs::read_to_string("../script.hulk")
         .expect("Failed to read input file");

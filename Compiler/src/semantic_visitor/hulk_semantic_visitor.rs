@@ -128,7 +128,6 @@ impl SemanticVisitor {
         self.get_all_types_def(node);
         self.add_type_inheritance();
         self.get_all_functions(node);
-        println!("Declared types: {:?}", self.current_scope.declared_types_def.keys());
                 
         // Procesa tanto definiciones como instrucciones
         for definition in node.definitions.iter_mut() {
@@ -152,8 +151,9 @@ impl SemanticVisitor {
         for instruction in &node.definitions {
             if let Definition::FunctionDef(func_def) = instruction {
             let func_return_type = func_def.function_def.return_type.clone();
-            let mut arg_types = Vec::new();
+            let mut arg_types: Vec<(String, String)> = Vec::new();
             let mut param_names = std::collections::HashSet::new();
+
 
             for param in &func_def.function_def.params {
                 if !param_names.insert(&param.name) {
@@ -268,6 +268,24 @@ impl SemanticVisitor {
             self.new_error(SemanticError::CycleDetected(cycle_node,token_pos));
         }
     }
+
+
+//     Si hay tipo actual:
+//     Si el tipo tiene padre:
+//         Si hay función actual:
+//             Si el padre tiene ese método:
+//                 Si número de argumentos ≠ número de parámetros:
+//                     Error
+//                 Para cada argumento:
+//                     Si tipo argumento ≠ tipo parámetro:
+//                         Error
+//                 Si tipo de retorno existe:
+//                     Asigna tipo de retorno
+//                     Retorna tipo de retorno
+//                 Si no:
+//                     Error
+//                     Retorna tipo desconocido
+// Retorna None si algo falla
 
     fn base_funct_treatment(&mut self, node: &mut FunctionCall) -> Option<TypeNode> {
         if let Some(current_type_def) = self.current_scope.current_type_def.clone() {
