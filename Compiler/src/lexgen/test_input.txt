@@ -27,3 +27,12 @@ minimo
 
 abcd
 bda
+abc
+ABC
+12345
+abc123
+DEF
+hola
+holaholahola
+def
+ghi

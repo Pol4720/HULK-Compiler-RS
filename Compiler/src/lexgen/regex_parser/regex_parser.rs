@@ -85,15 +85,32 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
             // Corchetes desbalanceados
             return None;
         }
-    } else if input.starts_with('(') && input.ends_with(')') && helpers::is_balanced_parens(input) {
-        let inner = &input[1..input.len() - 1];
-        let expr = parse_regex(inner)?;
-        (
-            AstNodeImpl {
+    } else if input.starts_with('(') {
+        // Buscar el cierre correspondiente del paréntesis
+        let mut depth = 0;
+        let mut end_idx = None;
+        for (i, c) in input.chars().enumerate() {
+            if c == '(' {
+                depth += 1;
+            } else if c == ')' {
+                depth -= 1;
+                if depth == 0 {
+                    end_idx = Some(i);
+                    break;
+                }
+            }
+        }
+        if let Some(idx) = end_idx {
+            let inner = &input[1..idx];
+            let expr = parse_regex(inner)?;
+            let group_node = AstNodeImpl {
                 kind: AstNodeKind::Group(RegexGroup::new(Box::new(expr))),
-            },
-            "",
-        )
+            };
+            (group_node, &input[idx + 1..])
+        } else {
+            // Paréntesis desbalanceados
+            return None;
+        }
     } else if input.starts_with("\\") && input.len() >= 2 {
         if let Some(esc) = RegexEscape::from_char(input.chars().nth(1).unwrap()) {
             (
@@ -219,24 +236,6 @@ mod helpers {
             i += 1;
         }
         None
-    }
-
-    /// Verifica si los paréntesis están balanceados.
-    pub fn is_balanced_parens(input: &str) -> bool {
-        let mut depth = 0;
-        for (i, c) in input.chars().enumerate() {
-            match c {
-                '(' => depth += 1,
-                ')' => {
-                    depth -= 1;
-                    if depth == 0 && i != input.len() - 1 {
-                        return false;
-                    }
-                }
-                _ => {}
-            }
-        }
-        depth == 0
     }
 
     /// Parsea una clase de caracteres con múltiples rangos y literales, incluyendo negación ([^...]).

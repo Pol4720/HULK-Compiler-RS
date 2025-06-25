@@ -40,13 +40,6 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
             break;
         }
         let mut state_key = dfa.start.clone();
-        // Simulación de ^ (inicio de línea)
-        let is_start_of_line = index == 0 || (index > 0 && chars[index - 1] == '\n');
-        if is_start_of_line {
-            if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), RegexChar::Start)) {
-                state_key = next_key.clone();
-            }
-        }
         let mut last_accept: Option<(usize, &DFAState)> = None;
         let mut i = index;
         let mut col = column;

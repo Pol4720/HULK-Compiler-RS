@@ -1,14 +1,6 @@
 # Especificación de tokens para el generador de analizadores léxicos
 # Formato: NOMBRE_TOKEN : REGEX
 
-
-#MAS : \+
-#MENOS : -
-#MULT : \*
-#DIV : /
-
-#Start : ^
-
 # Palabras clave (reservadas)
 IF : if
 ELSE : else
@@ -27,6 +19,17 @@ FALSE : false
 Empieza_con_a : ^a
 Termina_con_a : a$
 
+# Grupos y alternativas
+GRUPO_ALTERNATIVA : (abc|def|ghi)
+GRUPO_PARENTESIS : (hola)+
+
+# Clases de caracteres
+SOLO_LETRAS_MINUSCULAS : [a-z]+
+SOLO_LETRAS_MAYUSCULAS : [A-Z]+
+SOLO_DIGITOS : [0-9]+
+LETRA_O_DIGITO : [a-zA-Z0-9]+
+
+
 IDENTIFICADOR : [a-zA-Z_][a-zA-Z0-9_]*
 ENTERO : [0-9]+
 
@@ -37,3 +40,5 @@ ENTERO : [0-9]+
 #Emp_ter : ^ab$
 
 #test : a(ab)c
+
+
