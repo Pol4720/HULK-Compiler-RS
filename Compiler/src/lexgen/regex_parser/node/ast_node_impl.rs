@@ -54,6 +54,43 @@ impl AstNode for AstNodeImpl {
     }
 
     fn to_repr(&self) -> String {
-        format!("{:?}", self)
+        match &self.kind {
+            AstNodeKind::RegexChar(c) => format!("{:?}", c),
+            AstNodeKind::BinOp { op, left, right } => {
+                format!(
+                    "(BinOp {:?} {} {})",
+                    op,
+                    left.to_repr(),
+                    right.to_repr()
+                )
+            }
+            AstNodeKind::UnOp { op, expr } => {
+                format!("(UnOp {:?} {})", op, expr.to_repr())
+            }
+            AstNodeKind::Group(group) => {
+                format!("(Group {})", group.expr.to_repr())
+            }
+            AstNodeKind::Class(class) => format!("(Class {})", class.to_repr()),
+        }
+    }
+}
+
+// Implementación para RegexClass
+impl RegexClass {
+    pub fn to_repr(&self) -> String {
+        match self {
+            RegexClass::Set(chars) => {
+                let inner = chars.iter().map(|c| format!("{:?}", c)).collect::<Vec<_>>().join(", ");
+                format!("Set[{}]", inner)
+            }
+            RegexClass::Ranges(ranges) => {
+                let inner = ranges.iter().map(|(a, b)| format!("{}-{}", a, b)).collect::<Vec<_>>().join(", ");
+                format!("Ranges[{}]", inner)
+            }
+            RegexClass::Negated(inner) => {
+                format!("Negated[{}]", inner.to_repr())
+            }
+            RegexClass::Dot => "Dot".to_string(),
+        }
     }
 }

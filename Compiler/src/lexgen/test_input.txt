@@ -24,3 +24,6 @@ MAX_VALOR
 minimo
 
 1453
+
+abcd
+bda

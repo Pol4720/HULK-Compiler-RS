@@ -26,42 +26,8 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
     if input == "$" {
         return Some(EndNode::new().to_ast());
     }
-    // Operadores unarios: *, +, ?
-    if let Some((body, op)) = helpers::parse_unary_suffix(input) {
-        let expr = parse_regex(body)?;
-        let op = match op {
-            '*' => RegexUnOp::Star,
-            '+' => RegexUnOp::Plus,
-            '?' => RegexUnOp::Optional,
-            _ => return None,
-        };
-        return Some(AstNodeImpl {
-            kind: AstNodeKind::UnOp {
-                op,
-                expr: Box::new(expr),
-            },
-        });
-    }
 
-    // Clase de caracteres simple: [abc], [a-z]
-    if input.starts_with('[') && input.ends_with(']') {
-        let inner = &input[1..input.len() - 1];
-
-        let class = helpers::parse_class(inner)?;
-        return Some(AstNodeImpl {
-            kind: AstNodeKind::Class(class),
-        });
-    }
-    // Agrupación con paréntesis
-    if input.starts_with('(') && input.ends_with(')') && helpers::is_balanced_parens(input) {
-        let inner = &input[1..input.len() - 1];
-        let expr = parse_regex(inner)?;
-        return Some(AstNodeImpl {
-            kind: AstNodeKind::Group(RegexGroup::new(Box::new(expr))),
-        });
-    }
-
-    // Alternancia (|) de nivel superior
+    // Alternancia (|) de nivel superior - tiene menor precedencia
     if let Some(idx) = helpers::find_top_level(input, '|') {
         let left = &input[..idx];
         let right = &input[idx + 1..];
@@ -75,7 +41,8 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
             },
         });
     }
-    // Concatenación implícita de nivel superior
+
+    // Concatenación implícita - procesar factor por factor
     if let Some(idx) = helpers::find_concat_point(input) {
         let left = &input[..idx];
         let right = &input[idx..];
@@ -90,20 +57,107 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
         });
     }
 
-    // Escape simple: \n, \t, etc.
-    if input.starts_with("\\") && input.len() == 2 {
+    // Procesamiento de un factor individual (con posibles operadores unarios)
+    // Un factor puede ser: clase [abc], grupo (abc), escape \n, o literal a
+    let (factor, rest) = if input.starts_with('[') {
+        // Buscar el cierre correspondiente del corchete
+        let mut depth = 0;
+        let mut end_idx = None;
+        for (i, c) in input.chars().enumerate() {
+            if c == '[' {
+                depth += 1;
+            } else if c == ']' {
+                depth -= 1;
+                if depth == 0 {
+                    end_idx = Some(i);
+                    break;
+                }
+            }
+        }
+        if let Some(idx) = end_idx {
+            let inner = &input[1..idx];
+            let class = helpers::parse_class(inner)?;
+            let class_node = AstNodeImpl {
+                kind: AstNodeKind::Class(class),
+            };
+            (class_node, &input[idx + 1..])
+        } else {
+            // Corchetes desbalanceados
+            return None;
+        }
+    } else if input.starts_with('(') && input.ends_with(')') && helpers::is_balanced_parens(input) {
+        let inner = &input[1..input.len() - 1];
+        let expr = parse_regex(inner)?;
+        (
+            AstNodeImpl {
+                kind: AstNodeKind::Group(RegexGroup::new(Box::new(expr))),
+            },
+            "",
+        )
+    } else if input.starts_with("\\") && input.len() >= 2 {
         if let Some(esc) = RegexEscape::from_char(input.chars().nth(1).unwrap()) {
-            return Some(AstNodeImpl {
-                kind: AstNodeKind::RegexChar(RegexChar::Escape(esc)),
-            });
+            (
+                AstNodeImpl {
+                    kind: AstNodeKind::RegexChar(RegexChar::Escape(esc)),
+                },
+                &input[2..],
+            )
+        } else {
+            return None;
+        }
+    } else if input.len() == 1 {
+        let c = input.chars().next().unwrap();
+        (LiteralNode::new(c).to_ast(), "")
+    } else {
+        return None;
+    };
+
+    // Verificar si hay operador unario después del factor
+    let rest = rest.trim_start();
+    if let Some(first_char) = rest.chars().next() {
+        if first_char == '*' || first_char == '+' || first_char == '?' {
+            let op = match first_char {
+                '*' => RegexUnOp::Star,
+                '+' => RegexUnOp::Plus,
+                '?' => RegexUnOp::Optional,
+                _ => unreachable!(),
+            };
+            let unary_node = AstNodeImpl {
+                kind: AstNodeKind::UnOp {
+                    op,
+                    expr: Box::new(factor),
+                },
+            };
+            let after_op = &rest[1..].trim_start();
+            if !after_op.is_empty() {
+                // Hay más contenido después del operador unario, concatenar
+                let right = parse_regex(after_op)?;
+                return Some(AstNodeImpl {
+                    kind: AstNodeKind::BinOp {
+                        op: RegexBinOp::Concat,
+                        left: Box::new(unary_node),
+                        right: Box::new(right),
+                    },
+                });
+            } else {
+                return Some(unary_node);
+            }
         }
     }
-    // Un solo carácter literal
-    if input.len() == 1 {
-        let c = input.chars().next().unwrap();
-        return Some(LiteralNode::new(c).to_ast());
+
+    // Si hay contenido restante sin operador unario, concatenar
+    if !rest.is_empty() {
+        let right = parse_regex(rest)?;
+        return Some(AstNodeImpl {
+            kind: AstNodeKind::BinOp {
+                op: RegexBinOp::Concat,
+                left: Box::new(factor),
+                right: Box::new(right),
+            },
+        });
     }
-    None
+
+    Some(factor)
 }
 
 // ===============================
@@ -128,20 +182,41 @@ mod helpers {
 
     /// Busca el punto de concatenación implícita de nivel superior.
     pub fn find_concat_point(input: &str) -> Option<usize> {
-        let mut depth = 0;
+        let mut paren_depth = 0;
+        let mut bracket_depth = 0;
         let chars: Vec<char> = input.chars().collect();
-        for i in 1..chars.len() {
+
+        let mut i = 1;
+        while i < chars.len() {
             match chars[i - 1] {
-                '(' => depth += 1,
-                ')' => depth -= 1,
+                '(' => paren_depth += 1,
+                ')' => paren_depth -= 1,
+                '[' => bracket_depth += 1,
+                ']' => bracket_depth -= 1,
                 _ => {}
             }
-            if depth == 0 {
-                // No separar justo después de '(', ni antes de ')'
-                if chars[i - 1] != '(' && chars[i] != ')' {
+
+            // Solo permitir concatenación fuera de paréntesis y corchetes
+            if paren_depth == 0 && bracket_depth == 0 {
+                // Saltar operadores unarios - no son puntos de concatenación
+                if chars[i] == '*' || chars[i] == '+' || chars[i] == '?' {
+                    i += 1;
+                    continue;
+                }
+
+                // No concatenar en bordes de paréntesis o corchetes
+                if chars[i - 1] != '('
+                    && chars[i] != ')'
+                    && chars[i - 1] != '['
+                    && chars[i] != ']'
+                    && chars[i - 1] != '*'
+                    && chars[i - 1] != '+'
+                    && chars[i - 1] != '?'
+                {
                     return Some(i);
                 }
             }
+            i += 1;
         }
         None
     }
@@ -164,21 +239,6 @@ mod helpers {
         depth == 0
     }
 
-    /// Parsea un operador unario al final de la expresión.
-    pub fn parse_unary_suffix(input: &str) -> Option<(&str, char)> {
-        if input.len() < 2 {
-            return None;
-        }
-        let last = input.chars().last().unwrap();
-        if last == '*' || last == '+' || last == '?' {
-            let body = &input[..input.len() - 1];
-            if !body.is_empty() {
-                return Some((body, last));
-            }
-        }
-        None
-    }
-
     /// Parsea una clase de caracteres con múltiples rangos y literales, incluyendo negación ([^...]).
     pub fn parse_class(input: &str) -> Option<RegexClass> {
         let chars: Vec<char> = input.chars().collect();
@@ -192,7 +252,7 @@ mod helpers {
         let mut ranges = Vec::new();
         let mut singles = Vec::new();
         while i < chars.len() {
-            if i + 2 < chars.len() && chars[i + 1] == '-' {
+            if i + 2 <= chars.len() && chars[i + 1] == '-' {
                 ranges.push((chars[i], chars[i + 2]));
                 i += 3;
             } else {
