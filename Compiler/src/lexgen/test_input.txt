@@ -1,3 +1,8 @@
+# ===============================
+# ARCHIVO DE PRUEBA PARA EL LEXER
+# ===============================
+
+# PALABRAS CLAVE (KEYWORDS)
 if
 else
 while
@@ -12,6 +17,7 @@ continue
 true
 false
 
+# IDENTIFICADORES
 variable1
 contador
 sumaTotal
@@ -23,23 +29,24 @@ _resultado
 MAX_VALOR
 minimo
 
+# LITERALES NUMERICOS
 1453
 
-# Operaciones aritmeticas
+# OPERADORES ARITMETICOS
 +
 -
 *
 /
 %
 
-# Operaciones combinadas de asignacion
+# OPERADORES DE ASIGNACION COMBINADA
 +=
 -=
 *=
 /=
 %=
 
-# Operaciones de comparacion
+# OPERADORES DE COMPARACION
 ==
 !=
 <
@@ -47,21 +54,21 @@ minimo
 <=
 >=
 
-# Operaciones logicas
+# OPERADORES LOGICOS
 &&
 !
 
-# Incremento y decremento
+# OPERADORES DE INCREMENTO/DECREMENTO
 ++
 --
 
-# Operaciones bitwise
+# OPERADORES BITWISE
 &
 ~
 <<
 >>
 
-# Delimitadores
+# DELIMITADORES Y SIGNOS DE PUNTUACION
 =
 ;
 ,
@@ -75,10 +82,8 @@ minimo
 :
 ?
 
-# Literales numericos y de texto
-
-# Comentarios de prueba
+# COMENTARIOS DE LINEA
 // Este es un comentario de linea
 
-# Espacios y saltos de linea para prueba
+# FIN DEL ARCHIVO DE PRUEBA
     
