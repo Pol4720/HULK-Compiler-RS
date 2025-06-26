@@ -2,8 +2,7 @@ use std::collections::{HashMap, HashSet};
 use crate::hulk_ast_nodes::hulk_program::{ProgramNode, Definition};
 use crate::hulk_ast_nodes::hulk_type_def::HulkTypeNode;
 
-// Representa un nodo de tipo en el AST
-#[derive(Debug, Clone)]
+
 pub trait TypesGlobalHelper {
     fn find_all_type_defs(program: &ProgramNode) -> Vec<&HulkTypeNode>;
 }

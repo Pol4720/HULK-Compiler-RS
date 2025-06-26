@@ -97,43 +97,7 @@ impl HulkTypeNode {
 
 impl Codegen for HulkTypeNode {
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // let mut method_map: HashMap<String, String> = HashMap::new();
-
-        // for (method_name, method_def) in &self.methods {
-        //     // Genera un nombre único para evitar conflictos
-        //     let unique_name = format!("{}_{}", self.type_name, method_name);
-
-        //     // Clona y ajusta la función (si es necesario agregar el parámetro `self`)
-        //     let method_clone = method_def.clone();
-
-        //     // Registro en la VTable
-        //     context.register_method(&self.type_name, method_name, &unique_name);
-
-        //     // Emitir función global
-        //     let llvm_code = method_clone.codegen_with_name_override(context, &unique_name);
-
-        //     // Se almacena como código global
-        //     context.emit_global(&llvm_code);
-
-        //     method_map.insert(method_name.clone(), unique_name);
-        // }
-        // // Herencia: copiar métodos del padre si no están sobrescritos
-        // if let Some(ref parent) = self.parent {
-        //     if let Some(parent_methods) = context.vtable.get(parent) {
-        //         for (meth, func) in parent_methods {
-        //             method_map.entry(meth.clone()).or_insert(func.clone());
-        //         }
-        //     }
-        // }
-        // // Finalmente, actualiza la tabla virtual
-        // context.vtable.insert(self.type_name.clone(), method_map);
-
-
-
-
-        
-
-        String::new() // Nada se devuelve directamente
+        String::new() 
     }
 }
 
