@@ -11,4 +11,9 @@ Compiler/target
 *.hulk
 ast.txt
 
+*.pdb
+*.pdb
+
+
 *output_macos
+

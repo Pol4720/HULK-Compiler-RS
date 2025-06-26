@@ -1,0 +1,89 @@
+# ===============================
+# ARCHIVO DE PRUEBA PARA EL LEXER
+# ===============================
+
+# PALABRAS CLAVE (KEYWORDS)
+if
+else
+while
+for
+return
+int
+float
+char
+void
+break
+continue
+true
+false
+
+# IDENTIFICADORES
+variable1
+contador
+sumaTotal
+nombre_usuario
+x
+y2
+datoTemporal
+_resultado
+MAX_VALOR
+minimo
+
+# LITERALES NUMERICOS
+1453
+
+# OPERADORES ARITMETICOS
++
+-
+*
+/
+%
+
+# OPERADORES DE ASIGNACION COMBINADA
++=
+-=
+*=
+/=
+%=
+
+# OPERADORES DE COMPARACION
+==
+!=
+<
+>
+<=
+>=
+
+# OPERADORES LOGICOS
+&&
+!
+
+# OPERADORES DE INCREMENTO/DECREMENTO
+++
+--
+
+# OPERADORES BITWISE
+&
+~
+<<
+>>
+
+# DELIMITADORES Y SIGNOS DE PUNTUACION
+=
+;
+,
+.
+(
+)
+{
+}
+[
+]
+:
+?
+
+# COMENTARIOS DE LINEA
+// Este es un comentario de linea
+
+# FIN DEL ARCHIVO DE PRUEBA
+    
