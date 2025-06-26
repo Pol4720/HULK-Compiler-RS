@@ -50,7 +50,7 @@ pub mod helper_error_reporter;
 
 // #[cfg(test)]
 // mod test {
-//     mod code_block; 
+//     mod code_block;
 // }
 
 lalrpop_mod!(pub parser);
@@ -63,7 +63,6 @@ use std::fs::File;
 use std::io::{self, Write};
 
 fn main() {
-
     let ex = r#"
 
         function SumLet(a: Number, b: Number): Object {
@@ -222,7 +221,6 @@ fn main() {
         let a = 2 in (a + 2);
     "#;
 
-
     let recursive_test = r#"
         function factorial(n: Number): Number {
             if (n <= 1) {
@@ -286,9 +284,7 @@ fn main() {
         
 "#;
 
-
-    let input_hulk = fs::read_to_string("../script.hulk")
-        .expect("Failed to read input file");
+    let input_hulk = fs::read_to_string("../script.hulk").expect("Failed to read input file");
 
     print!("> ");
     io::stdout().flush().unwrap();
