@@ -7,15 +7,15 @@
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::codegen::types_global::TypesGlobal;
 use crate::hulk_ast_nodes::GlobalFunctionDef;
+use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_ast_nodes::hulk_type_def::HulkTypeNode;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
-use crate::hulk_ast_nodes::hulk_type_def::HulkTypeNode;
-
 
 /// Nodo raíz del AST que representa un programa completo.
-/// 
+///
 /// Contiene una lista de instrucciones de alto nivel (definiciones de tipos, funciones y expresiones).
 #[derive(Debug, Clone)]
 pub struct ProgramNode {
@@ -26,9 +26,11 @@ pub struct ProgramNode {
 impl ProgramNode {
     /// Crea un nuevo nodo de programa con una lista de instrucciones.
     pub fn new(instructions: Vec<Expr>, definitions: Vec<Definition>) -> Self {
-        ProgramNode { instructions, definitions }
+        ProgramNode {
+            instructions,
+            definitions,
+        }
     }
-
 }
 
 impl Accept for ProgramNode {
@@ -62,7 +64,6 @@ impl Definition {
     }
 }
 
-
 impl From<GlobalFunctionDef> for Definition {
     fn from(v: GlobalFunctionDef) -> Self {
         Self::FunctionDef(v)
@@ -84,39 +85,47 @@ impl Accept for Definition {
     }
 }
 
-
-// impl Codegen for ProgramNode {
-//     /// Genera el código LLVM IR para todo el programa.
-//     ///
-//     /// Recorre todas las instrucciones y genera el código correspondiente.
-//     fn codegen(&self, context: &mut CodegenContext) -> String {
-//         let mut last_reg = String::new();
-//         for instr in &self.instructions {
-//             last_reg = instr.codegen(context);
-//         }
-//         last_reg
-//     }
-// }
-
 impl Codegen for ProgramNode {
-     /// Genera el código LLVM IR para todo el programa.
+    /// Genera el código LLVM IR para todo el programa.
     ///
     /// Recorre todas las instrucciones y genera el código correspondiente.
     fn codegen(&self, context: &mut CodegenContext) -> String {
         let mut last_reg = String::new();
 
-        // Primero genera el código de todas las definiciones (funciones y tipos)
-        for def in &self.definitions {
+        // Registra la herencia y los miembros de los tipos antes de procesar las definiciones
+        let type_defs = TypesGlobal::from_program(&self);
+
+        // Procesa todas las definiciones (funciones y tipos)
+        for def in self.definitions.iter() {
             match def {
                 Definition::FunctionDef(func_def) => {
                     func_def.codegen(context); // Esto define una función global
                 }
                 Definition::TypeDef(type_def) => {
-                    type_def.codegen(context); // Define un tipo personalizado
+                    // Llama a codegen_with_type_info de TypeNode pasando context y las tablas asociadas
+                    let type_name = &type_def.type_name;
+                    let attrs = type_defs.attributes_map.get(type_name);
+                    let methods = type_defs.methods_map.get(type_name);
+                    let attr_indices = type_defs.attribute_indices.get(type_name);
+                    let method_indices = type_defs.method_indices.get(type_name);
+
+                    // Crea un nuevo contexto para el tipo, copiando la function_table del contexto original
+                    let mut type_context = CodegenContext::new();
+                    type_context.function_table = context.function_table.clone();
+
+                    // Crea una copia mutable del tipo para poder llamar a codegen_with_type_info
+                    let mut type_def_mut = type_def.clone();
+                    type_def_mut.codegen_with_type_info(
+                        &mut type_context,
+                        attrs,
+                        methods,
+                        attr_indices,
+                        method_indices,
+                    );
                 }
+                
             }
         }
-
         // Luego genera el código de las instrucciones ejecutables (main, prints, exprs, etc)
         for instr in &self.instructions {
             last_reg = instr.codegen(context);
@@ -125,6 +134,3 @@ impl Codegen for ProgramNode {
         last_reg
     }
 }
-
-
-

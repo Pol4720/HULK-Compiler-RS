@@ -6,6 +6,7 @@
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 use std::fmt;
 
@@ -18,7 +19,8 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Identifier {
     pub id: String,
-    pub _type: Option<TypeNode>
+    pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos
 }
 
 impl Identifier {
@@ -26,10 +28,11 @@ impl Identifier {
     ///
     /// # Arguments
     /// * `id` - Nombre del identificador.
-    pub fn new(id: &str) -> Self {
+    pub fn new(id: &str, token_pos: TokenPos) -> Self {
         Self {
             id: id.to_string(),
             _type: None,
+            token_pos:  token_pos
         }
     }
 
@@ -46,25 +49,6 @@ impl fmt::Display for Identifier {
     }
 }
 
-// impl Codegen for Identifier {
-//     /// Genera el código LLVM IR para el identificador.
-//     ///
-//     /// Busca el puntero de la variable en la tabla de símbolos y genera una instrucción `load`.
-//     /// Si la variable no existe en el contexto, lanza un panic.
-//     fn codegen(&self, context: &mut CodegenContext) -> String {
-//         // Busca el puntero de la variable en la tabla de símbolos
-//         let ptr = context.symbol_table.get(&self.id).cloned();
-//         if let Some(ptr) = ptr {
-//             let result_reg = context.generate_temp();
-//             // Asume tipo i32 (ajustar si soportas otros tipos)
-//             let line = format!("  {} = load i32, i32* {}", result_reg, ptr);
-//             context.emit(&line);
-//             result_reg
-//         } else {
-//             panic!("Variable '{}' no definida en el contexto", self.id);
-//         }
-//     }
-// }
 
 impl Codegen for Identifier {
      /// Genera el código LLVM IR para el identificador.
@@ -94,9 +78,10 @@ impl Codegen for Identifier {
                 let line = format!("  {} = load {}, {}* {}", result_reg, llvm_type, llvm_type, ptr);
                 context.emit(&line);
                 result_reg
-            }
+            
         }
     }
+}
 }
 
 

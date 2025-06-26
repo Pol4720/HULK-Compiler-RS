@@ -3,7 +3,7 @@
 //! Este módulo define los nodos de literales (`NumberLiteral`, `BooleanLiteral`, `StringLiteral`) del AST para el compilador Hulk.
 //! Permite representar valores literales numéricos, booleanos y de cadena en el AST, así como su generación de código LLVM IR.
 
-use crate::codegen::context::CodegenContext;
+use crate::{codegen::context::CodegenContext, hulk_tokens::TokenPos};
 use crate::codegen::traits::Codegen;
 use std::fmt::{self, Display, Formatter};
 use crate::typings::types_node::TypeNode;
@@ -18,14 +18,16 @@ use crate::typings::types_node::TypeNode;
 pub struct NumberLiteral {
     pub value: f64,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl NumberLiteral {
     /// Crea un nuevo literal numérico a partir de un string.
-    pub fn new(value: &str) -> Self {
+    pub fn new(value: &str, token_pos: TokenPos) -> Self {
         Self {
             value: value.parse().unwrap(),
             _type: None, 
+            token_pos
         }
     }
     /// Establece el tipo del literal numérico.
@@ -64,14 +66,16 @@ impl Codegen for NumberLiteral {
 pub struct BooleanLiteral {
     pub value: bool,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl BooleanLiteral {
     /// Crea un nuevo literal booleano a partir de un string.
-    pub fn new(value: &str) -> Self {
+    pub fn new(value: &str, token_pos: TokenPos) -> Self {
         Self {
             value: value.parse().unwrap(),
             _type: None,
+            token_pos
         }
     }
     /// Establece el tipo del literal booleano.
@@ -110,14 +114,16 @@ impl Codegen for BooleanLiteral {
 pub struct StringLiteral {
     pub value: String,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl StringLiteral {
     /// Crea un nuevo literal de cadena a partir de un string.
-    pub fn new(value: &str) -> Self {
+    pub fn new(value: &str, token_pos: TokenPos) -> Self {
         Self {
             value: value.to_string(),
             _type: None,
+            token_pos
         }
     }
     /// Establece el tipo del literal de cadena.

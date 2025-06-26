@@ -1,4 +1,4 @@
-use crate::hulk_ast_nodes::{hulk_function_def::FunctionBody, hulk_if_exp::ElifBranch, hulk_print_expr::PrintExpr, *};
+use crate::hulk_ast_nodes::{hulk_function_def::FunctionBody, hulk_print_expr::PrintExpr, *};
 pub trait Visitor<T> {
     fn visit_program(&mut self, node: &mut ProgramNode) -> T;
     fn visit_function_def(&mut self, node: &mut FunctionDef) -> T;
@@ -7,8 +7,6 @@ pub trait Visitor<T> {
     fn visit_assignment(&mut self, node: &mut Assignment) -> T;
     fn visit_let_in(&mut self, node: &mut LetIn) -> T;
     fn visit_if_else(&mut self, node: &mut IfExpr) -> T;
-    fn visit_elif_branch(&mut self, node: &mut ElifBranch) -> T;
-    fn visit_else_branch(&mut self, node: &mut ElseBranch) -> T;
     fn visit_while_loop(&mut self, node: &mut WhileLoop) -> T;
     fn visit_function_call(&mut self, node: &mut FunctionCall) -> T;
     fn visit_identifier(&mut self, node: &mut Identifier) -> T;

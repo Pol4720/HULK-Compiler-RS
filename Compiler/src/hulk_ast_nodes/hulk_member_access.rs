@@ -6,6 +6,7 @@
 
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::hulk_ast_nodes::hulk_identifier::Identifier;
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 
 /// Representa el acceso a un miembro (propiedad o campo) de un objeto en el AST.
@@ -20,6 +21,7 @@ pub struct MemberAccess {
     pub object: Box<Expr>,
     pub member: Identifier,
     pub _type: Option<TypeNode>, // Tipo opcional para el acceso al miembro
+    pub token_pos: TokenPos,
 }
 
 impl MemberAccess {
@@ -28,11 +30,12 @@ impl MemberAccess {
     /// # Arguments
     /// * `object` - Expresión del objeto.
     /// * `member` - Identificador del miembro.
-    pub fn new(object: Expr, member: Identifier) -> Self {
+    pub fn new(object: Expr, member: Identifier, token_pos: TokenPos) -> Self {
         Self {
             object: Box::new(object),
             member,
             _type: None,
+            token_pos,
         }
     }
 

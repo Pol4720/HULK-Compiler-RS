@@ -1,3 +1,48 @@
+//! # CodegenContext
+//!
+//! Esta estructura administra el estado y las tablas de símbolos durante la generación de código LLVM IR para el lenguaje Hulk.
+//! Lleva el control de variables temporales, tipos, funciones, vtables para despacho dinámico y el manejo de ámbitos.
+//!
+//! ## Responsabilidades principales
+//! - Registrar y buscar variables, tipos y funciones
+//! - Gestionar registros temporales y etiquetas para LLVM IR
+//! - Manejar herencia y tablas de métodos para características orientadas a objetos
+//! - Emitir código y definiciones globales
+//! - Administrar ámbitos léxicos para variables
+//!
+//! ## Campos
+//! - `code`: Acumula el código LLVM IR principal de la función o bloque actual.
+//! - `globals`: Almacena definiciones globales de LLVM IR (por ejemplo, constantes de strings).
+//! - `temp_counter`: Contador para generar nombres únicos de variables temporales.
+//! - `symbol_table`: Mapea nombres de variables a registros LLVM.
+//! - `type_table`: Mapea nombres de tipos a sus representaciones LLVM IR.
+//! - `function_table`: Mapea nombres de funciones a nombres de funciones LLVM.
+//! - `vtable`: Mapea nombres de tipos a sus tablas de métodos para despacho dinámico.
+//! - `id`: Generador de identificadores únicos.
+//! - `constructor_args_types`: Mapea tipos a los tipos de argumentos de sus constructores.
+//! - `inherits`: Mapea tipos a su tipo padre (para herencia).
+//! - `types_members_functions`: Mapea (tipo, método, id) a una lista de nombres de miembros.
+//! - `type_members_types`: Mapea (tipo, miembro) al tipo del miembro.
+//! - `type_members_ids`: Mapea (tipo, miembro) a un id único.
+//! - `type_functions_ids`: Mapea (tipo, función) a un id único.
+//! - `current_self`: Lleva el seguimiento del tipo "self" actual para generación de métodos.
+//! - `function_member_llvm_names`: Mapea (tipo, función) a nombres de funciones LLVM.
+//! - `scopes`: Pila de tablas de símbolos para el manejo de ámbitos léxicos.
+//! - `scope_id`: Id del ámbito actual.
+//! - `temp_types`: Mapea nombres de variables temporales a sus tipos.
+//!
+//! ## Métodos
+//! - `new()`: Crea un nuevo contexto vacío.
+//! - `register_method()`, `get_method()`: Gestionan las tablas de métodos de los tipos.
+//! - `merge_into_global()`: Fusiona los globals y tablas de otro contexto.
+//! - `register_type()`, `get_type()`: Gestionan la información de tipos.
+//! - `build_scope()`, `pop_scope()`, `get_scope()`: Manejan los ámbitos léxicos.
+//! - `generate_temp()`, `generate_label()`, `new_id()`: Generan nombres únicos.
+//! - `emit()`, `emit_global()`: Emiten código en la sección principal o global.
+//! - `register_variable()`: Registra una variable en el ámbito actual.
+//! - `generate_string_const_name()`: Genera nombres únicos para constantes de string.
+//! - `to_llvm_type()`: Convierte tipos Hulk a tipos LLVM
+
 use std::collections::HashMap;
 
 pub struct CodegenContext {
@@ -7,6 +52,21 @@ pub struct CodegenContext {
     pub symbol_table: HashMap<String, String>,
     pub type_table: HashMap<String, String>,
     pub function_table: HashMap<String, String>,
+    pub vtable: HashMap<String, HashMap<String, String>>,
+    pub id: usize,
+    pub constructor_args_types: HashMap<String, Vec<String>>,
+    pub inherits: HashMap<String, String>,
+    pub types_members_functions: HashMap<(String,String,i32), Vec<String>>,
+    pub type_members_types: HashMap<(String, String), String>,
+    pub type_members_ids: HashMap<(String, String), i32>,
+    pub type_functions_ids: HashMap<(String,String),i32>,
+    pub current_self: Option<String>,
+    pub function_member_llvm_names: HashMap<(String, String), String>,
+    pub scopes: Vec<HashMap<String, String>>,
+    scope_id: i32,
+    pub temp_types: HashMap<String, String>,
+
+
 }
 
 impl CodegenContext {
@@ -18,8 +78,35 @@ impl CodegenContext {
             symbol_table: HashMap::new(),
             type_table: HashMap::new(),
             function_table: HashMap::new(),
+            vtable: HashMap::new(), 
+            id: 1,
+            constructor_args_types: HashMap::new(),
+            inherits: HashMap::new(),
+            types_members_functions: HashMap::new(),
+            type_members_types: HashMap::new(),
+            type_members_ids: HashMap::new(),
+            type_functions_ids: HashMap::new(),
+            current_self: None,
+            function_member_llvm_names: HashMap::new(),
+            scopes: Vec::new(),
+            scope_id: 0,
+            temp_types: HashMap::new(),
         }
     }
+
+     pub fn register_method(&mut self, type_name: &str, method_name: &str, llvm_function_name: &str) {
+        self.vtable
+            .entry(type_name.to_string())
+            .or_default()
+            .insert(method_name.to_string(), llvm_function_name.to_string());
+    }
+
+    pub fn get_method(&self, type_name: &str, method_name: &str) -> Option<&String> {
+        self.vtable
+            .get(type_name)
+            .and_then(|methods| methods.get(method_name))
+    }
+    
     pub fn merge_into_global(&mut self, other: CodegenContext) {
         self.globals.push_str(&other.globals);
         self.globals.push_str(&other.code);
@@ -35,6 +122,17 @@ impl CodegenContext {
         self.type_table.get(name)
     }
 
+    pub fn build_scope(&mut self) {
+        self.scope_id += 1;
+        self.scopes.push(self.symbol_table.clone())
+    }
+
+    pub fn pop_scope(&mut self) {
+        self.symbol_table = self.scopes.pop().unwrap_or_default();
+    }
+    pub fn get_scope(&self) -> i32 {
+        self.scope_id
+    }
     pub fn generate_temp(&mut self) -> String {
         let temp = format!("%t{}", self.temp_counter);
         self.temp_counter += 1;
@@ -45,6 +143,12 @@ impl CodegenContext {
         let label = format!("{}{}", base, self.temp_counter);
         self.temp_counter += 1;
         label
+    }
+
+    pub fn new_id(&mut self) -> usize {
+        let id = self.id;
+        self.id += 1;
+        id
     }
 
     pub fn emit(&mut self, line: &str) {

@@ -10,5 +10,10 @@ Compiler/target
 *.exe
 *.hulk
 ast.txt
+
 *.pdb
 *.pdb
+
+
+*output_macos
+

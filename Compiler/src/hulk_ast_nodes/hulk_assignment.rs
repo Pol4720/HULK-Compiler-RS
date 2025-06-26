@@ -7,6 +7,7 @@ use super::hulk_identifier::Identifier;
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_tokens::{TokenPos};
 use crate::typings::types_node::TypeNode;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
@@ -23,6 +24,7 @@ pub struct Assignment {
     pub identifier: Identifier,
     pub expression: Box<Expr>,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl Assignment {
@@ -31,8 +33,8 @@ impl Assignment {
     /// # Arguments
     /// * `identifier` - Identificador de la variable.
     /// * `expression` - Expresión a asignar.
-    pub fn new(identifier: Identifier, expression: Box<Expr>) -> Self {
-        Assignment { identifier, expression, _type: None }
+    pub fn new(identifier: Identifier, expression: Box<Expr>, token_pos: TokenPos) -> Self {
+        Assignment { identifier, expression, _type: None ,  token_pos }
     }
 
     /// Establece el tipo de la expresión asignada.

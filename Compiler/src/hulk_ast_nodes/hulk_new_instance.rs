@@ -7,6 +7,7 @@
 
 use crate::hulk_ast_nodes::hulk_identifier::Identifier;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 
 /// Representa la creación de una nueva instancia de tipo (objeto) en el AST.
@@ -20,7 +21,8 @@ use crate::typings::types_node::TypeNode;
 pub struct NewTypeInstance {
     pub type_name: Identifier,             
     pub arguments: Vec<Expr>,
-    pub _type: Option<TypeNode>
+    pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl NewTypeInstance {
@@ -29,8 +31,8 @@ impl NewTypeInstance {
     /// # Arguments
     /// * `type_name` - Identificador del tipo a instanciar.
     /// * `arguments` - Vector de expresiones como argumentos del constructor.
-    pub fn new(type_name: Identifier, arguments: Vec<Expr>) -> Self {
-        NewTypeInstance { type_name, arguments, _type: None }
+    pub fn new(type_name: Identifier, arguments: Vec<Expr>, token_pos: TokenPos) -> Self {
+        NewTypeInstance { type_name, arguments, _type: None, token_pos  }
     }
 
     /// Establece el tipo de la instancia creada.

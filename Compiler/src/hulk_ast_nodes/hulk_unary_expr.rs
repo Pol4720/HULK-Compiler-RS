@@ -8,6 +8,7 @@ use crate::hulk_tokens::hulk_operators::UnaryOperator;
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 
 /// Representa una expresión unaria en el AST.
@@ -22,6 +23,7 @@ pub struct UnaryExpr {
     pub operator: UnaryOperator,
     pub operand: Box<Expr>,
     pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl UnaryExpr {
@@ -30,8 +32,8 @@ impl UnaryExpr {
     /// # Arguments
     /// * `operator` - Operador unario.
     /// * `operand` - Expresión sobre la que se aplica el operador.
-    pub fn new(operator: UnaryOperator, operand: Box<Expr>) -> Self {
-        UnaryExpr { operator, operand , _type: None }
+    pub fn new(operator: UnaryOperator, operand: Box<Expr>, token_pos: TokenPos) -> Self {
+        UnaryExpr { operator, operand , _type: None, token_pos }
     }
 
     /// Establece el tipo de la expresión unaria.
