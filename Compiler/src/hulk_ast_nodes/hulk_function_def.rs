@@ -242,12 +242,10 @@ impl Codegen for FunctionParams {
 
 impl Codegen for FunctionDef {
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        //  Creamos un subcontexto aislado para evitar emitir en el main
-        let mut fn_context = CodegenContext::new();
+        // Creamos un subcontexto aislado copiando los datos relevantes del contexto global
+        let mut fn_context = context.clone_for_type_codegen();
 
-        fn_context.function_table.extend(context.function_table.clone()); 
-
-        //  Traduce tipo de retorno
+        // Traduce tipo de retorno
         let llvm_return_type = CodegenContext::to_llvm_type(self.return_type.clone());
 
         // Construye lista de parámetros para LLVM
@@ -259,35 +257,30 @@ impl Codegen for FunctionDef {
             .collect();
         let params_str = params_ir.join(", ");
 
-        //  Emite la cabecera de la función en el contexto de función
+        // Emite la cabecera de la función en el contexto de función
         fn_context.emit(&format!("define {} @{}({}) {{", llvm_return_type, self.name, params_str));
         
         context.function_table.insert(self.name.clone(), llvm_return_type.clone());
 
         // 🧾 Registra nombre de la función en sí misma (permite recursividad)
         fn_context.function_table.insert(self.name.clone(), llvm_return_type.clone());
-        // * No hace falta guardar nada en una tabla separada porque LLVM lo permite directamente
 
         //📦 Reserva espacio para parámetros y almacena
         for param in &self.params {
             param.codegen(&mut fn_context);
         }
-       
 
-        //  Genera el cuerpo
-        // println!("¿La función '{}' está en la tabla?: {}", self.name, fn_context.function_table.contains_key(&self.name));
+        // Genera el cuerpo
         let result_reg = self.body.codegen(&mut fn_context);
 
-        //  Emitir retorno
+        // Emitir retorno
         fn_context.emit(&format!("  ret {} {}", llvm_return_type, result_reg));
         fn_context.emit("}");
 
-        //  Fusiona el código generado al global
+        // Fusiona el código generado al global
         context.merge_into_global(fn_context);
 
-        //  Añade la función a la tabla de funciones (nombre -> tipo de retorno)
-        
-        //  No devuelve valor porque no aplica aquí
+        // No devuelve valor porque no aplica aquí
         String::new()
     }
 }

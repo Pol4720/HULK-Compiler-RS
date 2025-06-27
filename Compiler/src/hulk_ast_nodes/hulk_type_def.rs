@@ -114,17 +114,22 @@ impl HulkTypeNode {
     ) -> String {
         let type_name = self.type_name.clone();
 
-        self.generate_type_constructor(context, attrs, methods, attr_indices, method_indices);
+        // Crear un nuevo contexto temporal para la generación del tipo
+        let mut type_context = context.clone_for_type_codegen();
+        type_context.current_self = Some(type_name.clone());
 
-        context.current_self = Some(type_name.clone());
+        self.generate_type_constructor(&mut type_context, attrs, methods, attr_indices, method_indices);
 
         for (_name, method) in self.methods.iter_mut() {
             // Renombrar el método con el prefijo del tipo
             method.name = format!("{}_{}", type_name, method.name.clone());
-            method.codegen(context);
+            method.codegen(&mut type_context);
         }
 
-        context.current_self = None;
+        type_context.current_self = None;
+
+        // Unificar el contexto temporal con el global
+        context.merge_into_global(type_context);
 
         format!("%{}_type", type_name)
     }

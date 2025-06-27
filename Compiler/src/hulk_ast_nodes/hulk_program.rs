@@ -31,6 +31,85 @@ impl ProgramNode {
             definitions,
         }
     }
+
+    /// Genera la función global de acceso a métodos virtuales (VTable)
+    fn get_vtable_method(context: &mut CodegenContext, count_types: usize, max_functions: usize) {
+        context.emit_global("define ptr @get_vtable_method(i32 %type_id, i32 %method_id) {" );
+        context.emit_global(&format!(
+            "  %vtable_ptr_ptr = getelementptr [{} x ptr], ptr @super_vtable, i32 0, i32 %type_id",
+            count_types
+        ));
+        context.emit_global("  %vtable_ptr = load ptr, ptr %vtable_ptr_ptr");
+        context.emit_global("  %typed_vtable = bitcast ptr %vtable_ptr to ptr");
+        context.emit_global(&format!(
+            "  %method_ptr = getelementptr [{} x ptr], ptr %typed_vtable, i32 0, i32 %method_id",
+            max_functions
+        ));
+        context.emit_global("  %method = load ptr, ptr %method_ptr");
+        context.emit_global("  ret ptr %method");
+        context.emit_global("}");
+    }
+
+    /// Registra la información de tipos, miembros y métodos en el contexto de generación de código.
+    pub fn generate_type_tables_for_node(context: &mut CodegenContext, type_node: &HulkTypeNode) {
+        let type_name = type_node.type_name.clone();
+        let mut member_index: i32 = 2; // 0: vtable, 1: parent, 2...: miembros
+        let mut props_list = Vec::new();
+
+        // Herencia: si tiene padre, copia miembros del padre
+        if let Some(parent_name) = &type_node.parent {
+            if let Some(parent_members) = context.types_members_functions.get(&(parent_name.clone(), String::new(), 0)) {
+                for (index, member_name) in parent_members.iter().enumerate() {
+                    // Aquí asumimos que tienes una forma de obtener el tipo del miembro del padre
+                    if let Some(member_type) = context.type_members_types.get(&(parent_name.clone(), member_name.clone())) {
+                        context.type_members_types.insert((type_name.clone(), member_name.clone()), member_type.clone());
+                        context.type_members_ids.insert((type_name.clone(), member_name.clone()), index as i32);
+                        member_index += 1;
+                    }
+                    props_list.push((member_name.clone(), context.type_members_types.get(&(type_name.clone(), member_name.clone())).cloned().unwrap_or_default()));
+                }
+            }
+            if let Some(parent) = &type_node.parent {
+                context.inherits.insert(type_name.clone(), parent.clone());
+            }
+        }
+
+        // Miembros propios
+        // Primero atributos
+        for (member_name, attr_def) in &type_node.attributes {
+            let member_type = attr_def.init_expr._type.as_ref().map(|t| t.type_name.clone()).unwrap_or_default();
+            context.type_members_ids.insert((type_name.clone(), member_name.clone()), member_index);
+            context.type_members_types.insert((type_name.clone(), member_name.clone()), member_type.clone());
+            props_list.push((member_name.clone(), member_type));
+            member_index += 1;
+        }
+        // Luego métodos
+        for (method_name, method_def) in &type_node.methods {
+            context.function_member_llvm_names.insert((type_name.clone(), method_name.clone()), format!("@{}_{}", type_name, method_name));
+            let method_args_types: Vec<String> = method_def.params.iter().map(|p| p.param_type.clone()).collect();
+            context.types_members_functions.insert((type_name.clone(), method_name.clone(), member_index), method_args_types);
+            if let Some(ret_type) = &method_def._type {
+                context.type_members_types.insert((type_name.clone(), method_name.clone()), ret_type.type_name.clone());
+            }
+        }
+
+        // Registra lista de miembros para el tipo
+        // (puedes ajustar la clave según tu diseño)
+        context.types_members_functions.insert((type_name.clone(), String::new(), 0), props_list.iter().map(|(n, _)| n.clone()).collect());
+
+        // Registra tipos de argumentos del constructor
+        let params_types_list: Vec<String> = type_node.parameters.iter().map(|p| p.param_type.clone()).collect();
+        context.constructor_args_types.insert(type_name.clone(), params_types_list);
+
+        // Emite el tipo LLVM para el struct
+        let props_types: Vec<String> = props_list.iter().map(|(_, t)| CodegenContext::to_llvm_type(t.clone())).collect();
+        let list_props_str = props_types.join(", ");
+        if !props_types.is_empty() {
+            context.emit_global(&format!("%{}_type = type {{ i32, ptr, {} }}", type_name, list_props_str));
+        } else {
+            context.emit_global(&format!("%{}_type = type {{ i32, ptr }}", type_name));
+        }
+    }
 }
 
 impl Accept for ProgramNode {
@@ -95,37 +174,62 @@ impl Codegen for ProgramNode {
         // Registra la herencia y los miembros de los tipos antes de procesar las definiciones
         let type_defs = TypesGlobal::from_program(&self);
 
+        // --- DEFINICIÓN DE VTABLE GLOBAL Y TIPO ---
+        // Calcula el máximo de funciones (columnas de la vtable) usando type_defs
+        let max_functions = type_defs.methods_map.values()
+            .map(|methods| methods.len())
+            .max()
+            .unwrap_or(0)
+            .max(1); // Al menos 1 para evitar error
+
+        // Calcula la cantidad de tipos (filas de la vtable) usando type_defs
+        let count_types = type_defs.methods_map.len().max(1);
+
+        // Emite el tipo de la vtable
+        context.emit_global(&format!("%VTableType = type [{} x ptr]", max_functions));
+
+        // Emite la declaración global de la super vtable
+        let vtable_declarations: Vec<String> = type_defs.methods_map.keys()
+            .map(|type_name| format!("@{}_vtable", type_name))
+            .collect();
+        context.emit_global(&format!(
+            "@super_vtable = global [{} x ptr] [{}]",
+            count_types,
+            vtable_declarations
+                .iter()
+                .map(|v| format!("ptr {}", v))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+        // Llama a la función auxiliar para definir get_vtable_method
+        ProgramNode::get_vtable_method(context, count_types, max_functions);
+
         // Procesa todas las definiciones (funciones y tipos)
         for def in self.definitions.iter() {
             match def {
                 Definition::FunctionDef(func_def) => {
-                    func_def.codegen(context); // Esto define una función global
+                    func_def.codegen(context);
                 }
                 Definition::TypeDef(type_def) => {
-                    // Llama a codegen_with_type_info de TypeNode pasando context y las tablas asociadas
                     let type_name = &type_def.type_name;
                     let attrs = type_defs.attributes_map.get(type_name);
                     let methods = type_defs.methods_map.get(type_name);
                     let attr_indices = type_defs.attribute_indices.get(type_name);
                     let method_indices = type_defs.method_indices.get(type_name);
 
-                    // Crea un nuevo contexto para el tipo, copiando la function_table del contexto original
-                    let mut type_context = CodegenContext::new();
-                    type_context.function_table = context.function_table.clone();
-
-                    // Crea una copia mutable del tipo para poder llamar a codegen_with_type_info
                     let mut type_def_mut = type_def.clone();
+
                     type_def_mut.codegen_with_type_info(
-                        &mut type_context,
+                        context,
                         attrs,
                         methods,
                         attr_indices,
                         method_indices,
                     );
                 }
-                
             }
         }
+
         // Luego genera el código de las instrucciones ejecutables (main, prints, exprs, etc)
         for instr in &self.instructions {
             last_reg = instr.codegen(context);
@@ -133,4 +237,6 @@ impl Codegen for ProgramNode {
 
         last_reg
     }
+    
+
 }

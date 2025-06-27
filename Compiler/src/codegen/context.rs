@@ -45,6 +45,7 @@
 
 use std::collections::HashMap;
 
+
 pub struct CodegenContext {
     pub code: String,    // Código dentro de main
     pub globals: String, // Definiciones globales (strings, etc.)
@@ -113,6 +114,17 @@ impl CodegenContext {
         self.temp_counter = other.temp_counter.max(self.temp_counter);
         self.function_table.extend(other.function_table);
         self.symbol_table.extend(other.symbol_table);
+        self.type_table.extend(other.type_table);
+        self.vtable.extend(other.vtable);
+        self.type_members_types.extend(other.type_members_types);
+        self.type_members_ids.extend(other.type_members_ids);
+        self.type_functions_ids.extend(other.type_functions_ids);
+        self.constructor_args_types.extend(other.constructor_args_types);
+        self.inherits.extend(other.inherits);
+        self.types_members_functions.extend(other.types_members_functions);
+        self.function_member_llvm_names.extend(other.function_member_llvm_names);
+        self.temp_types.extend(other.temp_types);
+        // No se fusionan scopes ni current_self
     }
     pub fn register_type(&mut self, name: &str, llvm_type: String) {
         self.type_table.insert(name.to_string(), llvm_type);
@@ -176,7 +188,26 @@ impl CodegenContext {
             "Number" => "double".to_string(),
             "Boolean" => "i1".to_string(),
             "String" => "i8*".to_string(),
-            _ => "double".to_string(), // Default to pointer type for unknown types
+            _ => "ptr".to_string(), 
         }
     }
+
+    pub fn clone_for_type_codegen(&self) -> CodegenContext {
+        let mut ctx = CodegenContext::new();
+        ctx.function_table = self.function_table.clone();
+        ctx.type_table = self.type_table.clone();
+        ctx.vtable = self.vtable.clone();
+        ctx.type_members_types = self.type_members_types.clone();
+        ctx.type_members_ids = self.type_members_ids.clone();
+        ctx.type_functions_ids = self.type_functions_ids.clone();
+        ctx.constructor_args_types = self.constructor_args_types.clone();
+        ctx.inherits = self.inherits.clone();
+        ctx.types_members_functions = self.types_members_functions.clone();
+        ctx.function_member_llvm_names = self.function_member_llvm_names.clone();
+        ctx.temp_types = self.temp_types.clone();
+        ctx.id = self.id;
+        ctx.temp_counter = self.temp_counter;
+        ctx
+    }
+
 }
