@@ -5,6 +5,8 @@
 //! incluyendo el nombre del tipo y los argumentos para el constructor.
 //! Incluye la estructura, métodos asociados y el tipo inferido o declarado de la instancia.
 
+use crate::codegen::context::CodegenContext;
+use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_identifier::Identifier;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::hulk_tokens::TokenPos;
@@ -38,5 +40,24 @@ impl NewTypeInstance {
     /// Establece el tipo de la instancia creada.
     pub fn set_expression_type(&mut self, _type: TypeNode) {
         self._type = Some(_type);
+    }
+}
+impl Codegen for NewTypeInstance {
+     fn codegen(&self, context: &mut CodegenContext) -> String {
+        let type_constructor = format!("@{}_new", self.type_name);
+        // Evalúa cada argumento y obtiene el registro LLVM
+        let llvm_args: Vec<String> = self.arguments.iter().map(|arg| {
+            let arg_reg = arg.codegen(context);
+            // Busca el tipo LLVM del argumento (si está en el contexto, si no, usa ptr)
+            let arg_type = context.temp_types.get(&arg_reg).cloned().unwrap_or_else(|| "ptr".to_string());
+            format!("{} {}", CodegenContext::to_llvm_type(arg_type), arg_reg)
+        }).collect();
+        let args_str = llvm_args.join(", ");
+        let result = context.generate_temp();
+        context.emit(&format!(
+            "{} = call ptr {}({})",
+            result, type_constructor, args_str
+        ));
+        result
     }
 }
