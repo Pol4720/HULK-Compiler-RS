@@ -120,11 +120,13 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
                 &input[2..],
             )
         } else {
-            return None;
+            // Si no es un escape reconocido, tratar el carácter después del backslash como literal
+            let c = input.chars().nth(1).unwrap();
+            (LiteralNode::new(c).to_ast(), &input[2..])
         }
-    } else if input.len() == 1 {
+    } else if input.len() >= 1 {
         let c = input.chars().next().unwrap();
-        (LiteralNode::new(c).to_ast(), "")
+        (LiteralNode::new(c).to_ast(), &input[1..])
     } else {
         return None;
     };
@@ -186,12 +188,28 @@ mod helpers {
     /// Busca el índice de un operador binario de nivel superior (no anidado en paréntesis).
     pub fn find_top_level(input: &str, op: char) -> Option<usize> {
         let mut depth = 0;
-        for (i, c) in input.chars().enumerate() {
-            match c {
-                '(' => depth += 1,
-                ')' => depth -= 1,
-                _ if c == op && depth == 0 => return Some(i),
-                _ => {}
+        let chars: Vec<char> = input.chars().collect();
+        let mut i = 0;
+
+        while i < chars.len() {
+            match chars[i] {
+                '\\' => {
+                    // Saltar el carácter escapado
+                    i += 2; // Saltar '\' y el carácter siguiente
+                    continue;
+                }
+                '(' => {
+                    depth += 1;
+                    i += 1;
+                }
+                ')' => {
+                    depth -= 1;
+                    i += 1;
+                }
+                c if c == op && depth == 0 => return Some(i),
+                _ => {
+                    i += 1;
+                }
             }
         }
         None
@@ -205,6 +223,12 @@ mod helpers {
 
         let mut i = 1;
         while i < chars.len() {
+            // Saltar escapes
+            if i > 0 && chars[i - 1] == '\\' {
+                i += 1;
+                continue;
+            }
+
             match chars[i - 1] {
                 '(' => paren_depth += 1,
                 ')' => paren_depth -= 1,
@@ -229,6 +253,8 @@ mod helpers {
                     && chars[i - 1] != '*'
                     && chars[i - 1] != '+'
                     && chars[i - 1] != '?'
+                    && chars[i - 1] != '\\'
+                // No concatenar después de escape
                 {
                     return Some(i);
                 }

@@ -17,6 +17,8 @@ pub enum RegexEscape {
     RBracket,  // \]
     LParen,    // \(
     RParen,    // \)
+    LBrace,    // \{
+    RBrace,    // \}
     Dot,       // \.
     Plus,      // \+
     Star,      // \*
@@ -46,6 +48,8 @@ impl RegexEscape {
             ']' => Some(RegexEscape::RBracket),
             '(' => Some(RegexEscape::LParen),
             ')' => Some(RegexEscape::RParen),
+            '{' => Some(RegexEscape::LBrace),
+            '}' => Some(RegexEscape::RBrace),
             '.' => Some(RegexEscape::Dot),
             '+' => Some(RegexEscape::Plus),
             '*' => Some(RegexEscape::Star),
@@ -69,6 +73,8 @@ impl RegexEscape {
             RegexEscape::RBracket => Some(']'),
             RegexEscape::LParen => Some('('),
             RegexEscape::RParen => Some(')'),
+            RegexEscape::LBrace => Some('{'),
+            RegexEscape::RBrace => Some('}'),
             RegexEscape::Dot => Some('.'),
             RegexEscape::Plus => Some('+'),
             RegexEscape::Star => Some('*'),
