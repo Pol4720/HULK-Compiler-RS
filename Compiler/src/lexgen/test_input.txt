@@ -2,88 +2,97 @@
 # ARCHIVO DE PRUEBA PARA EL LEXER
 # ===============================
 
-# PALABRAS CLAVE (KEYWORDS)
-if
-else
-while
-for
-return
-int
-float
-char
-void
-break
-continue
-true
-false
+// Programa de ejemplo para probar todos los tokens
 
-# IDENTIFICADORES
-variable1
-contador
-sumaTotal
-nombre_usuario
-x
-y2
-datoTemporal
-_resultado
-MAX_VALOR
-minimo
+int main 
+    // Palabras clave y tipos
+    int x = 10;
+    float y = 314;
+    char c = 'a';
+    void* ptr = NULL;
+    bool flag = true;
+    if x > 0 && flag 
+        x += 1;
+     else if x == 0 
+        x = -1;
+     else 
+        x--;
+    
+    for int i = 0; i < 10; i++ 
+        y = y * 20;
+        continue;
+    
+    while y > 0 
+        y /= 20;
+        break;
+    
+    return x;
 
-# LITERALES NUMERICOS
-1453
 
-# OPERADORES ARITMETICOS
-+
--
-*
-/
-%
+// Identificadores
+variable1 = 123;
+contador = variable1 + x;
+sumaTotal = contador * 2;
+nombre_usuario = "usuario";
+x = 5;
+y2 = x + 1;
+datoTemporal = y2 - 3;
+_resultado = sumaTotal / 2;
+MAX_VALOR = 1000;
+minimo = 0;
 
-# OPERADORES DE ASIGNACION COMBINADA
-+=
--=
-*=
-/=
-%=
+// Literales numericos y de cadena
+float decimal = 1234;
+char letra = 'z';
+string texto = "Hola mundo";
 
-# OPERADORES DE COMPARACION
-==
-!=
-<
->
-<=
->=
+// Operadores aritméticos y de asignacion
+x = x + 1;
+x += 2;
+x -= 3;
+x *= 4;
+x /= 5;
+x %= 2;
 
-# OPERADORES LOGICOS
-&&
-!
+// Operadores de comparación
+if x == 10  x != 0 
+    x = x < 5 ? 1 : 2;
+    y = x <= 2 ? 0 : 1;
+    z = x >= 3;
 
-# OPERADORES DE INCREMENTO/DECREMENTO
-++
---
 
-# OPERADORES BITWISE
-&
-~
-<<
->>
+// Operadores logicos y bitwise
+flag = !flag && true;
+bit = x & 0xFF;
+bit = ~bit;
+bit = bit << 2;
+bit = bit >> 1;
 
-# DELIMITADORES Y SIGNOS DE PUNTUACION
-=
-;
-,
-.
-(
-)
-{
-}
-[
-]
-:
-?
+// Operadores de incremento/decremento
+x++;
+x--;
 
-# COMENTARIOS DE LINEA
-// Este es un comentario de linea
+// Delimitadores y signos de puntuacion
+array0 = 1;
+objetopropiedad = 2;
+funcion,arg1, arg2;
+
+    // bloque vacío
+
+
+// Grupos y clases de caracteres
+string grupo = "abc";
+string grupo2 = "def";
+string grupo3 = "ghi";
+string parentesis = "holaholahola";
+string solo_min = "abcxyz";
+string solo_may = "ABCXYZ";
+string solo_dig = "0123456789";
+string letra_dig = "abc123XYZ";
+
+// Comentarios
+# Esto es un comentario hash
+// Esto es un comentario de linea
+/* Esto es un comentario de bloque */
 
 # FIN DEL ARCHIVO DE PRUEBA
-    

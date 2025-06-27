@@ -16,3 +16,5 @@ pub use simulation::simulator;
 pub use simulation::visualizer;
 pub use spec::token_spec::TokenSpec;
 pub use spec::token_spec::read_token_spec;
+
+pub mod tests;
