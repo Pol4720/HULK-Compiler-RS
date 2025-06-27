@@ -58,6 +58,11 @@ impl Codegen for NewTypeInstance {
             "{} = call ptr {}({})",
             result, type_constructor, args_str
         ));
+        // Guarda el tipo de la instancia creada en la tabla de tipos temporales y symbol_table
+        let final_type = "ptr".to_string();
+        context.temp_types.insert(result.clone(), final_type.clone());
+        context.symbol_table.insert(format!("{}__type", result), final_type.clone());
+        context.symbol_table.insert("__last_type__".to_string(), final_type);
         result
     }
 }

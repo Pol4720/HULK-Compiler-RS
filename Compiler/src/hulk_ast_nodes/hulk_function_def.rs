@@ -249,12 +249,21 @@ impl Codegen for FunctionDef {
         let llvm_return_type = CodegenContext::to_llvm_type(self.return_type.clone());
 
         // Construye lista de parámetros para LLVM
-        let params_ir: Vec<String> = self.params.iter()
+        let mut params_ir: Vec<String> = self.params.iter()
             .map(|p| {
                 let llvm_ty = CodegenContext::to_llvm_type(p.param_type.clone());
                 format!("{} %{}", llvm_ty, p.name)
             })
             .collect();
+
+        // Si es método de tipo, agrega self al contexto y como primer argumento
+        if let Some(type_name) = fn_context.current_self.clone() {
+            let self_var = format!("%self.{}", fn_context.get_scope());
+            fn_context.register_variable(&self_var, type_name.clone());
+            // Si necesitas modificar la lista de argumentos LLVM, deberías hacerlo antes de generar la cabecera
+            // Aquí solo se registra la variable en el contexto
+            params_ir.insert(0, format!("ptr %self.{}", fn_context.get_scope()));
+        }
         let params_str = params_ir.join(", ");
 
         // Emite la cabecera de la función en el contexto de función
@@ -269,6 +278,8 @@ impl Codegen for FunctionDef {
         for param in &self.params {
             param.codegen(&mut fn_context);
         }
+
+        
 
         // Genera el cuerpo
         let result_reg = self.body.codegen(&mut fn_context);

@@ -203,6 +203,7 @@ impl Codegen for ProgramNode {
         ));
         // Llama a la función auxiliar para definir get_vtable_method
         ProgramNode::get_vtable_method(context, count_types, max_functions);
+   
 
         // Procesa todas las definiciones (funciones y tipos)
         for def in self.definitions.iter() {
