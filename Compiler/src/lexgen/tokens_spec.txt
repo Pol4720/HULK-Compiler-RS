@@ -61,6 +61,7 @@ DECREMENTO : --
 
 # Operadores bitwise
 AND_BITWISE : &
+OR_BITWISE : \|
 NOT_BITWISE : ~
 SHIFT_IZQ : <<
 SHIFT_DER : >>

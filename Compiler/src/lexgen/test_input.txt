@@ -4,30 +4,30 @@
 
 // Programa de ejemplo para probar todos los tokens
 
-int main 
-    // Palabras clave y tipos
+// Palabras clave y tipos
+int main() {
     int x = 10;
-    float y = 314;
+    float y = 3.14;
     char c = 'a';
     void* ptr = NULL;
     bool flag = true;
-    if x > 0 && flag 
+    if (x > 0 && flag) {
         x += 1;
-     else if x == 0 
+    } else if (x == 0) {
         x = -1;
-     else 
+    } else {
         x--;
-    
-    for int i = 0; i < 10; i++ 
+    }
+    for (int i = 0; i < 10; i++) {
         y = y * 20;
         continue;
-    
-    while y > 0 
+    }
+    while (y > 0) {
         y /= 20;
         break;
-    
+    }
     return x;
-
+}
 
 // Identificadores
 variable1 = 123;
@@ -42,11 +42,11 @@ MAX_VALOR = 1000;
 minimo = 0;
 
 // Literales numericos y de cadena
-float decimal = 1234;
+float decimal = 1234.56;
 char letra = 'z';
 string texto = "Hola mundo";
 
-// Operadores aritméticos y de asignacion
+// Operadores aritmeticos y de asignacion
 x = x + 1;
 x += 2;
 x -= 3;
@@ -54,14 +54,14 @@ x *= 4;
 x /= 5;
 x %= 2;
 
-// Operadores de comparación
-if x == 10  x != 0 
+// Operadores de comparacion
+if (x == 10 && x != 0) {
     x = x < 5 ? 1 : 2;
     y = x <= 2 ? 0 : 1;
     z = x >= 3;
+}
 
-
-// Operadores logicos y bitwise
+// Operadores lógicos y bitwise
 flag = !flag && true;
 bit = x & 0xFF;
 bit = ~bit;
@@ -73,14 +73,12 @@ x++;
 x--;
 
 // Delimitadores y signos de puntuacion
-array0 = 1;
+array0 = {1, 2, 3};
 objetopropiedad = 2;
-funcion,arg1, arg2;
+funcion(arg1, arg2);
+if (x > 0) { y = 1; } else { y = 2; }
 
-    // bloque vacío
-
-
-// Grupos y clases de caracteres
+// Grupos y alternativas
 string grupo = "abc";
 string grupo2 = "def";
 string grupo3 = "ghi";
@@ -90,9 +88,17 @@ string solo_may = "ABCXYZ";
 string solo_dig = "0123456789";
 string letra_dig = "abc123XYZ";
 
+// Pruebas de todos los delimitadores y operadores individuales
++ - * / % = += -= *= /= %= == != < > <= >= && || ! & ~ << >> ( ) { } [ ] ; , . : ?
+
 // Comentarios
 # Esto es un comentario hash
 // Esto es un comentario de linea
 /* Esto es un comentario de bloque */
+
+// Literales especiales
+float num1 = 123.456;
+char car1 = 'x';
+string cad1 = "cadena";
 
 # FIN DEL ARCHIVO DE PRUEBA
