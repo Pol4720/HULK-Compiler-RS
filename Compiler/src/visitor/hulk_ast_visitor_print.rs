@@ -110,20 +110,12 @@ impl Visitor<String> for PreetyPrintVisitor {
         )
     }
 
-    fn visit_let_in(&mut self, let_in: &mut LetIn) -> String {
-        let assignments: Vec<String> = let_in.assignment.iter_mut()
-            .map(|a| a.accept(self))
+    fn visit_let_in(&mut self, node: &mut LetIn) -> String {
+        let assignments: Vec<String> = node.assignment.iter_mut()
+            .map(|assignment| format!("{} = {}", assignment.identifier, assignment.expression.accept(self)))
             .collect();
-        let assignments_types: Vec<String> = let_in.assignment.iter_mut()
-            .map(|a| format!("{:?}", a._type))
-            .collect();
-        let body_str = let_in.body.accept(self);
-        format!(
-            "LetIn:\nAssignments:\n{}\nAssignments Types:\n{}\nBody:\n{}",
-            assignments.join("\n"),
-            assignments_types.join("\n"),
-            body_str
-        )
+        let body = node.body.accept(self);
+        format!("let {} in {}", assignments.join(", "), body)
     }
 
     fn visit_if_else(&mut self, node: &mut IfExpr) -> String {
