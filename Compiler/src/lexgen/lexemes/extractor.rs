@@ -21,21 +21,33 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
     let len = chars.len();
 
     while index < len {
-        // Saltar espacios, tabs, saltos de línea y retorno de carro como separadores de lexemas
-        while index < len
-            && (chars[index] == ' '
-                || chars[index] == '\t'
-                || chars[index] == '\n'
-                || chars[index] == '\r')
-        {
-            if chars[index] == '\n' {
-                line += 1;
-                column = 1;
+        // Saltar TODOS los espacios en blanco como separadores de lexemas
+        while index < len && (chars[index] == ' ' || chars[index] == '\t' || chars[index] == '\r') {
+            if chars[index] == '\r' {
+                // Manejar \r\n como una sola nueva línea
+                if index + 1 < len && chars[index + 1] == '\n' {
+                    index += 2;
+                    line += 1;
+                    column = 1;
+                } else {
+                    index += 1;
+                    line += 1;
+                    column = 1;
+                }
             } else {
                 column += 1;
+                index += 1;
             }
-            index += 1;
         }
+
+        // Manejar saltos de línea por separado
+        if index < len && chars[index] == '\n' {
+            line += 1;
+            column = 1;
+            index += 1;
+            continue;
+        }
+
         if index >= len {
             break;
         }
@@ -64,29 +76,15 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
                 }
                 i += 1;
             } else {
-                // Simulación de $ (fin de línea/texto)
-                let at_end_of_line = i == len || (i < len && chars[i] == '\n');
-                if at_end_of_line {
-                    if let Some(next_key) =
-                        dfa.transitions.get(&(state_key.clone(), RegexChar::End))
-                    {
-                        state_key = next_key.clone();
-                        if let Some(state) = dfa.states.get(&state_key) {
-                            if let Some(ref accept) = state.accept {
-                                last_accept = Some((i - 1, state));
-                                last_accept_col = col;
-                            }
-                        }
-                    }
-                }
+                // No hay transición válida, salir del bucle
                 break;
             }
         }
-        // --- ARREGLO: Si llegamos al final del texto, intentamos la transición con $ ---
+
+        // Solo intentar transición con $ si estamos al final del texto completo
         if i == len {
             if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), RegexChar::End)) {
-                state_key = next_key.clone();
-                if let Some(state) = dfa.states.get(&state_key) {
+                if let Some(state) = dfa.states.get(next_key) {
                     if let Some(ref accept) = state.accept {
                         last_accept = Some((i - 1, state));
                         last_accept_col = col;
@@ -97,13 +95,21 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
         if let Some((end, state)) = last_accept {
             let accept = state.accept.as_ref().unwrap();
             let value: String = chars[index..=end].iter().collect();
-            lexemes.push(Lexeme {
-                token_type: accept.token_type.clone(),
-                value,
-                line,
-                column_start: column,
-                column_end: last_accept_col + (end - index),
-            });
+
+            // FILTRAR tokens de espacios en blanco para que no aparezcan en la salida
+            if !matches!(
+                accept.token_type.as_str(),
+                "ESPACIO" | "NUEVA_LINEA" | "RETORNO_CARRO"
+            ) {
+                lexemes.push(Lexeme {
+                    token_type: accept.token_type.clone(),
+                    value,
+                    line,
+                    column_start: column,
+                    column_end: last_accept_col + (end - index),
+                });
+            }
+
             // Actualizar posición y columna
             for c in &chars[index..=end] {
                 if *c == '\n' {

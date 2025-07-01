@@ -4,7 +4,8 @@
 
 // Programa de ejemplo para probar todos los tokens
 
-// Palabras clave y tipos
+// Palabras clave y tipo
+
 int main() {
     int x = 10;
     float y = 3.14;
@@ -61,7 +62,7 @@ if (x == 10 && x != 0) {
     z = x >= 3;
 }
 
-// Operadores lógicos y bitwise
+// Operadores logicos y bitwise
 flag = !flag && true;
 bit = x & 0xFF;
 bit = ~bit;

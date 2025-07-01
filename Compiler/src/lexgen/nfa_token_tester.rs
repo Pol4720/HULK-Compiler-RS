@@ -17,7 +17,7 @@ fn main() {
     println!("==============================");
     // Define aquí el nombre y la regex del token a probar
     let token_name = "Token de prueba";
-    let token_regex = "\\|";
+    let token_regex = "#[^\n]*";
     println!("Token: {} => {}", token_name, token_regex);
     if let Some(ast) = parse_regex(token_regex) {
         println!("  AST: {}", ast.to_repr());

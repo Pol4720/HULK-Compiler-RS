@@ -1,7 +1,29 @@
 # Especificación de tokens para el generador de analizadores léxicos
 # Formato: NOMBRE_TOKEN : REGEX
+# IMPORTANTE: El orden determina la prioridad - tokens más específicos primero
 
-# Palabras clave (reservadas)
+# Comentarios (deben ir primero para tener prioridad máxima)
+COMENTARIO_HASH : #[^\r\n]*
+COMENTARIO_LINEA : //[^\r\n]*
+COMENTARIO_BLOQUE : /\*([^*]|(\*+[^*/]))*\*+/
+
+# Operadores compuestos (ANTES que los simples para evitar ambigüedad)
+SUMA_ASIGN : \+=
+RESTA_ASIGN : -=
+MULT_ASIGN : \*=
+DIV_ASIGN : /=
+MOD_ASIGN : %=
+INCREMENTO : \+\+
+DECREMENTO : --
+IGUAL : ==
+DIFERENTE : !=
+MENOR_IGUAL : <=
+MAYOR_IGUAL : >=
+AND_LOGICO : &&
+SHIFT_IZQ : <<
+SHIFT_DER : >>
+
+# Palabras clave (ANTES que IDENTIFICADOR para tener prioridad)
 IF : if
 ELSE : else
 WHILE : while
@@ -16,58 +38,32 @@ CONTINUE : continue
 TRUE : true
 FALSE : false
 
-# Grupos y alternativas
-GRUPO_ALTERNATIVA : (abc|def|ghi)
-GRUPO_PARENTESIS : (hola)+
+# Literales numéricos (ANTES que IDENTIFICADOR)
+NUMERO_DECIMAL : [0-9]+\.[0-9]+
+NUMERO_ENTERO : [0-9]+
 
-# Clases de caracteres
-SOLO_LETRAS_MINUSCULAS : [a-z]+
-SOLO_LETRAS_MAYUSCULAS : [A-Z]+
-SOLO_DIGITOS : [0-9]+
-LETRA_O_DIGITO : [a-zA-Z0-9]+
-
-
+# IDENTIFICADOR debe ir DESPUÉS de palabras clave y números
 IDENTIFICADOR : [a-zA-Z_][a-zA-Z0-9_]*
 
-# Operadores aritméticos
+# Operadores simples (DESPUÉS de los compuestos)
 SUMA : \+
 RESTA : -
 MULTIPLICACION : \*
 DIVISION : /
 MODULO : %
-
-# Operadores de asignación combinada
-SUMA_ASIGN : \+=
-RESTA_ASIGN : -=
-MULT_ASIGN : \*=
-DIV_ASIGN : /=
-MOD_ASIGN : %=
-
-# Operadores de comparación
-IGUAL : ==
-DIFERENTE : !=
 MENOR_QUE : <
 MAYOR_QUE : >
-MENOR_IGUAL : <=
-MAYOR_IGUAL : >=
-
-# Operadores lógicos
-AND_LOGICO : &&
-NOT_LOGICO : !
-
-# Operadores de incremento/decremento
-INCREMENTO : \+\+
-DECREMENTO : --
-
-# Operadores bitwise
 AND_BITWISE : &
 OR_BITWISE : \|
+NOT_LOGICO : !
 NOT_BITWISE : ~
-SHIFT_IZQ : <<
-SHIFT_DER : >>
+ASIGNACION : =
+
+# Literales de texto
+CARACTER : '[^']*'
+CADENA : "[^"]*"
 
 # Delimitadores y signos de puntuación
-ASIGNACION : =
 PUNTO_COMA : ;
 COMA : ,
 PUNTO : \.
@@ -80,21 +76,11 @@ CORCHETE_DER : \]
 DOS_PUNTOS : :
 INTERROGACION : \?
 
-# Comentarios
-COMENTARIO_HASH : #[^\n]*
-
-# Literales adicionales
-NUMERO_DECIMAL : [0-9]+\.[0-9]+
-CARACTER : '[^']*'
-CADENA : "[^"]*"
-
-# Espacios en blanco (para ignorar)
+# Espacios en blanco (para ignorar - se filtrarán en el extractor)
 ESPACIO : [ \t]+
-NUEVA_LINEA : \n
+NUEVA_LINEA : \r?\n
 RETORNO_CARRO : \r
-
-# Comentarios de línea
-COMENTARIO_LINEA : //[^\n]*
-COMENTARIO_BLOQUE : /\*([^*]|\*[^/])*\*/
+NUEVA_LINEA : \r?\n
+RETORNO_CARRO : \r
 
 
