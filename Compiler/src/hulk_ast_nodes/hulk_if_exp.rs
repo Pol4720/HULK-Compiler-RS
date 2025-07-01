@@ -83,85 +83,97 @@ impl IfExpr {
 
 impl Codegen for IfExpr {
     fn codegen(&self, context: &mut CodegenContext) -> String {
+        // Get the node type and convert to LLVM type
         let node_type = self._type.clone().unwrap().type_name;
         let llvm_type = CodegenContext::to_llvm_type(node_type.clone());
+        
+        // Create result register and exit label
         let result_reg = context.generate_temp();
         let exit_id = context.new_id();
-        let exit_label = format!("if_exit_{}", exit_id);
-
-        // Reserva espacio para el resultado
+        let exit_label = format!("if_else_exit.{}", exit_id);
+        
+        // Allocate space for the result - use 'ptr' instead of 'ptr*'
         context.emit(&format!("{} = alloca {}", result_reg, llvm_type));
-
-        // Condición principal
+        
+        // Generate code for the condition
         let cond_reg = self.condition.codegen(context);
         let if_id = context.new_id();
-        let then_label = format!("if_then_{}", if_id);
-        let else_label = format!("if_else_{}", if_id);
-
+        let if_true_label = format!("if_true.{}", if_id);
+        let if_false_label = format!("if_false.{}", if_id);
+        
+        // Branch based on condition
         context.emit(&format!(
             "br i1 {}, label %{}, label %{}",
-            cond_reg, then_label, else_label
+            cond_reg, if_true_label, if_false_label
         ));
-
+        
         // THEN branch
-        context.emit(&format!("{}:", then_label));
+        context.emit(&format!("{}:", if_true_label));
         let then_val = self.then_branch.codegen(context);
         context.emit(&format!(
-            "store {} {}, {}* {}",
-            llvm_type, then_val, llvm_type, result_reg
+            "store {} {}, ptr {}",  // Changed ptr* to ptr
+            llvm_type, then_val, result_reg
         ));
         context.emit(&format!("br label %{}", exit_label));
-
-        // ELSE/ELIF branches
-        context.emit(&format!("{}:", else_label));
-        let mut next_label = None;
-        for (i, (cond, expr)) in self.else_branch.iter().enumerate() {
-            let elif_id = context.new_id();
-            let elif_label = format!("elif_then_{}", elif_id);
-            let elif_else_label = format!("elif_else_{}", elif_id);
-
-            let cond_reg = if let Some(cond_expr) = cond {
-                let reg = cond_expr.codegen(context);
+        
+        // ELSE branch and ELIF branches
+        context.emit(&format!("{}:", if_false_label));
+        
+        if !self.else_branch.is_empty() {
+            // Process all elif/else branches
+            for (i, (cond, expr)) in self.else_branch.iter().enumerate() {
+                let elif_id = context.new_id();
+                let elif_true_label = format!("elif_true.{}", elif_id);
+                let elif_false_label = format!("elif_false.{}", elif_id);
+                
+                if let Some(cond_expr) = cond {
+                    // This is an ELIF with a condition
+                    let elif_cond_reg = cond_expr.codegen(context);
+                    context.emit(&format!(
+                        "br i1 {}, label %{}, label %{}",
+                        elif_cond_reg, elif_true_label, elif_false_label
+                    ));
+                } else {
+                    // This is an ELSE (no condition)
+                    context.emit(&format!("br label %{}", elif_true_label));
+                }
+                
+                // ELIF/ELSE body
+                context.emit(&format!("{}:", elif_true_label));
+                let expr_val = expr.codegen(context);
                 context.emit(&format!(
-                    "br i1 {}, label %{}, label %{}",
-                    reg, elif_label, elif_else_label
+                    "store {} {}, ptr {}",  // Changed ptr* to ptr
+                    llvm_type, expr_val, result_reg
                 ));
-                Some((elif_label.clone(), elif_else_label.clone()))
-            } else {
-                // ELSE final, no condición
-                context.emit(&format!("br label %{}", elif_label));
-                Some((elif_label.clone(), String::new()))
-            };
-
-            // ELIF/ELSE body
-            context.emit(&format!("{}:", cond_reg.as_ref().unwrap().0));
-            let val = expr.codegen(context);
-            context.emit(&format!(
-                "store {} {}, {}* {}",
-                llvm_type, val, llvm_type, result_reg
-            ));
-            context.emit(&format!("br label %{}", exit_label));
-
-            // Si hay siguiente elif/else, prepara el siguiente label
-            if let Some((_, next)) = cond_reg {
-                if !next.is_empty() {
-                    context.emit(&format!("{}:", next));
-                    next_label = Some(next);
+                context.emit(&format!("br label %{}", exit_label));
+                
+                // If this is an ELIF (has condition), set up the next branch
+                if let Some(_) = cond {
+                    context.emit(&format!("{}:", elif_false_label));
+                    
+                    // If this is the last branch and there's no explicit else,
+                    // branch to the exit
+                    if i == self.else_branch.len() - 1 {
+                        context.emit(&format!("br label %{}", exit_label));
+                    }
                 }
             }
-        }
-        // Si no hay else_branch, solo salta al exit
-        if self.else_branch.is_empty() {
+        } else {
+            // No else branch at all, just branch to exit
             context.emit(&format!("br label %{}", exit_label));
         }
-
-        // EXIT
+        
+        // EXIT - load the result
         context.emit(&format!("{}:", exit_label));
         let final_result = context.generate_temp();
         context.emit(&format!(
-            "{} = load {}, {}* {}",
-            final_result, llvm_type, llvm_type, result_reg
+            "{} = load {}, ptr {}",  // Changed ptr* to ptr
+            final_result, llvm_type, result_reg
         ));
+        
+        // Register the type of the final result
+        context.temp_types.insert(final_result.clone(), node_type);
+        
         final_result
     }
 }

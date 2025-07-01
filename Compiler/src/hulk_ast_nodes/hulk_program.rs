@@ -5,6 +5,8 @@
 //! `Instruction` es un enum que agrupa las posibles instrucciones de nivel superior: definición de tipos, funciones y expresiones.
 //! Ambos nodos soportan integración con el visitor pattern y la generación de código LLVM IR.
 
+use std::collections::HashMap;
+
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
 use crate::codegen::types_global::TypesGlobal;
@@ -241,18 +243,41 @@ impl Codegen for ProgramNode {
         // Emite el tipo de la vtable
         context.emit_global(&format!("%VTableType = type [{} x ptr]", max_functions));
 
-        // Emite la declaración global de la super vtable
-        let vtable_declarations: Vec<String> = type_defs.methods_map.keys()
+        // SOLUCIÓN: Asignar explícitamente type_ids en orden y guardarlos
+        // Creamos un mapa que asigna cada nombre de tipo a su índice en la vtable
+        let mut type_id_map = HashMap::new();
+        
+        // Recopilamos los nombres de los tipos en el mismo orden que se usarán para la vtable
+        let type_names: Vec<String> = type_defs.methods_map.keys().cloned().collect();
+        
+        // Asignamos índices secuenciales a cada tipo
+        for (index, type_name) in type_names.iter().enumerate() {
+            type_id_map.insert(type_name.clone(), index as i32);
+            // Guardar en el contexto para que esté disponible durante la generación de código
+            context.type_ids.insert(type_name.clone(), index as i32);
+        }
+
+        // Emite la declaración global de la super vtable - esto no cambia
+        let vtable_declarations: Vec<String> = type_names
+            .iter()
             .map(|type_name| format!("@{}_vtable", type_name))
             .collect();
-        context.emit_global(&format!(
-            "@super_vtable = global [{} x ptr] [{}]",
-            count_types,
+        
+        // Fix para el caso de que no haya tipos definidos
+        let vtable_init = if vtable_declarations.is_empty() {
+            "ptr null".to_string()  // Proporciona al menos un elemento
+        } else {
             vtable_declarations
                 .iter()
                 .map(|v| format!("ptr {}", v))
                 .collect::<Vec<_>>()
                 .join(", ")
+        };
+        
+        context.emit_global(&format!(
+            "@super_vtable = global [{} x ptr] [{}]",
+            count_types,
+            vtable_init
         ));
         // Llama a la función auxiliar para definir get_vtable_method
         ProgramNode::get_vtable_method(context, count_types, max_functions);

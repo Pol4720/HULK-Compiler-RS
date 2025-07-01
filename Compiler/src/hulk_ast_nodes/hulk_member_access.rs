@@ -50,15 +50,16 @@ impl Codegen for MemberAccess {
     fn codegen(&self, context: &mut CodegenContext) -> String {
         // Evalúa el objeto
         let object_reg = self.object.codegen(context);
-        print!("{}", &object_reg);
+        
         // Intenta deducir el tipo del objeto
         let object_type = context.get_register_hulk_type(&object_reg).cloned().unwrap_or_else(|| "candela".to_string());
-        print!("{}", &object_type);
+        
         // Obtiene el índice del miembro
         let member_index_val = {
             let key = (object_type.clone(), self.member.to_string());
             *context.type_members_ids.get(&key).expect("Member not found")
         };
+        
         // Determina el tipo LLVM del campo
         let node_type = self._type.as_ref().map(|t| t.type_name.clone()).unwrap_or_else(|| "ptr".to_string());
         let llvm_type = CodegenContext::to_llvm_type(node_type.clone());

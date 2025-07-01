@@ -67,6 +67,7 @@ pub struct CodegenContext {
     pub scopes: Vec<HashMap<String, String>>,
     scope_id: i32,
     pub temp_types: HashMap<String, String>,
+    pub type_ids: HashMap<String, i32>, // Agregar un mapa para guardar los type_ids
 
 
 }
@@ -94,6 +95,7 @@ impl CodegenContext {
             scopes: Vec::new(),
             scope_id: 0,
             temp_types: HashMap::new(),
+            type_ids: HashMap::new(),
         }
     }
     pub fn add_register_hulk_type(&mut self, reg: String, type_name: String) {
@@ -133,6 +135,7 @@ impl CodegenContext {
         self.types_members_functions.extend(other.types_members_functions);
         self.function_member_llvm_names.extend(other.function_member_llvm_names);
         self.temp_types.extend(other.temp_types);
+        self.type_ids.extend(other.type_ids);
         // No se fusionan scopes ni current_self
     }
     pub fn register_type(&mut self, name: &str, llvm_type: String) {
@@ -223,6 +226,7 @@ impl CodegenContext {
         ctx.types_members_functions = self.types_members_functions.clone();
         ctx.function_member_llvm_names = self.function_member_llvm_names.clone();
         ctx.temp_types = self.temp_types.clone();
+        ctx.type_ids = self.type_ids.clone();
         ctx.id = self.id;
         ctx.temp_counter = self.temp_counter;
         ctx

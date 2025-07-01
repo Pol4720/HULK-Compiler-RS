@@ -44,20 +44,24 @@ impl FunctionAccess {
 }
 impl Codegen for FunctionAccess {
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // Evalúa el objeto sobre el que se accede al método
-        let mut curr_type_reg_ptr = self.object.codegen(context);
-        // Intenta deducir el tipo del objeto
-        let mut curr_object_type = context.get_register_hulk_type(&curr_type_reg_ptr).cloned().unwrap_or_else(|| "candela".to_string());
-        print!("{}", &curr_object_type);
-        println!("Current object type: {}", curr_object_type);
+        // Evalúa el objeto original - guardamos esta referencia para usarla después
+        let original_object_reg = self.object.codegen(context);
+        let original_object_type = context.get_register_hulk_type(&original_object_reg).cloned()
+            .unwrap_or_else(|| panic!("Could not determine object type for method call"));
+        
+        // Copia del objeto para buscar el método en la jerarquía
+        let mut curr_type_reg_ptr = original_object_reg.clone();
+        let mut curr_object_type = original_object_type.clone();
+        
         let function_name = self.member.funct_name.clone();
 
-        // Busca el método en la jerarquía de herencia
+        // Busca el método en la jerarquía de herencia (esto no cambia)
         while !context.type_functions_ids.contains_key(&(curr_object_type.clone(), function_name.clone())) {
             let parent_opt = context.inherits.get(&curr_object_type).cloned();
             if let Some(parent) = parent_opt {
                 let parent_ptr_ptr = context.generate_temp();
-                context.emit(&format!("{} = getelementptr %{}_type, ptr {}, i32 0, i32 1", parent_ptr_ptr, curr_object_type, curr_type_reg_ptr));
+                context.emit(&format!("{} = getelementptr %{}_type, ptr {}, i32 0, i32 1", 
+                    parent_ptr_ptr, curr_object_type, curr_type_reg_ptr));
                 let parent_ptr = context.generate_temp();
                 context.emit(&format!("{} = load ptr, ptr {}", parent_ptr, parent_ptr_ptr));
                 curr_object_type = parent;
@@ -67,20 +71,28 @@ impl Codegen for FunctionAccess {
             }
         }
 
-        // Obtiene el índice del método
+        // Obtiene el índice del método en la jerarquía
         let function_index = *context.type_functions_ids.get(&(curr_object_type.clone(), function_name.clone())).unwrap();
-        // Obtiene el type_id
-        let type_id_ptr = context.generate_temp();
-        context.emit(&format!("{} = getelementptr %{}_type, ptr {}, i32 0, i32 0", type_id_ptr, curr_object_type, curr_type_reg_ptr));
-        let type_id = context.generate_temp();
-        context.emit(&format!("{} = load i32, ptr {}", type_id, type_id_ptr));
-        // Obtiene el puntero a la función desde la vtable
+        
+        // IMPORTANTE: Obtenemos el ID del tipo original del objeto
+        // Este debería ser un entero literal en tiempo de compilación, no un valor en tiempo de ejecución
+        let type_id = match context.type_ids.get(&original_object_type) {
+            Some(id) => *id,
+            None => panic!("Type ID not found for type: {}", original_object_type)
+        };
+        
+        // Usa el type_id del tipo concreto y el índice del método
         let func_ptr = context.generate_temp();
-        context.emit(&format!("{} = call ptr @get_vtable_method(i32 {}, i32 {})", func_ptr, type_id, function_index));
-
-        // Prepara los argumentos: primero el puntero al objeto, luego los argumentos del método
+        context.emit(&format!(
+            "{} = call ptr @get_vtable_method(i32 {}, i32 {})", 
+            func_ptr, 
+            type_id, 
+            function_index
+        ));
+        
+        // Prepara los argumentos
         let mut llvm_args: Vec<String> = Vec::new();
-        llvm_args.push(format!("ptr {}", curr_type_reg_ptr));
+        llvm_args.push(format!("ptr {}", original_object_reg)); // Usa el objeto original
         for arg in self.member.arguments.iter() {
             let arg_reg = arg.codegen(context);
             let arg_type = context.temp_types.get(&arg_reg).cloned().unwrap_or_else(|| "ptr".to_string());
