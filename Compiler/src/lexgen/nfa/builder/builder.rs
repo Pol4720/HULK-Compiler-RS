@@ -361,8 +361,10 @@ impl NFABuilder {
                         }
                     }
                     RegexClass::Negated(inner) => {
-                        // Expande la clase interna a un set de literales
+                        // Para clases negadas [^...], crear transiciones para todos los caracteres EXCEPTO los especificados
                         let mut excluidos = std::collections::HashSet::new();
+
+                        // Recopilar todos los caracteres que deben ser excluidos
                         match &**inner {
                             RegexClass::Set(chars) => {
                                 for c in chars {
@@ -379,14 +381,20 @@ impl NFABuilder {
                                 }
                             }
                             RegexClass::Dot => {
-                                // Si es negación de punto, solo salto de línea (\n)
-                                excluidos = ALPHABET.iter().copied().collect();
-                                excluidos.remove(&'\n');
+                                // [^.] significa excluir todo excepto salto de línea
+                                for &c in ALPHABET {
+                                    if c != '\n' {
+                                        excluidos.insert(c);
+                                    }
+                                }
                             }
                             RegexClass::Negated(_) => {
-                                // Doble negación: no implementado
+                                // Doble negación: [^[^abc]] = [abc] - no implementado completamente
+                                // Por simplicidad, no agregamos exclusiones
                             }
                         }
+
+                        // Agregar transiciones para todos los caracteres del alfabeto EXCEPTO los excluidos
                         for &c in ALPHABET {
                             if !excluidos.contains(&c) {
                                 self.states

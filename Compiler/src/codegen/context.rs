@@ -51,8 +51,10 @@ pub struct CodegenContext {
     pub globals: String, // Definiciones globales (strings, etc.)
     pub temp_counter: usize,
     pub symbol_table: HashMap<String, String>,
+    pub register_hulk_type_map: HashMap<String, String>,
     pub type_table: HashMap<String, String>,
     pub function_table: HashMap<String, String>,
+    pub f_table: HashMap<String, String>,
     pub vtable: HashMap<String, HashMap<String, String>>,
     pub id: usize,
     pub constructor_args_types: HashMap<String, Vec<String>>,
@@ -66,6 +68,7 @@ pub struct CodegenContext {
     pub scopes: Vec<HashMap<String, String>>,
     scope_id: i32,
     pub temp_types: HashMap<String, String>,
+    pub type_ids: HashMap<String, i32>, // Agregar un mapa para guardar los type_ids
 
 
 }
@@ -77,9 +80,11 @@ impl CodegenContext {
             globals: String::new(),
             temp_counter: 0,
             symbol_table: HashMap::new(),
+            register_hulk_type_map: HashMap::new(),
             type_table: HashMap::new(),
             function_table: HashMap::new(),
-            vtable: HashMap::new(), 
+            f_table: HashMap::new(),
+            vtable: HashMap::new(),
             id: 1,
             constructor_args_types: HashMap::new(),
             inherits: HashMap::new(),
@@ -92,7 +97,15 @@ impl CodegenContext {
             scopes: Vec::new(),
             scope_id: 0,
             temp_types: HashMap::new(),
+            type_ids: HashMap::new(),
         }
+    }
+    pub fn add_register_hulk_type(&mut self, reg: String, type_name: String) {
+        self.register_hulk_type_map.insert(reg, type_name);
+    }
+
+    pub fn get_register_hulk_type(&self, reg: &str) -> Option<&String> {
+        self.register_hulk_type_map.get(reg)
     }
 
      pub fn register_method(&mut self, type_name: &str, method_name: &str, llvm_function_name: &str) {
@@ -113,6 +126,7 @@ impl CodegenContext {
         self.globals.push_str(&other.code);
         self.temp_counter = other.temp_counter.max(self.temp_counter);
         self.function_table.extend(other.function_table);
+        self.f_table.extend(other.f_table);
         self.symbol_table.extend(other.symbol_table);
         self.type_table.extend(other.type_table);
         self.vtable.extend(other.vtable);
@@ -124,6 +138,7 @@ impl CodegenContext {
         self.types_members_functions.extend(other.types_members_functions);
         self.function_member_llvm_names.extend(other.function_member_llvm_names);
         self.temp_types.extend(other.temp_types);
+        self.type_ids.extend(other.type_ids);
         // No se fusionan scopes ni current_self
     }
     pub fn register_type(&mut self, name: &str, llvm_type: String) {
@@ -176,6 +191,15 @@ impl CodegenContext {
     pub fn register_variable(&mut self, name: &str, reg: String) {
         self.symbol_table.insert(name.to_string(), reg);
     }
+    pub fn get_variable(&self, name: &str) -> Option<&String> {
+        // Busca primero por el nombre directo
+        if let Some(val) = self.symbol_table.get(name) {
+            return Some(val);
+        }
+        // Si no está, busca por el nombre con el scope actual: %name.{scope_id}
+        let scoped_name = format!("{}.{}", name, self.scope_id);
+        self.symbol_table.get(&scoped_name)
+    }
 
     pub fn generate_string_const_name(&mut self) -> String {
         let name = format!(".str.{}", self.temp_counter);
@@ -195,6 +219,7 @@ impl CodegenContext {
     pub fn clone_for_type_codegen(&self) -> CodegenContext {
         let mut ctx = CodegenContext::new();
         ctx.function_table = self.function_table.clone();
+        ctx.f_table = self.f_table.clone();
         ctx.type_table = self.type_table.clone();
         ctx.vtable = self.vtable.clone();
         ctx.type_members_types = self.type_members_types.clone();
@@ -205,6 +230,7 @@ impl CodegenContext {
         ctx.types_members_functions = self.types_members_functions.clone();
         ctx.function_member_llvm_names = self.function_member_llvm_names.clone();
         ctx.temp_types = self.temp_types.clone();
+        ctx.type_ids = self.type_ids.clone();
         ctx.id = self.id;
         ctx.temp_counter = self.temp_counter;
         ctx

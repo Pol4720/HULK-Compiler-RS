@@ -50,30 +50,34 @@ impl Codegen for MemberAccess {
     fn codegen(&self, context: &mut CodegenContext) -> String {
         // Evalúa el objeto
         let object_reg = self.object.codegen(context);
-        print!("{}", &object_reg);
+        
         // Intenta deducir el tipo del objeto
-        let object_type = context.temp_types.get(&object_reg).cloned().unwrap_or_else(|| "candela".to_string());
-        print!("{}", &object_type);
+        let object_type = context.get_register_hulk_type(&object_reg).cloned()
+            .unwrap_or_else(|| panic!("Could not determine object type for member access: {}", self.member.id));
+        
         // Obtiene el índice del miembro
         let member_index_val = {
             let key = (object_type.clone(), self.member.to_string());
-            *context.type_members_ids.get(&key).expect("Member not found")
+            *context.type_members_ids.get(&key).expect(&format!("Member '{}' not found in type '{}'", self.member.id, object_type))
         };
+        
         // Determina el tipo LLVM del campo
         let node_type = self._type.as_ref().map(|t| t.type_name.clone()).unwrap_or_else(|| "ptr".to_string());
         let llvm_type = CodegenContext::to_llvm_type(node_type.clone());
         // Obtiene el puntero al campo
         let ptr_temp = context.generate_temp();
         context.emit(&format!(
-            "{} = getelementptr %{}_type, ptr {}, i32 0, i32 {}",
-            ptr_temp, object_type, object_reg, member_index_val + 2 // +2 por vtable y parent
+            "{} = getelementptr %{}_type, ptr %self.{}, i32 0 , i32 {}",
+            ptr_temp, object_type, context.get_scope(), member_index_val// +2 por vtable y parent
         ));
+        
         // Carga el valor del campo
         let result = context.generate_temp();
         context.emit(&format!(
             "{} = load {}, ptr {}",
             result, llvm_type, ptr_temp
         ));
+        
         // Registra el tipo temporal para futuras inferencias
         context.temp_types.insert(result.clone(), node_type);
         result

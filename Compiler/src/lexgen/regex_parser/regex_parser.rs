@@ -269,15 +269,34 @@ mod helpers {
         let chars: Vec<char> = input.chars().collect();
         let mut i = 0;
         let mut negated = false;
+
         // Detecta negación al inicio
         if !chars.is_empty() && chars[0] == '^' {
             negated = true;
             i = 1;
         }
+
         let mut ranges = Vec::new();
         let mut singles = Vec::new();
+
         while i < chars.len() {
-            if i + 2 <= chars.len() && chars[i + 1] == '-' {
+            // Manejar escapes dentro de clases de caracteres
+            if chars[i] == '\\' && i + 1 < chars.len() {
+                let escaped_char = match chars[i + 1] {
+                    'r' => '\r',
+                    'n' => '\n',
+                    't' => '\t',
+                    '\\' => '\\',
+                    '[' => '[',
+                    ']' => ']',
+                    '^' => '^',
+                    '-' => '-',
+                    c => c, // Para otros caracteres, usar el literal
+                };
+                singles.push(RegexChar::Literal(escaped_char));
+                i += 2;
+            } else if i + 2 < chars.len() && chars[i + 1] == '-' && chars[i + 2] != ']' {
+                // Rango como a-z (pero no al final donde - es literal)
                 ranges.push((chars[i], chars[i + 2]));
                 i += 3;
             } else {
@@ -285,6 +304,7 @@ mod helpers {
                 i += 1;
             }
         }
+
         let result = if !ranges.is_empty() && singles.is_empty() {
             RegexClass::Ranges(ranges)
         } else if !ranges.is_empty() && !singles.is_empty() {
@@ -299,6 +319,7 @@ mod helpers {
         } else {
             RegexClass::Set(singles)
         };
+
         if negated {
             Some(RegexClass::Negated(Box::new(result)))
         } else {

@@ -52,30 +52,53 @@ impl Codegen for DestructiveAssignment {
     /// Busca el puntero de la variable en el contexto y almacena el valor generado por la expresión.
     /// Si la variable no existe en el contexto, lanza un panic.
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // Obtener el nombre de la variable
-        let var_name = match *self.identifier {
-            Expr {
-                kind: ExprKind::Identifier(ref name),
-                ..
-            } => name,
-            _ => panic!("Expected identifier on left side of destructive assignment"),
-        };
-
-        // Obtener el puntero de la variable del symbol_table
-        let ptr = context.symbol_table.get(&var_name.id).cloned().unwrap_or_else(|| {
-            panic!("Variable '{}' no definida en el contexto para asignación destructiva", var_name)
-        });
-
         // Generar el valor de la expresión
         let value_reg = self.expression.codegen(context);
-
+        
         // Obtener el tipo inferido
         let hulk_type = self._type.clone().expect("DestructiveAssignment debe tener tipo inferido");
         let llvm_type = CodegenContext::to_llvm_type(hulk_type.type_name);
 
-        // Asegurarse que el puntero también tiene el tipo correcto en la tabla de símbolos
-        // (esto es importante si el puntero es a i8*, o i1, o double)
-        context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, ptr));
+        // Manejar diferentes tipos de identificadores en el lado izquierdo
+        match &self.identifier.kind {
+            // Caso 1: Identificador simple (variable)
+            ExprKind::Identifier(name) => {
+                let ptr = context.symbol_table.get(&name.id).cloned().unwrap_or_else(|| {
+                    panic!("Variable '{}' no definida en el contexto para asignación destructiva", name.id)
+                });
+                
+                context.emit(&format!("  store {} {}, {}* {}", llvm_type, value_reg, llvm_type, ptr));
+            },
+            
+            // Caso 2: Acceso a miembro de un objeto
+            ExprKind::MemberAccess(member_access) => {
+                let obj_type = context.current_self.clone().expect("No current self for member access");
+                let prop_reg = context.generate_temp();
+                
+                let prop_index = context.type_members_ids
+                    .get(&(obj_type.clone(), member_access.member.id.clone()))
+                    .expect("Miembro no encontrado en el tipo");
+                
+                // Generar código para acceder a la propiedad
+                context.emit(&format!(
+                    "{} = getelementptr %{}_type, ptr %self.{}, i32 0, i32 {}",
+                    prop_reg, 
+                    obj_type,
+                    context.get_scope(),
+                    prop_index
+                ));
+                
+                // Almacenar el valor en la propiedad
+                context.emit(&format!(
+                    "  store {} {}, ptr {}", 
+                    llvm_type, 
+                    value_reg, 
+                    prop_reg
+                ));
+            },
+            
+            _ => panic!("Tipo de expresión no soportado en el lado izquierdo de asignación destructiva"),
+        }
         
         value_reg
     }
