@@ -79,7 +79,12 @@ impl Codegen for FunctionCall {
             "  {} = call {} @{}({})",
             result_reg, llvm_ret_type, self.funct_name, args_str
         ));
-        context.add_register_hulk_type(result_reg.clone(), return_type_str.clone());
+
+        //Actualizar contexto
+        let type_function = context.f_table.get(&self.funct_name);
+        if let Some(type_name) = type_function {
+            context.add_register_hulk_type(result_reg.clone(), type_name.clone());
+        }
         context
             .symbol_table
             .insert("__last_type__".to_string(), llvm_ret_type.clone());

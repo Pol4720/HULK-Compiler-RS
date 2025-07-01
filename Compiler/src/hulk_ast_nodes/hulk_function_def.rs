@@ -270,9 +270,11 @@ impl Codegen for FunctionDef {
         fn_context.emit(&format!("define {} @{}({}) {{", llvm_return_type, self.name, params_str));
         
         context.function_table.insert(self.name.clone(), llvm_return_type.clone());
+        context.f_table.insert(self.name.clone(), self.return_type.clone());
 
         // 🧾 Registra nombre de la función en sí misma (permite recursividad)
         fn_context.function_table.insert(self.name.clone(), llvm_return_type.clone());
+        fn_context.f_table.insert(self.name.clone(), self.return_type.clone());
 
         //📦 Reserva espacio para parámetros y almacena
         for param in &self.params {

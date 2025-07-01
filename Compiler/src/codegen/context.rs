@@ -54,6 +54,7 @@ pub struct CodegenContext {
     pub register_hulk_type_map: HashMap<String, String>,
     pub type_table: HashMap<String, String>,
     pub function_table: HashMap<String, String>,
+    pub f_table: HashMap<String, String>,
     pub vtable: HashMap<String, HashMap<String, String>>,
     pub id: usize,
     pub constructor_args_types: HashMap<String, Vec<String>>,
@@ -82,7 +83,8 @@ impl CodegenContext {
             register_hulk_type_map: HashMap::new(),
             type_table: HashMap::new(),
             function_table: HashMap::new(),
-            vtable: HashMap::new(), 
+            f_table: HashMap::new(),
+            vtable: HashMap::new(),
             id: 1,
             constructor_args_types: HashMap::new(),
             inherits: HashMap::new(),
@@ -124,6 +126,7 @@ impl CodegenContext {
         self.globals.push_str(&other.code);
         self.temp_counter = other.temp_counter.max(self.temp_counter);
         self.function_table.extend(other.function_table);
+        self.f_table.extend(other.f_table);
         self.symbol_table.extend(other.symbol_table);
         self.type_table.extend(other.type_table);
         self.vtable.extend(other.vtable);
@@ -216,6 +219,7 @@ impl CodegenContext {
     pub fn clone_for_type_codegen(&self) -> CodegenContext {
         let mut ctx = CodegenContext::new();
         ctx.function_table = self.function_table.clone();
+        ctx.f_table = self.f_table.clone();
         ctx.type_table = self.type_table.clone();
         ctx.vtable = self.vtable.clone();
         ctx.type_members_types = self.type_members_types.clone();
