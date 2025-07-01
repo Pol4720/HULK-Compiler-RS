@@ -10,3 +10,7 @@ either = "1.9"
 
 [build-dependencies]
 lalrpop = "0.22.1"
+
+[[bin]]
+name = "lexgen"
+path = "src/lexgen/main.rs"

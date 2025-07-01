@@ -10,12 +10,13 @@ use crate::codegen::traits::Codegen;
 use crate::hulk_ast_nodes::hulk_assignment::Assignment;
 use crate::hulk_ast_nodes::hulk_expression::Expr;
 use crate::hulk_tokens::hulk_keywords::KeywordToken;
+use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
 
 /// Representa una expresión `let-in` en el AST.
-/// 
+///
 /// Por ejemplo: `let x = 5, y = 10 in x + y`
-/// 
+///
 /// - `let_token`: token de palabra clave `let`.
 /// - `assignment`: lista de asignaciones locales.
 /// - `in_keyword`: token de palabra clave `in`.
@@ -27,7 +28,8 @@ pub struct LetIn {
     pub assignment: Vec<Assignment>,
     pub in_keyword: KeywordToken,
     pub body: Box<Expr>,
-    pub _type: Option<TypeNode>, 
+    pub _type: Option<TypeNode>,
+    pub token_pos: TokenPos,
 }
 
 impl LetIn {
@@ -41,10 +43,18 @@ impl LetIn {
     pub fn new(
         let_token: KeywordToken,
         assignment: Vec<Assignment>,
-        in_keyword: KeywordToken, 
-        body: Box<Expr>
+        in_keyword: KeywordToken,
+        body: Box<Expr>,
+        token_pos: TokenPos,
     ) -> Self {
-        LetIn { let_token, assignment, in_keyword, body, _type: None }
+        LetIn {
+            let_token,
+            assignment,
+            in_keyword,
+            body,
+            _type: None,
+            token_pos,
+        }
     }
 
     /// Establece el tipo de la expresión `let-in`.

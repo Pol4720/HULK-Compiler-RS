@@ -37,34 +37,10 @@ impl TypeAST {
         };
 
         tree.nodes.insert("Object".to_string(), tree.root.clone());
-        tree.add_type(
-            "String".to_string(),
-            Vec::new(),
-            Some("Object".to_string()),
-            HashMap::new(),
-            HashMap::new(),
-        );
-        tree.add_type(
-            "Number".to_string(),
-            Vec::new(),
-            Some("Object".to_string()),
-            HashMap::new(),
-            HashMap::new(),
-        );
-        tree.add_type(
-            "Boolean".to_string(),
-            Vec::new(),
-            Some("Object".to_string()),
-            HashMap::new(),
-            HashMap::new(),
-        );
-        tree.add_type(
-            "Unknown".to_string(),
-            Vec::new(),
-            Some("Object".to_string()),
-            HashMap::new(),
-            HashMap::new(),
-        );
+        tree.add_type("String".to_string(), vec![], Some("Object".to_string()), HashMap::new(), HashMap::new());
+        tree.add_type("Number".to_string(), vec![], Some("Object".to_string()), HashMap::new(), HashMap::new());
+        tree.add_type("Boolean".to_string(), vec![], Some("Object".to_string()), HashMap::new(), HashMap::new());
+        tree.add_type("Unknown".to_string(), vec![], Some("Object".to_string()), HashMap::new(), HashMap::new());
         tree
     }
     /// Agrega un nuevo tipo al árbol.

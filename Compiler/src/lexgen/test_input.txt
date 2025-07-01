@@ -1,0 +1,104 @@
+# ===============================
+# ARCHIVO DE PRUEBA PARA EL LEXER
+# ===============================
+
+// Programa de ejemplo para probar todos los tokens
+
+// Palabras clave y tipos
+int main() {
+    int x = 10;
+    float y = 3.14;
+    char c = 'a';
+    void* ptr = NULL;
+    bool flag = true;
+    if (x > 0 && flag) {
+        x += 1;
+    } else if (x == 0) {
+        x = -1;
+    } else {
+        x--;
+    }
+    for (int i = 0; i < 10; i++) {
+        y = y * 20;
+        continue;
+    }
+    while (y > 0) {
+        y /= 20;
+        break;
+    }
+    return x;
+}
+
+// Identificadores
+variable1 = 123;
+contador = variable1 + x;
+sumaTotal = contador * 2;
+nombre_usuario = "usuario";
+x = 5;
+y2 = x + 1;
+datoTemporal = y2 - 3;
+_resultado = sumaTotal / 2;
+MAX_VALOR = 1000;
+minimo = 0;
+
+// Literales numericos y de cadena
+float decimal = 1234.56;
+char letra = 'z';
+string texto = "Hola mundo";
+
+// Operadores aritmeticos y de asignacion
+x = x + 1;
+x += 2;
+x -= 3;
+x *= 4;
+x /= 5;
+x %= 2;
+
+// Operadores de comparacion
+if (x == 10 && x != 0) {
+    x = x < 5 ? 1 : 2;
+    y = x <= 2 ? 0 : 1;
+    z = x >= 3;
+}
+
+// Operadores lógicos y bitwise
+flag = !flag && true;
+bit = x & 0xFF;
+bit = ~bit;
+bit = bit << 2;
+bit = bit >> 1;
+
+// Operadores de incremento/decremento
+x++;
+x--;
+
+// Delimitadores y signos de puntuacion
+array0 = {1, 2, 3};
+objetopropiedad = 2;
+funcion(arg1, arg2);
+if (x > 0) { y = 1; } else { y = 2; }
+
+// Grupos y alternativas
+string grupo = "abc";
+string grupo2 = "def";
+string grupo3 = "ghi";
+string parentesis = "holaholahola";
+string solo_min = "abcxyz";
+string solo_may = "ABCXYZ";
+string solo_dig = "0123456789";
+string letra_dig = "abc123XYZ";
+
+// Pruebas de todos los delimitadores y operadores individuales
++ - * / % = += -= *= /= %= == != < > <= >= && || ! & ~ << >> ( ) { } [ ] ; , . : ?
+
+// Comentarios
+# Esto es un comentario hash
+// Esto es un comentario de linea
+/* Esto es un comentario de bloque */
+
+// Literales especiales
+float num1 = 123.456;
+char car1 = 'x';
+string cad1 = "cadena";
+
+# FIN DEL ARCHIVO DE PRUEBA

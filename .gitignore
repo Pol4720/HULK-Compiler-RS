@@ -10,3 +10,11 @@ Compiler/target
 *.exe
 *.hulk
 ast.txt
+
+*.pdb
+*.pdb
+
+
+*output_macos
+codegen_done
+*.exe.tmp[0-9]*

@@ -1,3 +1,4 @@
+
 //! # Operadores y Delimitadores Tokens
 //!
 //! Este módulo define los enums `BinaryOperatorToken`, `UnaryOperator` y `DelimiterToken` para el compilador Hulk.
@@ -29,6 +30,7 @@
 //    Or,         // ||
 //    DotEqual    // .= (asignación a miembro)
 //}
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinaryOperatorToken {
@@ -50,7 +52,35 @@ pub enum BinaryOperatorToken {
     Concat,
     And,
     Or,
-    DotEqual
+    DotEqual,
+}
+
+
+impl fmt::Display for BinaryOperatorToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            BinaryOperatorToken::Mul => "*",
+            BinaryOperatorToken::Div => "/",
+            BinaryOperatorToken::Plus => "+",
+            BinaryOperatorToken::Minus => "-",
+            BinaryOperatorToken::Mod => "%",
+            BinaryOperatorToken::Pow => "**",
+            BinaryOperatorToken::Neg => "neg",
+            BinaryOperatorToken::Not => "!",
+            BinaryOperatorToken::Eq => "=",
+            BinaryOperatorToken::EqEq => "==",
+            BinaryOperatorToken::Neq => "!=",
+            BinaryOperatorToken::Gt => ">",
+            BinaryOperatorToken::Gte => ">=",
+            BinaryOperatorToken::Lt => "<",
+            BinaryOperatorToken::Lte => "<=",
+            BinaryOperatorToken::Concat => "++",
+            BinaryOperatorToken::And => "&&",
+            BinaryOperatorToken::Or => "||",
+            BinaryOperatorToken::DotEqual => ".=",
+        };
+        write!(f, "{s}")
+    }
 }
 
 
@@ -62,6 +92,17 @@ pub enum UnaryOperator {
     Plus,        // +x
     Minus,       // -x
     LogicalNot,  // !x
+}
+
+impl fmt::Display for UnaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            UnaryOperator::Plus => "+",
+            UnaryOperator::Minus => "-",
+            UnaryOperator::LogicalNot => "!",
+        };
+        write!(f, "{s}")
+    }
 }
 
 /// Enum que representa los delimitadores del lenguaje Hulk.

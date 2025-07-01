@@ -7,15 +7,15 @@
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::codegen::types_global::TypesGlobal;
 use crate::hulk_ast_nodes::GlobalFunctionDef;
+use crate::hulk_ast_nodes::hulk_expression::Expr;
+use crate::hulk_ast_nodes::hulk_type_def::HulkTypeNode;
 use crate::visitor::hulk_accept::Accept;
 use crate::visitor::hulk_visitor::Visitor;
-use crate::hulk_ast_nodes::hulk_type_def::HulkTypeNode;
-
 
 /// Nodo raíz del AST que representa un programa completo.
-/// 
+///
 /// Contiene una lista de instrucciones de alto nivel (definiciones de tipos, funciones y expresiones).
 #[derive(Debug, Clone)]
 pub struct ProgramNode {
@@ -26,9 +26,90 @@ pub struct ProgramNode {
 impl ProgramNode {
     /// Crea un nuevo nodo de programa con una lista de instrucciones.
     pub fn new(instructions: Vec<Expr>, definitions: Vec<Definition>) -> Self {
-        ProgramNode { instructions, definitions }
+        ProgramNode {
+            instructions,
+            definitions,
+        }
     }
 
+    /// Genera la función global de acceso a métodos virtuales (VTable)
+    fn get_vtable_method(context: &mut CodegenContext, count_types: usize, max_functions: usize) {
+        context.emit_global("define ptr @get_vtable_method(i32 %type_id, i32 %method_id) {" );
+        context.emit_global(&format!(
+            "  %vtable_ptr_ptr = getelementptr [{} x ptr], ptr @super_vtable, i32 0, i32 %type_id",
+            count_types
+        ));
+        context.emit_global("  %vtable_ptr = load ptr, ptr %vtable_ptr_ptr");
+        context.emit_global("  %typed_vtable = bitcast ptr %vtable_ptr to ptr");
+        context.emit_global(&format!(
+            "  %method_ptr = getelementptr [{} x ptr], ptr %typed_vtable, i32 0, i32 %method_id",
+            max_functions
+        ));
+        context.emit_global("  %method = load ptr, ptr %method_ptr");
+        context.emit_global("  ret ptr %method");
+        context.emit_global("}");
+    }
+
+    /// Registra la información de tipos, miembros y métodos en el contexto de generación de código.
+    pub fn generate_type_tables_for_node(context: &mut CodegenContext, type_node: &HulkTypeNode) {
+        let type_name = type_node.type_name.clone();
+        let mut member_index: i32 = 2; // 0: vtable, 1: parent, 2...: miembros
+        let mut props_list = Vec::new();
+
+        // Herencia: si tiene padre, copia miembros del padre
+        if let Some(parent_name) = &type_node.parent {
+            if let Some(parent_members) = context.types_members_functions.get(&(parent_name.clone(), String::new(), 0)) {
+                for (index, member_name) in parent_members.iter().enumerate() {
+                    // Aquí asumimos que tienes una forma de obtener el tipo del miembro del padre
+                    if let Some(member_type) = context.type_members_types.get(&(parent_name.clone(), member_name.clone())) {
+                        context.type_members_types.insert((type_name.clone(), member_name.clone()), member_type.clone());
+                        context.type_members_ids.insert((type_name.clone(), member_name.clone()), index as i32);
+                        member_index += 1;
+                    }
+                    props_list.push((member_name.clone(), context.type_members_types.get(&(type_name.clone(), member_name.clone())).cloned().unwrap_or_default()));
+                }
+            }
+            if let Some(parent) = &type_node.parent {
+                context.inherits.insert(type_name.clone(), parent.clone());
+            }
+        }
+
+        // Miembros propios
+        // Primero atributos
+        for (member_name, attr_def) in &type_node.attributes {
+            let member_type = attr_def.init_expr._type.as_ref().map(|t| t.type_name.clone()).unwrap_or_default();
+            context.type_members_ids.insert((type_name.clone(), member_name.clone()), member_index);
+            context.type_members_types.insert((type_name.clone(), member_name.clone()), member_type.clone());
+            props_list.push((member_name.clone(), member_type));
+            member_index += 1;
+        }
+        // Luego métodos
+        for (method_name, method_def) in &type_node.methods {
+            context.function_member_llvm_names.insert((type_name.clone(), method_name.clone()), format!("@{}_{}", type_name, method_name));
+            let method_args_types: Vec<String> = method_def.params.iter().map(|p| p.param_type.clone()).collect();
+            context.types_members_functions.insert((type_name.clone(), method_name.clone(), member_index), method_args_types);
+            if let Some(ret_type) = &method_def._type {
+                context.type_members_types.insert((type_name.clone(), method_name.clone()), ret_type.type_name.clone());
+            }
+        }
+
+        // Registra lista de miembros para el tipo
+        // (puedes ajustar la clave según tu diseño)
+        context.types_members_functions.insert((type_name.clone(), String::new(), 0), props_list.iter().map(|(n, _)| n.clone()).collect());
+
+        // Registra tipos de argumentos del constructor
+        let params_types_list: Vec<String> = type_node.parameters.iter().map(|p| p.param_type.clone()).collect();
+        context.constructor_args_types.insert(type_name.clone(), params_types_list);
+
+        // Emite el tipo LLVM para el struct
+        let props_types: Vec<String> = props_list.iter().map(|(_, t)| CodegenContext::to_llvm_type(t.clone())).collect();
+        let list_props_str = props_types.join(", ");
+        if !props_types.is_empty() {
+            context.emit_global(&format!("%{}_type = type {{ i32, ptr, {} }}", type_name, list_props_str));
+        } else {
+            context.emit_global(&format!("%{}_type = type {{ i32, ptr }}", type_name));
+        }
+    }
 }
 
 impl Accept for ProgramNode {
@@ -62,7 +143,6 @@ impl Definition {
     }
 }
 
-
 impl From<GlobalFunctionDef> for Definition {
     fn from(v: GlobalFunctionDef) -> Self {
         Self::FunctionDef(v)
@@ -84,71 +164,80 @@ impl Accept for Definition {
     }
 }
 
-
-
-
-/// Enum que representa las instrucciones de alto nivel de un programa Hulk.
-/// 
-/// - `HulkTypeNode`: definición de tipo/clase.
-/// - `FunctionDef`: definición de función.
-/// - `Expression`: expresión evaluable.
-
-
-// #[derive(Debug, Clone)]
-// pub enum Instruction {
-//     HulkTypeNode(HulkTypeNode),
-//     FunctionDef(FunctionDef),
-//     // Protocol(ProtocolDecl), // Futuro: soporte para protocolos
-//     Expression(Box<Expr>)
-// }
-
-// impl Instruction {
-//     /// Evalúa la instrucción si es una expresión, retornando su valor.
-//     /// Para otros tipos de instrucción, retorna un error.
-//     pub fn eval(&self) -> Result<f64, String> {
-//         match self {
-//             Instruction::Expression(expr) => expr.eval(),
-//             _ => Err("Solo se pueden evaluar expresiones.".to_string()),
-//         }
-//     }
-// }
-
-// impl Accept for Instruction {
-//     /// Permite que la instrucción acepte un visitor.
-//     fn accept<V: Visitor<T>, T>(&mut self, visitor: &mut V) -> T {
-//         match self {
-//             Instruction::Expression(expr) => expr.accept(visitor),
-//             Instruction::FunctionDef(func_def) => visitor.visit_function_def(func_def),
-//             Instruction::HulkTypeNode(type_node) => visitor.visit_type_def(type_node),
-//         }
-//     }
-// }
-
 impl Codegen for ProgramNode {
     /// Genera el código LLVM IR para todo el programa.
     ///
     /// Recorre todas las instrucciones y genera el código correspondiente.
     fn codegen(&self, context: &mut CodegenContext) -> String {
         let mut last_reg = String::new();
+
+        // Registra la herencia y los miembros de los tipos antes de procesar las definiciones
+        let type_defs = TypesGlobal::from_program(&self);
+
+        // --- DEFINICIÓN DE VTABLE GLOBAL Y TIPO ---
+        // Calcula el máximo de funciones (columnas de la vtable) usando type_defs
+        let max_functions = type_defs.methods_map.values()
+            .map(|methods| methods.len())
+            .max()
+            .unwrap_or(0)
+            .max(1); // Al menos 1 para evitar error
+
+        // Calcula la cantidad de tipos (filas de la vtable) usando type_defs
+        let count_types = type_defs.methods_map.len().max(1);
+
+        // Emite el tipo de la vtable
+        context.emit_global(&format!("%VTableType = type [{} x ptr]", max_functions));
+
+        // Emite la declaración global de la super vtable
+        let vtable_declarations: Vec<String> = type_defs.methods_map.keys()
+            .map(|type_name| format!("@{}_vtable", type_name))
+            .collect();
+        context.emit_global(&format!(
+            "@super_vtable = global [{} x ptr] [{}]",
+            count_types,
+            vtable_declarations
+                .iter()
+                .map(|v| format!("ptr {}", v))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+        // Llama a la función auxiliar para definir get_vtable_method
+        ProgramNode::get_vtable_method(context, count_types, max_functions);
+   
+
+        // Procesa todas las definiciones (funciones y tipos)
+        for def in self.definitions.iter() {
+            match def {
+                Definition::FunctionDef(func_def) => {
+                    func_def.codegen(context);
+                }
+                Definition::TypeDef(type_def) => {
+                    let type_name = &type_def.type_name;
+                    let attrs = type_defs.attributes_map.get(type_name);
+                    let methods = type_defs.methods_map.get(type_name);
+                    let attr_indices = type_defs.attribute_indices.get(type_name);
+                    let method_indices = type_defs.method_indices.get(type_name);
+
+                    let mut type_def_mut = type_def.clone();
+
+                    type_def_mut.codegen_with_type_info(
+                        context,
+                        attrs,
+                        methods,
+                        attr_indices,
+                        method_indices,
+                    );
+                }
+            }
+        }
+
+        // Luego genera el código de las instrucciones ejecutables (main, prints, exprs, etc)
         for instr in &self.instructions {
             last_reg = instr.codegen(context);
         }
+
         last_reg
     }
-}
+    
 
-// impl Codegen for Instruction {
-//     /// Genera el código LLVM IR para una instrucción.
-//     ///
-//     /// Soporta generación para funciones y expresiones. Para definiciones de tipo, no genera código por defecto.
-//     fn codegen(&self, context: &mut CodegenContext) -> String {
-//         match self {
-//             Instruction::FunctionDef(func_def) => func_def.codegen(context),
-//             Instruction::Expression(expr) => expr.codegen(context),
-//             Instruction::HulkTypeNode(_type_node) => {
-//                 // Puedes implementar codegen para HulkTypeNode aquí si es necesario
-//                 String::new()
-//             }
-//         }
-//     }
-// }
+}

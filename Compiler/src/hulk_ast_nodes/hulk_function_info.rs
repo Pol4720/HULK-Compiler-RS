@@ -6,7 +6,6 @@
 
 use crate::codegen::context::CodegenContext;
 use crate::codegen::traits::Codegen;
-use crate::typings::types_node::TypeNode;
 
 /// Contiene la información de una función declarada en el AST.
 /// 
@@ -17,7 +16,7 @@ use crate::typings::types_node::TypeNode;
 pub struct HulkFunctionInfo {
     pub function_name: String,
     pub argument_types: Vec<(String, String)>,
-    pub return_type: TypeNode,
+    pub return_type: String,
 }
 
 impl HulkFunctionInfo {
@@ -30,7 +29,7 @@ impl HulkFunctionInfo {
     pub fn new(
         function_name: String,
         argument_types: Vec<(String, String)>,
-        return_type: TypeNode,
+        return_type: String,
     ) -> Self {
         HulkFunctionInfo {
             function_name,

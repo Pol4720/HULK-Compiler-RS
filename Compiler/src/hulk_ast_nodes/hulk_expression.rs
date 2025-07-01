@@ -181,11 +181,11 @@ impl Codegen for ExprKind {
             ExprKind::ForExp(forexp) => forexp.codegen(context),
             ExprKind::CodeBlock(block) => block.codegen(context),
             ExprKind::DestructiveAssign(destruct) => destruct.codegen(context),
-            ExprKind::NewTypeInstance(new_type_instance) => todo!(),
-            ExprKind::FunctionAccess(function_access) => todo!(),
-            ExprKind::MemberAccess(member_access) => todo!(),
+            ExprKind::NewTypeInstance(new_type_instance) => new_type_instance.codegen(context),
+            ExprKind::FunctionAccess(function_access) => function_access.codegen(context),
+            ExprKind::MemberAccess(member_access) => member_access.codegen(context),
             ExprKind::Print(print) => print.codegen(context),
-            ExprKind::FunctionBody(function_body) => todo!(),
+            ExprKind::FunctionBody(function_body) => function_body.codegen(context),
             ExprKind::ArrowExpression(arrow_expression) => todo!(),
         }
     }

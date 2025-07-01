@@ -15,6 +15,18 @@
   morestring=[b]',
   morestring=[b]"
 }
+
+% Define Rust language for listings
+\lstdefinelanguage{Rust}{
+  morekeywords={
+    as, break, const, continue, crate, else, enum, extern, false, fn, for, if, impl, in, let, loop, match, mod, move, mut, pub, ref, return, self, Self, static, struct, super, trait, true, type, unsafe, use, where, while, dyn, abstract, become, box, do, final, macro, override, priv, typeof, unsized, virtual, yield, try, await, async
+  },
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]'
+}
 \usepackage{tikz}
 \usetikzlibrary{shapes,arrows,positioning}
 \usepackage{fancyhdr}
@@ -104,7 +116,7 @@ framerule=1pt
     {\Large Facultad de Matemática y Computación\\[0.5cm]}
     {\Large Universidad de La Habana\\[0.5cm]}
     \vfill
-    \includegraphics[width=0.2\textwidth, height=0.2\textheight]{MATCOM.jpg}\\[0.5cm]
+    \includegraphics[width=0.2\textwidth, height=0.2\textheight]{Images/MATCOM.jpg}\\[0.5cm]
     {\Large 2025}
 \end{titlepage}
 
@@ -159,6 +171,56 @@ Para ejecutar las tareas definidas en el \texttt{Makefile}, utiliza los siguient
         Elimina los artefactos de compilación y el directorio de salida.
 \end{itemize}
 
+\section{Fase de Generación de Código}
+
+La fase de generación de código en el compilador HULK está implementada en el crate \texttt{codegen}. Esta etapa es responsable de transformar el Árbol de Sintaxis Abstracta (AST) en código intermedio LLVM IR, que puede ser posteriormente optimizado y traducido a código máquina para distintas plataformas.
+
+\subsection{Estructura General}
+
+Cada nodo del AST implementa el trait \texttt{Codegen}, el cual define el método \texttt{codegen} encargado de emitir el código LLVM correspondiente a ese nodo. Esto permite que la generación de código sea modular y extensible, ya que cada tipo de nodo (expresiones, declaraciones, tipos, funciones, etc.) conoce cómo traducirse a LLVM IR.
+
+El crate \texttt{codegen} contiene:
+\begin{itemize}
+  \item La estructura \texttt{CodegenContext}, que mantiene el estado global de la generación (código generado, tablas de símbolos, tipos, funciones, vtables, etc.).
+  \item Utilidades para emitir instrucciones LLVM, gestionar variables temporales, ámbitos léxicos y nombres únicos.
+  \item Métodos para registrar tipos, funciones, métodos y atributos, así como para manejar la herencia y el polimorfismo.
+\end{itemize}
+
+\subsection{Funcionamiento del Trait Codegen}
+
+El trait \texttt{Codegen} define el método principal para la generación de código:
+\begin{lstlisting}[language=Rust]
+pub trait Codegen {
+    fn codegen(&self, context: &mut CodegenContext) -> String;
+}
+\end{lstlisting}
+Cada nodo del AST implementa este trait, de modo que al recorrer el árbol, se va generando el código LLVM de manera recursiva y estructurada. Por ejemplo:
+\begin{itemize}
+  \item Un nodo de suma genera la instrucción LLVM para sumar dos valores.
+  \item Un nodo de definición de función emite la cabecera, reserva espacio para los parámetros y genera el cuerpo de la función.
+  \item Un nodo de acceso a miembro genera el código para acceder a un campo de una estructura.
+\end{itemize}
+
+\subsection{Soporte para Orientación a Objetos}
+
+La generación de código soporta características orientadas a objetos como:
+\begin{itemize}
+  \item Definición de tipos (clases) y sus atributos y métodos.
+  \item Herencia simple y polimorfismo mediante vtables (tablas de métodos virtuales).
+  \item Llamadas a métodos dinámicas usando el mecanismo de vtable y \texttt{getelementptr}.
+  \item Inicialización de instancias y constructores personalizados.
+\end{itemize}
+
+\subsection{Ventajas de la Arquitectura}
+
+\begin{itemize}
+  \item \textbf{Modularidad:} Cada nodo AST es responsable de su propia traducción a LLVM IR.
+  \item \textbf{Extensibilidad:} Es sencillo agregar nuevos nodos o modificar la generación de código de los existentes.
+  \item \textbf{Manejo de contexto:} El uso de \texttt{CodegenContext} permite gestionar correctamente ámbitos, tipos y símbolos durante la generación.
+  \item \textbf{Compatibilidad:} El código generado es estándar LLVM IR, lo que permite aprovechar herramientas y optimizaciones existentes.
+\end{itemize}
+
+En resumen, la fase de generación de código del compilador HULK traduce el AST a LLVM IR de manera estructurada, modular y orientada a objetos, facilitando la portabilidad y optimización del código generado.
 
 \end{document}
 
