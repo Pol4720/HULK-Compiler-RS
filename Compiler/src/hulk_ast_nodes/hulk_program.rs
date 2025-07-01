@@ -174,6 +174,59 @@ impl Codegen for ProgramNode {
         // Registra la herencia y los miembros de los tipos antes de procesar las definiciones
         let type_defs = TypesGlobal::from_program(&self);
 
+        // --- ACTUALIZA LOS HASHMAPS DE TIPOS, MIEMBROS Y MÉTODOS EN EL CONTEXTO ---
+        // Esto asegura que context siempre tenga la información de tipos, atributos y métodos
+        // y que los índices y tipos sean correctos para acceso y codegen posterior
+        for def in &self.definitions {
+            if let Some(type_node) = def.as_type_def() {
+                let type_name = &type_node.type_name;
+                // Herencia
+                if let Some(parent) = type_defs.inheritance_map.get(type_name) {
+                    if let Some(parent_name) = parent {
+                        context.inherits.insert(type_name.clone(), parent_name.clone());
+                    }
+                }
+                // Constructor args
+                let params_types_list: Vec<String> = type_node.parameters.iter().map(|p| p.param_type.clone()).collect();
+                context.constructor_args_types.insert(type_name.clone(), params_types_list);
+                // Atributos
+                if let Some(attr_names) = type_defs.attributes_map.get(type_name) {
+                    for attr in attr_names {
+                        // Busca el tipo concreto del atributo
+                        if let Some(attr_def) = type_node.attributes.get(attr) {
+                            let attr_type = attr_def.init_expr._type.as_ref().map(|t| t.type_name.clone()).unwrap_or_default();
+                            context.type_members_types.insert((type_name.clone(), attr.clone()), attr_type);
+                        }
+                        // Índice del atributo
+                        if let Some(idx) = type_defs.attribute_indices.get(type_name).and_then(|m| m.get(attr)) {
+                            context.type_members_ids.insert((type_name.clone(), attr.clone()), *idx as i32 + 2); // +2 por vtable y parent
+                        }
+                    }
+                }
+                // Métodos
+                if let Some(method_names) = type_defs.methods_map.get(type_name) {
+                    for method in method_names {
+                        // Busca el método concreto
+                        if let Some(method_def) = type_node.methods.get(method) {
+                            // Argumentos del método
+                            let method_args_types: Vec<String> = method_def.params.iter().map(|p| p.param_type.clone()).collect();
+                            // Usa el índice correcto para la clave
+                            if let Some(idx) = type_defs.method_indices.get(type_name).and_then(|m| m.get(method)) {
+                                context.types_members_functions.insert((type_name.clone(), method.clone(), *idx as i32), method_args_types);
+                                context.type_functions_ids.insert((type_name.clone(), method.clone()), *idx as i32);
+                            }
+                            // Tipo de retorno del método
+                            if let Some(ret_type) = &method_def._type {
+                                context.type_members_types.insert((type_name.clone(), method.clone()), ret_type.type_name.clone());
+                            }
+                            // Nombre LLVM del método
+                            context.function_member_llvm_names.insert((type_name.clone(), method.clone()), format!("@{}_{}", type_name, method));
+                        }
+                    }
+                }
+            }
+        }
+
         // --- DEFINICIÓN DE VTABLE GLOBAL Y TIPO ---
         // Calcula el máximo de funciones (columnas de la vtable) usando type_defs
         let max_functions = type_defs.methods_map.values()

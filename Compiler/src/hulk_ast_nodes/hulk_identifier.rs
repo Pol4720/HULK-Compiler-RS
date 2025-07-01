@@ -56,32 +56,39 @@ impl Codegen for Identifier {
     /// Busca el puntero de la variable en la tabla de símbolos y genera una instrucción `load`.
     /// Si la variable no existe en el contexto, lanza un panic.
     fn codegen(&self, context: &mut CodegenContext) -> String {
-        // Busca el puntero de la variable en la tabla de símbolos
-        let ptr = context.symbol_table.get(&self.id).cloned();
+        // Usa el método get_variable en lugar de acceder directamente a symbol_table
+        let ptr = context.get_variable(&self.id).cloned();
         if ptr.is_none() {
             panic!("Variable '{}' no definida en el contexto", self.id);
         }
         let ptr = ptr.unwrap();
 
         // Asegura que el tipo del identificador esté definido
-        let hulk_type = self._type.clone().expect(&format!(
-            "El tipo del identificador '{}' no ha sido inferido",
-            self.id
-        ));
-        let llvm_type = CodegenContext::to_llvm_type(hulk_type.type_name);
+    let hulk_type = self._type.clone().expect(&format!(
+        "El tipo del identificador '{}' no ha sido inferido",
+        self.id
+    ));
+    let type_name = hulk_type.type_name.clone();
+    let llvm_type = CodegenContext::to_llvm_type(type_name.clone());
 
-        // Si el tipo es un puntero (como i8* para strings), no hace falta hacer load
-        match llvm_type.as_str() {
-            // "i8*" => ptr,
-            _ => {
-                let result_reg = context.generate_temp();
-                let line = format!("  {} = load {}, {}* {}", result_reg, llvm_type, llvm_type, ptr);
-                context.emit(&line);
-                result_reg
-            
+    // Si el tipo es un puntero (como i8* para strings), la instrucción es 'load ptr, ptr'
+    match llvm_type.as_str() {
+        "ptr" => {
+            let result_reg = context.generate_temp();
+            context.add_register_hulk_type(result_reg.clone(), type_name);
+            let line = format!("  {} = load ptr, ptr {}", result_reg.clone(), ptr);
+            context.emit(&line);
+            result_reg
+        }
+        _ => {
+            let result_reg = context.generate_temp();
+            context.add_register_hulk_type(result_reg.clone(), type_name);
+            let line = format!("  {} = load {}, {}* {}", result_reg.clone(), llvm_type, llvm_type, ptr);
+            context.emit(&line);
+            result_reg
         }
     }
-}
+    }
 }
 
 

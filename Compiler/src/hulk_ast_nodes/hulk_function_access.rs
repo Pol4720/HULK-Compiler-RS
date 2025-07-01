@@ -47,7 +47,9 @@ impl Codegen for FunctionAccess {
         // Evalúa el objeto sobre el que se accede al método
         let mut curr_type_reg_ptr = self.object.codegen(context);
         // Intenta deducir el tipo del objeto
-        let mut curr_object_type = context.temp_types.get(&curr_type_reg_ptr).cloned().unwrap_or_else(|| "".to_string());
+        let mut curr_object_type = context.get_register_hulk_type(&curr_type_reg_ptr).cloned().unwrap_or_else(|| "candela".to_string());
+        print!("{}", &curr_object_type);
+        println!("Current object type: {}", curr_object_type);
         let function_name = self.member.funct_name.clone();
 
         // Busca el método en la jerarquía de herencia

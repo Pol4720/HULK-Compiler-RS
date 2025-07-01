@@ -257,9 +257,9 @@ impl Codegen for FunctionDef {
             .collect();
 
         // Si es método de tipo, agrega self al contexto y como primer argumento
-        if let Some(type_name) = fn_context.current_self.clone() {
-            let self_var = format!("%self.{}", fn_context.get_scope());
-            fn_context.register_variable(&self_var, type_name.clone());
+        if let Some(type_name) = context.current_self.clone() {
+            // let self_var = format!("%self.{}", context.get_scope());
+            // fn_context.register_variable(&self_var, type_name.clone());
             // Si necesitas modificar la lista de argumentos LLVM, deberías hacerlo antes de generar la cabecera
             // Aquí solo se registra la variable en el contexto
             params_ir.insert(0, format!("ptr %self.{}", fn_context.get_scope()));
@@ -277,6 +277,18 @@ impl Codegen for FunctionDef {
         //📦 Reserva espacio para parámetros y almacena
         for param in &self.params {
             param.codegen(&mut fn_context);
+            println!("Generando código para parámetro: {} de tipo {}", param.name, param.param_type);
+        }
+        if let Some(type_name) = context.current_self.clone() {
+            let llvm_type = "ptr".to_string();
+            let arg_name = format!("%self.{}", fn_context.get_scope());
+
+            let alloca_reg = fn_context.generate_temp();
+            fn_context.emit(&format!("  {} = alloca {}", alloca_reg, llvm_type));
+            fn_context.emit(&format!("  store {} {}, {} {}", llvm_type, arg_name, llvm_type, alloca_reg));
+
+            fn_context.register_variable(&format!("self.{}", fn_context.get_scope()), alloca_reg.clone());
+            fn_context.register_type(&format!("self.{}", fn_context.get_scope()), llvm_type);
         }
 
         

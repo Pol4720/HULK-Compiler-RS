@@ -51,6 +51,7 @@ pub struct CodegenContext {
     pub globals: String, // Definiciones globales (strings, etc.)
     pub temp_counter: usize,
     pub symbol_table: HashMap<String, String>,
+    pub register_hulk_type_map: HashMap<String, String>,
     pub type_table: HashMap<String, String>,
     pub function_table: HashMap<String, String>,
     pub vtable: HashMap<String, HashMap<String, String>>,
@@ -77,6 +78,7 @@ impl CodegenContext {
             globals: String::new(),
             temp_counter: 0,
             symbol_table: HashMap::new(),
+            register_hulk_type_map: HashMap::new(),
             type_table: HashMap::new(),
             function_table: HashMap::new(),
             vtable: HashMap::new(), 
@@ -93,6 +95,13 @@ impl CodegenContext {
             scope_id: 0,
             temp_types: HashMap::new(),
         }
+    }
+    pub fn add_register_hulk_type(&mut self, reg: String, type_name: String) {
+        self.register_hulk_type_map.insert(reg, type_name);
+    }
+
+    pub fn get_register_hulk_type(&self, reg: &str) -> Option<&String> {
+        self.register_hulk_type_map.get(reg)
     }
 
      pub fn register_method(&mut self, type_name: &str, method_name: &str, llvm_function_name: &str) {
@@ -175,6 +184,15 @@ impl CodegenContext {
 
     pub fn register_variable(&mut self, name: &str, reg: String) {
         self.symbol_table.insert(name.to_string(), reg);
+    }
+    pub fn get_variable(&self, name: &str) -> Option<&String> {
+        // Busca primero por el nombre directo
+        if let Some(val) = self.symbol_table.get(name) {
+            return Some(val);
+        }
+        // Si no está, busca por el nombre con el scope actual: %name.{scope_id}
+        let scoped_name = format!("{}.{}", name, self.scope_id);
+        self.symbol_table.get(&scoped_name)
     }
 
     pub fn generate_string_const_name(&mut self) -> String {

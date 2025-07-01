@@ -52,7 +52,7 @@ impl Codegen for MemberAccess {
         let object_reg = self.object.codegen(context);
         print!("{}", &object_reg);
         // Intenta deducir el tipo del objeto
-        let object_type = context.temp_types.get(&object_reg).cloned().unwrap_or_else(|| "candela".to_string());
+        let object_type = context.get_register_hulk_type(&object_reg).cloned().unwrap_or_else(|| "candela".to_string());
         print!("{}", &object_type);
         // Obtiene el índice del miembro
         let member_index_val = {
@@ -65,8 +65,8 @@ impl Codegen for MemberAccess {
         // Obtiene el puntero al campo
         let ptr_temp = context.generate_temp();
         context.emit(&format!(
-            "{} = getelementptr %{}_type, ptr {}, i32 0, i32 {}",
-            ptr_temp, object_type, object_reg, member_index_val + 2 // +2 por vtable y parent
+            "{} = getelementptr %{}_type, ptr %self.{}, i32 0 , i32 {}",
+            ptr_temp, object_type, context.get_scope(), member_index_val// +2 por vtable y parent
         ));
         // Carga el valor del campo
         let result = context.generate_temp();
