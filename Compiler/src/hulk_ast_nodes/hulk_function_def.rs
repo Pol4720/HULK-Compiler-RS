@@ -280,6 +280,7 @@ impl Codegen for FunctionDef {
             println!("Generando código para parámetro: {} de tipo {}", param.name, param.param_type);
         }
         if let Some(type_name) = context.current_self.clone() {
+            fn_context.current_self = context.current_self.clone();
             let llvm_type = "ptr".to_string();
             let arg_name = format!("%self.{}", fn_context.get_scope());
 
