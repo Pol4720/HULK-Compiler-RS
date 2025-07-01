@@ -68,10 +68,10 @@ impl Codegen for FunctionCall {
         let return_type_str = context
             .function_table
             .get(&self.funct_name)
-            .expect(&format!("Tipo de retorno de la función no encontrado, function name: {}", self.funct_name));
+            .expect(&format!("Tipo de retorno de la función no encontrado, function name: {}", self.funct_name))
+            .clone();
 
-
-        let llvm_ret_type =return_type_str.to_string();
+        let llvm_ret_type = return_type_str.to_string();
 
         // 3. Emitimos la llamada
         let result_reg = context.generate_temp();
@@ -79,6 +79,10 @@ impl Codegen for FunctionCall {
             "  {} = call {} @{}({})",
             result_reg, llvm_ret_type, self.funct_name, args_str
         ));
+        context.add_register_hulk_type(result_reg.clone(), return_type_str.clone());
+        context
+            .symbol_table
+            .insert("__last_type__".to_string(), llvm_ret_type.clone());
 
         result_reg
     }

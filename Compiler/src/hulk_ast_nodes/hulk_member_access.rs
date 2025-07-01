@@ -52,12 +52,13 @@ impl Codegen for MemberAccess {
         let object_reg = self.object.codegen(context);
         
         // Intenta deducir el tipo del objeto
-        let object_type = context.get_register_hulk_type(&object_reg).cloned().unwrap_or_else(|| "candela".to_string());
+        let object_type = context.get_register_hulk_type(&object_reg).cloned()
+            .unwrap_or_else(|| panic!("Could not determine object type for member access: {}", self.member.id));
         
         // Obtiene el índice del miembro
         let member_index_val = {
             let key = (object_type.clone(), self.member.to_string());
-            *context.type_members_ids.get(&key).expect("Member not found")
+            *context.type_members_ids.get(&key).expect(&format!("Member '{}' not found in type '{}'", self.member.id, object_type))
         };
         
         // Determina el tipo LLVM del campo
@@ -69,12 +70,14 @@ impl Codegen for MemberAccess {
             "{} = getelementptr %{}_type, ptr %self.{}, i32 0 , i32 {}",
             ptr_temp, object_type, context.get_scope(), member_index_val// +2 por vtable y parent
         ));
+        
         // Carga el valor del campo
         let result = context.generate_temp();
         context.emit(&format!(
             "{} = load {}, ptr {}",
             result, llvm_type, ptr_temp
         ));
+        
         // Registra el tipo temporal para futuras inferencias
         context.temp_types.insert(result.clone(), node_type);
         result

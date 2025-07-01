@@ -107,6 +107,9 @@ impl Codegen for FunctionAccess {
             "{} = call {} {}({})",
             temp, return_llvm, func_ptr, args_str
         ));
+        context
+            .symbol_table
+            .insert("__last_type__".to_string(), return_llvm.clone());
         temp
     }
 }
