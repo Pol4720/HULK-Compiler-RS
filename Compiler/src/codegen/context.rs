@@ -55,9 +55,11 @@ pub struct CodegenContext {
     pub type_table: HashMap<String, String>,
     pub function_table: HashMap<String, String>,
     pub f_table: HashMap<String, String>,
+    pub max_function: usize,
     pub vtable: HashMap<String, HashMap<String, String>>,
     pub id: usize,
     pub constructor_args_types: HashMap<String, Vec<String>>,
+    pub constructor_args_names: HashMap<String, Vec<String>>,
     pub inherits: HashMap<String, String>,
     pub types_members_functions: HashMap<(String,String,i32), Vec<String>>,
     pub type_members_types: HashMap<(String, String), String>,
@@ -84,9 +86,11 @@ impl CodegenContext {
             type_table: HashMap::new(),
             function_table: HashMap::new(),
             f_table: HashMap::new(),
+            max_function: 1,
             vtable: HashMap::new(),
             id: 1,
             constructor_args_types: HashMap::new(),
+            constructor_args_names: HashMap::new(),
             inherits: HashMap::new(),
             types_members_functions: HashMap::new(),
             type_members_types: HashMap::new(),
@@ -134,6 +138,7 @@ impl CodegenContext {
         self.type_members_ids.extend(other.type_members_ids);
         self.type_functions_ids.extend(other.type_functions_ids);
         self.constructor_args_types.extend(other.constructor_args_types);
+        self.constructor_args_names.extend(other.constructor_args_names);
         self.inherits.extend(other.inherits);
         self.types_members_functions.extend(other.types_members_functions);
         self.function_member_llvm_names.extend(other.function_member_llvm_names);
@@ -220,12 +225,14 @@ impl CodegenContext {
         let mut ctx = CodegenContext::new();
         ctx.function_table = self.function_table.clone();
         ctx.f_table = self.f_table.clone();
+        ctx.max_function = self.max_function.clone();
         ctx.type_table = self.type_table.clone();
         ctx.vtable = self.vtable.clone();
         ctx.type_members_types = self.type_members_types.clone();
         ctx.type_members_ids = self.type_members_ids.clone();
         ctx.type_functions_ids = self.type_functions_ids.clone();
         ctx.constructor_args_types = self.constructor_args_types.clone();
+        ctx.constructor_args_names = self.constructor_args_names.clone();
         ctx.inherits = self.inherits.clone();
         ctx.types_members_functions = self.types_members_functions.clone();
         ctx.function_member_llvm_names = self.function_member_llvm_names.clone();
