@@ -80,11 +80,20 @@ impl Codegen for FunctionCall {
             result_reg, llvm_ret_type, self.funct_name, args_str
         ));
 
-        //Actualizar contexto
-        let type_function = context.f_table.get(&self.funct_name);
-        if let Some(type_name) = type_function {
-            context.add_register_hulk_type(result_reg.clone(), type_name.clone());
+        // Actualizar contexto con el tipo REAL que retorna la función
+        // Priorizar el tipo inferido en el AST si está disponible
+        if let Some(actual_type) = &self._type {
+            // Usar el tipo inferido/real en lugar del tipo declarado
+            println!("Tipo inferido de la llamada a función {}: {}", self.funct_name, actual_type.type_name);
+            context.add_register_hulk_type(result_reg.clone(), actual_type.type_name.clone());
+        } else {
+            // Fallback al tipo declarado si no tenemos información más precisa
+            let type_function = context.f_table.get(&self.funct_name);
+            if let Some(type_name) = type_function {
+                context.add_register_hulk_type(result_reg.clone(), type_name.clone());
+            }
         }
+        
         context
             .symbol_table
             .insert("__last_type__".to_string(), llvm_ret_type.clone());
