@@ -17,14 +17,18 @@ fn main() {
     println!("==============================");
     // Define aquí el nombre y la regex del token a probar
     let token_name = "Token de prueba";
-    let token_regex = "#[^\n]*";
+    let token_regex = "ab..e";
     println!("Token: {} => {}", token_name, token_regex);
     if let Some(ast) = parse_regex(token_regex) {
         println!("  AST: {}", ast.to_repr());
 
         let nfa = NFA::from_ast(&ast);
         println!("NFA generado para '{}':", token_name);
-        println!("{}", nfa.to_string());
+
+        nfa.print_transition_table();
+
+        // println!("{}", nfa.to_string());
+        
         // Permitir probar cadenas de entrada
         loop {
             print!(

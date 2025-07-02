@@ -34,8 +34,23 @@ impl NFA {
             let mut next_states = HashSet::new();
             for state_id in &current_states {
                 if let Some(state) = self.states.get(state_id) {
+                    // Transiciones literales específicas
                     if let Some(targets) = state.transitions.get(&Some(RegexChar::Literal(c))) {
                         next_states.extend(targets.iter().cloned());
+                    }
+                    // Transiciones "cualquier carácter" (.)
+                    if let Some(targets) = state.transitions.get(&Some(RegexChar::Any)) {
+                        next_states.extend(targets.iter().cloned());
+                    }
+                    // Transiciones de escape que podrían coincidir
+                    for (transition_char, targets) in &state.transitions {
+                        if let Some(RegexChar::Escape(escape)) = transition_char {
+                            if let Some(literal_char) = escape.as_char() {
+                                if literal_char == c {
+                                    next_states.extend(targets.iter().cloned());
+                                }
+                            }
+                        }
                     }
                 }
             }
