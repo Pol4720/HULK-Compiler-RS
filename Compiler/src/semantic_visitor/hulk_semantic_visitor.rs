@@ -714,27 +714,37 @@ impl Visitor<TypeNode> for SemanticVisitor {
     }
 
     fn visit_if_else(&mut self, node: &mut IfExpr) -> TypeNode {
-    let if_condition_type = node.condition.accept(self);
-    if if_condition_type != self.get_type(&HulkTypesInfo::Boolean) {
-        self.new_error(SemanticError::InvalidConditionType(if_condition_type, node.token_pos.clone()));
-    }
+        let if_condition_type = node.condition.accept(self);
+        if if_condition_type != self.get_type(&HulkTypesInfo::Boolean) {
+            self.new_error(SemanticError::InvalidConditionType(if_condition_type, node.token_pos.clone()));
+        }
 
-    let mut result_type = node.then_branch.accept(self);
+        let mut result_type = node.then_branch.accept(self);
 
-    for (condition, body_expr) in node.else_branch.iter_mut() {
-        if let Some(cond) = condition {
-            let cond_type = cond.accept(self);
-            if cond_type != self.get_type(&HulkTypesInfo::Boolean) {
-                self.new_error(SemanticError::InvalidConditionType(cond_type, node.token_pos.clone()));
+        for (condition, body_expr) in node.else_branch.iter_mut() {
+            if let Some(cond) = condition {
+                let cond_type = cond.accept(self);
+                if cond_type != self.get_type(&HulkTypesInfo::Boolean) {
+                    self.new_error(SemanticError::InvalidConditionType(cond_type, node.token_pos.clone()));
+                }
+            }
+            let branch_type = body_expr.accept(self);
+
+            if result_type != branch_type {
+                let lca = self.type_ast.find_lca(&result_type, &branch_type);
+                if lca.type_name == "Unknown" || lca.type_name == "Object" {
+                    self.new_error(SemanticError::UnknownError(
+                        "Incompatible types in if-else branches".to_string(),
+                        node.token_pos.clone(),
+                    ));
+                }
+                result_type = lca;
             }
         }
-        let branch_type = body_expr.accept(self);
-        result_type = self.type_ast.find_lca(&result_type, &branch_type);
-    }
 
-    node.set_expression_type(result_type.clone());
-    result_type
-}
+        node.set_expression_type(result_type.clone());
+        result_type
+    }
 
     fn visit_let_in(&mut self, node: &mut LetIn) -> TypeNode {
         self.build_scope();
@@ -873,14 +883,22 @@ impl Visitor<TypeNode> for SemanticVisitor {
             } else {
                 for (index, arg) in node.arguments.iter_mut().enumerate() {
                     let arg_type = arg.accept(self);
-                    if arg_type.type_name != type_node.params[index].param_type {
-                        self.new_error(SemanticError::InvalidTypeArgument(
-                            "types".to_string(),
-                            arg_type.type_name,
-                            type_node.params[index].param_type.clone(),
-                            index,
-                            node.type_name.id.clone(),
-                            node.token_pos.clone()
+                    let expected_type_name = &type_node.params[index].param_type;
+                    if let Some(expected_type_node) = self.type_ast.get_type(expected_type_name) {
+                        if !self.type_ast.is_ancestor(&expected_type_node, &arg_type) {
+                            self.new_error(SemanticError::InvalidTypeArgument(
+                                "types".to_string(),
+                                arg_type.type_name,
+                                expected_type_name.clone(),
+                                index,
+                                node.type_name.id.clone(),
+                                node.token_pos.clone()
+                            ));
+                        }
+                    } else {
+                        self.new_error(SemanticError::UndefinedType(
+                            expected_type_name.clone(),
+                            node.token_pos.clone(),
                         ));
                     }
                 }
@@ -910,14 +928,22 @@ impl Visitor<TypeNode> for SemanticVisitor {
             } else {
                 for (index, arg) in node.member.arguments.iter_mut().enumerate() {
                     let arg_type = arg.accept(self);
-                    if arg_type.type_name != func.params[index].param_type {
-                        self.new_error(SemanticError::InvalidTypeArgument(
-                            "function".to_string(),
-                            arg_type.type_name,
-                            func.params[index].param_type.clone(),
-                            index,
-                            node.member.funct_name.clone(),
-                            node.member.token_pos.clone()
+                    let expected_type_name = &func.params[index].param_type;
+                    if let Some(expected_type_node) = self.type_ast.get_type(expected_type_name) {
+                        if !self.type_ast.is_ancestor(&expected_type_node, &arg_type) {
+                            self.new_error(SemanticError::InvalidTypeArgument(
+                                "function".to_string(),
+                                arg_type.type_name,
+                                expected_type_name.clone(),
+                                index,
+                                node.member.funct_name.clone(),
+                                node.member.token_pos.clone()
+                            ));
+                        }
+                    } else {
+                        self.new_error(SemanticError::UndefinedType(
+                            expected_type_name.clone(),
+                            node.member.token_pos.clone(),
                         ));
                     }
                 }
