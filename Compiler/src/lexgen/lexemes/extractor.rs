@@ -57,10 +57,30 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
         let mut col = column;
         let mut last_accept_col = col;
         // Buscar el match más largo (greedy)
+        let is_line_start = (index == 0) || (index > 0 && chars[index - 1] == '\n');
+
+        // Si estamos al inicio de línea, intentar primero transición con ^
+        if is_line_start {
+            if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), RegexChar::Start)) {
+                let new_state_key = next_key.clone();
+                if let Some(state) = dfa.states.get(&new_state_key) {
+                    // Verificar que desde este nuevo estado podemos continuar
+                    // Solo cambiar el estado si es válido
+                    state_key = new_state_key;
+                    
+                    // Si este estado es de aceptación, considerarlo como posible match
+                    if let Some(ref accept) = state.accept {
+                        // Para ^ solo, podríamos tener un match de longitud 0
+                        // pero normalmente ^ va seguido de otros caracteres
+                    }
+                }
+            }
+        }
+
         while i < len {
             let c = chars[i];
-            // Mapeo especial para metacaracteres reconocidos por el DFA
             let symbol = RegexChar::Literal(c);
+
             if let Some(next_key) = dfa.transitions.get(&(state_key.clone(), symbol.clone())) {
                 state_key = next_key.clone();
                 if let Some(state) = dfa.states.get(&state_key) {
@@ -76,7 +96,6 @@ pub fn extract_lexemes(text: &str, dfa: &DFA) -> Result<Vec<Lexeme>, Vec<Lexical
                 }
                 i += 1;
             } else {
-                // No hay transición válida, salir del bucle
                 break;
             }
         }
