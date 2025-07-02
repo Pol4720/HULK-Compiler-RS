@@ -24,26 +24,6 @@ pub enum RegexChar {
 }
 
 impl RegexChar {
-    /// Devuelve `true` si el carácter es una transición vacía (ε).
-    pub fn is_epsilon(&self) -> bool {
-        matches!(self, RegexChar::Epsilon)
-    }
-
-    /// Devuelve `true` si el carácter es un literal.
-    pub fn is_literal(&self) -> bool {
-        matches!(self, RegexChar::Literal(_))
-    }
-
-    /// Devuelve `true` si el carácter es de inicio de línea (^).
-    pub fn is_start(&self) -> bool {
-        matches!(self, RegexChar::Start)
-    }
-
-    /// Devuelve `true` si el carácter es de final de línea ($).
-    pub fn is_end(&self) -> bool {
-        matches!(self, RegexChar::End)
-    }
-
     /// Si es un literal, retorna el carácter; si no, retorna `None`.
     pub fn as_char(&self) -> Option<char> {
         if let RegexChar::Literal(c) = self {

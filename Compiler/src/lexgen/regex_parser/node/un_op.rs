@@ -12,14 +12,3 @@ pub enum RegexUnOp {
     /// Cero o una repetición: ?
     Optional,
 }
-
-impl RegexUnOp {
-    /// Devuelve el símbolo asociado a la operación unaria.
-    pub fn symbol(&self) -> char {
-        match self {
-            RegexUnOp::Star => '*',
-            RegexUnOp::Plus => '+',
-            RegexUnOp::Optional => '?',
-        }
-    }
-}
