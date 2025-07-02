@@ -468,7 +468,6 @@ impl HulkTypeNode {
                         // Si no hay parámetro, usa la inicialización normal
                         context.register_variable(attr_name, llvm_type.clone());
                         let prop_reg = attr_def.init_expr.codegen(context);
-                        context.register_variable(attr_name, prop_reg.clone());
                         context.emit(&format!(
                             "store {} {}, ptr {}",
                             llvm_type, prop_reg, result_reg
