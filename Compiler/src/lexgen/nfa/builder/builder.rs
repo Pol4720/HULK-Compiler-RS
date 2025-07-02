@@ -361,6 +361,24 @@ impl NFABuilder {
                             }
                         }
                     }
+                    RegexClass::Mixed { ranges, singles } => {
+                        // Procesar rangos
+                        for (a, b) in ranges {
+                            for ch in (*a as u8)..=(*b as u8) {
+                                self.states.get_mut(&start).unwrap().add_transition(
+                                    Some(RegexChar::Literal(ch as char)),
+                                    accept.clone(),
+                                );
+                            }
+                        }
+                        // Procesar caracteres individuales
+                        for c in singles {
+                            self.states
+                                .get_mut(&start)
+                                .unwrap()
+                                .add_transition(Some(c.clone()), accept.clone());
+                        }
+                    }
                     RegexClass::Negated(inner) => {
                         // Para clases negadas [^...], crear transiciones para todos los caracteres EXCEPTO los especificados
                         let mut excluidos = std::collections::HashSet::new();
@@ -378,6 +396,20 @@ impl NFABuilder {
                                 for (a, b) in ranges {
                                     for ch in (*a as u8)..=(*b as u8) {
                                         excluidos.insert(ch as char);
+                                    }
+                                }
+                            }
+                            RegexClass::Mixed { ranges, singles } => {
+                                // Procesar rangos
+                                for (a, b) in ranges {
+                                    for ch in (*a as u8)..=(*b as u8) {
+                                        excluidos.insert(ch as char);
+                                    }
+                                }
+                                // Procesar caracteres individuales
+                                for c in singles {
+                                    if let RegexChar::Literal(ch) = c {
+                                        excluidos.insert(*ch);
                                     }
                                 }
                             }

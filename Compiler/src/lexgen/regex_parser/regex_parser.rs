@@ -313,14 +313,8 @@ mod helpers {
         let result = if !ranges.is_empty() && singles.is_empty() {
             RegexClass::Ranges(ranges)
         } else if !ranges.is_empty() && !singles.is_empty() {
-            // Mezcla: crea un set con los literales y expande los rangos
-            let mut set = singles;
-            for (a, b) in &ranges {
-                for ch in *a as u8..=*b as u8 {
-                    set.push(RegexChar::Literal(ch as char));
-                }
-            }
-            RegexClass::Set(set)
+            // Caso mixto: mantener rangos y singles separados
+            RegexClass::Mixed { ranges, singles }
         } else {
             RegexClass::Set(singles)
         };
