@@ -48,10 +48,13 @@ impl Codegen for NewTypeInstance {
         // Evalúa cada argumento y obtiene el registro LLVM
         let llvm_args: Vec<String> = self.arguments.iter().map(|arg| {
             let arg_reg = arg.codegen(context);
-            
-            // Busca el tipo LLVM del argumento 
-            let arg_type = context.symbol_table.get("__last_type__").cloned().unwrap_or_else(|| "ptr".to_string());
-            format!("{} {}", arg_type, arg_reg)
+
+            // Busca el tipo LLVM del argumento
+            let arg_type = context.get_register_hulk_type(&arg_reg);
+            let arg_llvm_type = CodegenContext::to_llvm_type(
+                arg_type.cloned().unwrap_or_else(|| "ptr".to_string())
+            );
+            format!("{} {}", arg_llvm_type, arg_reg)
         }).collect();
         let args_str = llvm_args.join(", ");
         let result = context.generate_temp();

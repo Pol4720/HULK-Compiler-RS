@@ -300,6 +300,7 @@ impl HulkTypeNode {
             let param_name = format!("%{}", param.name.clone());
             params_list.push(format!("{} {}", llvm_type, param_name));
             context.register_variable(&param_name, llvm_type.clone());
+            context.register_variable(param.name.as_str(), llvm_type.clone());
         }
         let params_str = params_list.join(", ");
 
@@ -366,26 +367,13 @@ impl HulkTypeNode {
         // 7. Inicializa los atributos del padre (igual que antes, si aplica)
         if let Some(parent_name) = self.parent.clone() {
             let mut parent_args_values = Vec::new();
-            for arg in self.parent_args.iter() {
-                let arg_result = arg.codegen(context);
-                let arg_reg = context.generate_temp();
-                let llvm_type = context
-                    .symbol_table
-                    .get("__last_type__")
-                    .cloned()
-                    .unwrap_or_else(|| "ptr".to_string());
-                    context.emit(&format!(
-                        "{} = alloca {}",
-                    arg_reg.clone(),
-                    llvm_type.clone()
-                    ));
-                    context.emit(&format!(
-                        "store {} {}, ptr {}",
-                    llvm_type,
-                    arg_result,
-                    arg_reg.clone()
-                    ));
-                parent_args_values.push(format!("ptr {}", arg_reg.clone()));
+            if let Some(parent_args_types) = context.constructor_args_types.get(&parent_name) {
+                for (i, _arg) in self.parent_args.iter().enumerate() {
+                    let param_name = format!("%{}", self.parameters[i].name);
+                    let hulk_type = &parent_args_types[i];
+                    let llvm_type = CodegenContext::to_llvm_type(hulk_type.clone());
+                    parent_args_values.push(format!("{} {}", llvm_type, param_name));
+                }
             }
             let args_regs_str = parent_args_values.join(", ");
             let parent_ptr = context.generate_temp();
