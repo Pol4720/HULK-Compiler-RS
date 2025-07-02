@@ -20,21 +20,22 @@ pub enum RegexClass {
     Dot,
 }
 
+// Implementación para RegexClass
 impl RegexClass {
-    /// Devuelve true si la clase es una negación.
-    pub fn is_negated(&self) -> bool {
-        matches!(self, RegexClass::Negated(_))
-    }
-    /// Devuelve true si la clase es un conjunto explícito.
-    pub fn is_set(&self) -> bool {
-        matches!(self, RegexClass::Set(_))
-    }
-    /// Devuelve true si la clase es uno o más rangos.
-    pub fn is_ranges(&self) -> bool {
-        matches!(self, RegexClass::Ranges(_))
-    }
-    /// Devuelve true si la clase es el metacarácter punto.
-    pub fn is_dot(&self) -> bool {
-        matches!(self, RegexClass::Dot)
+    pub fn to_repr(&self) -> String {
+        match self {
+            RegexClass::Set(chars) => {
+                let inner = chars.iter().map(|c| format!("{:?}", c)).collect::<Vec<_>>().join(", ");
+                format!("Set[{}]", inner)
+            }
+            RegexClass::Ranges(ranges) => {
+                let inner = ranges.iter().map(|(a, b)| format!("{}-{}", a, b)).collect::<Vec<_>>().join(", ");
+                format!("Ranges[{}]", inner)
+            }
+            RegexClass::Negated(inner) => {
+                format!("Negated[{}]", inner.to_repr())
+            }
+            RegexClass::Dot => "Dot".to_string(),
+        }
     }
 }

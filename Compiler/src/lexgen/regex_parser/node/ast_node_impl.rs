@@ -75,22 +75,4 @@ impl AstNode for AstNodeImpl {
     }
 }
 
-// Implementación para RegexClass
-impl RegexClass {
-    pub fn to_repr(&self) -> String {
-        match self {
-            RegexClass::Set(chars) => {
-                let inner = chars.iter().map(|c| format!("{:?}", c)).collect::<Vec<_>>().join(", ");
-                format!("Set[{}]", inner)
-            }
-            RegexClass::Ranges(ranges) => {
-                let inner = ranges.iter().map(|(a, b)| format!("{}-{}", a, b)).collect::<Vec<_>>().join(", ");
-                format!("Ranges[{}]", inner)
-            }
-            RegexClass::Negated(inner) => {
-                format!("Negated[{}]", inner.to_repr())
-            }
-            RegexClass::Dot => "Dot".to_string(),
-        }
-    }
-}
+

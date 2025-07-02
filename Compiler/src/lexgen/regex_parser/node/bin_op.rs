@@ -10,12 +10,3 @@ pub enum RegexBinOp {
     Or,
 }
 
-impl RegexBinOp {
-    /// Devuelve el símbolo asociado a la operación binaria, si existe.
-    pub fn symbol(&self) -> Option<char> {
-        match self {
-            RegexBinOp::Concat => None, // La concatenación no tiene símbolo explícito
-            RegexBinOp::Or => Some('|'),
-        }
-    }
-}

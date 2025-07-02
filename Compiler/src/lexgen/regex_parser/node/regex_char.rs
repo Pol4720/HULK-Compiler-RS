@@ -9,6 +9,7 @@ use super::regex_escape::RegexEscape;
 /// - `Epsilon`: la transición vacía (ε), usada en autómatas para representar ausencia de consumo de carácter.
 /// - `Start`: el carácter de inicio de línea (^).
 /// - `End`: el carácter de final de línea ($).
+/// - `Any`: representa cualquier carácter (como el punto en regex).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub enum RegexChar {
     /// Un carácter literal en la expresión regular.
@@ -21,29 +22,11 @@ pub enum RegexChar {
     Start,
     /// El carácter de final de línea ($).
     End,
+    /// Representa cualquier carácter (como el punto en regex).
+    Any,
 }
 
 impl RegexChar {
-    /// Devuelve `true` si el carácter es una transición vacía (ε).
-    pub fn is_epsilon(&self) -> bool {
-        matches!(self, RegexChar::Epsilon)
-    }
-
-    /// Devuelve `true` si el carácter es un literal.
-    pub fn is_literal(&self) -> bool {
-        matches!(self, RegexChar::Literal(_))
-    }
-
-    /// Devuelve `true` si el carácter es de inicio de línea (^).
-    pub fn is_start(&self) -> bool {
-        matches!(self, RegexChar::Start)
-    }
-
-    /// Devuelve `true` si el carácter es de final de línea ($).
-    pub fn is_end(&self) -> bool {
-        matches!(self, RegexChar::End)
-    }
-
     /// Si es un literal, retorna el carácter; si no, retorna `None`.
     pub fn as_char(&self) -> Option<char> {
         if let RegexChar::Literal(c) = self {
@@ -72,6 +55,11 @@ pub struct StarNode {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EndNode {
+    pub value: RegexChar,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AnyNode {
     pub value: RegexChar,
 }
 
@@ -172,5 +160,30 @@ impl AstNode for LiteralNode {
 
     fn to_repr(&self) -> String {
         format!("Literal({})", self.value.as_char().unwrap_or(' '))
+    }
+}
+
+impl AnyNode {
+    /// Crea un nuevo nodo para cualquier carácter (.).
+    pub fn new() -> Self {
+        AnyNode {
+            value: RegexChar::Any,
+        }
+    }
+}
+
+impl AstNode for AnyNode {
+    fn children(&self) -> Vec<&AstNodeImpl> {
+        vec![]
+    }
+
+    fn to_ast(&self) -> AstNodeImpl {
+        AstNodeImpl {
+            kind: AstNodeKind::RegexChar(self.value.clone()),
+        }
+    }
+
+    fn to_repr(&self) -> String {
+        format!("Any({:?})", self.value)
     }
 }
