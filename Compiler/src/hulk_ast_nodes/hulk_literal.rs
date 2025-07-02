@@ -51,6 +51,7 @@ impl Codegen for NumberLiteral {
         let formatted = format!("{:.16E}", self.value);
         let line = format!("  {} = fadd double 0.0, {}", result_reg, formatted);
         context.emit(&line);
+        context.add_register_hulk_type(result_reg.clone(), "Number".to_string());
         context.symbol_table.insert("__last_type__".to_string(), "double".to_string());
         result_reg
     }
@@ -100,6 +101,7 @@ impl Codegen for BooleanLiteral {
         let line = format!("  {} = add i1 0, {}", result_reg, llvm_bool);
         context.emit(&line);
         context.symbol_table.insert("__last_type__".to_string(), "i1".to_string());
+        context.add_register_hulk_type(result_reg.clone(), "Boolean".to_string());
         result_reg
     }
 }
@@ -171,6 +173,7 @@ impl Codegen for StringLiteral {
             ptr_reg, byte_count, byte_count, const_name
         );
         context.emit(&gep_inst);
+        context.add_register_hulk_type(ptr_reg.clone(), "String".to_string());
         context.symbol_table.insert("__last_type__".to_string(), "ptr".to_string());
 
         ptr_reg // Devuelve el nombre del registro con la dirección del string

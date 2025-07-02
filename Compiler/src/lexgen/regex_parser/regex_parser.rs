@@ -6,7 +6,7 @@
 use crate::regex_parser::node::ast_node_impl::{AstNode, AstNodeImpl, AstNodeKind};
 use crate::regex_parser::node::bin_op::RegexBinOp;
 use crate::regex_parser::node::group::RegexGroup;
-use crate::regex_parser::node::regex_char::{EndNode, LiteralNode, RegexChar, StarNode};
+use crate::regex_parser::node::regex_char::{AnyNode, EndNode, LiteralNode, RegexChar, StarNode};
 use crate::regex_parser::node::regex_class::RegexClass;
 use crate::regex_parser::node::regex_escape::RegexEscape;
 use crate::regex_parser::node::un_op::RegexUnOp;
@@ -126,7 +126,12 @@ pub fn parse_regex(input: &str) -> Option<AstNodeImpl> {
         }
     } else if input.len() >= 1 {
         let c = input.chars().next().unwrap();
-        (LiteralNode::new(c).to_ast(), &input[1..])
+        if c == '.' {
+            // El punto representa cualquier carácter
+            (AnyNode::new().to_ast(), &input[1..])
+        } else {
+            (LiteralNode::new(c).to_ast(), &input[1..])
+        }
     } else {
         return None;
     };
@@ -308,14 +313,8 @@ mod helpers {
         let result = if !ranges.is_empty() && singles.is_empty() {
             RegexClass::Ranges(ranges)
         } else if !ranges.is_empty() && !singles.is_empty() {
-            // Mezcla: crea un set con los literales y expande los rangos
-            let mut set = singles;
-            for (a, b) in &ranges {
-                for ch in *a as u8..=*b as u8 {
-                    set.push(RegexChar::Literal(ch as char));
-                }
-            }
-            RegexClass::Set(set)
+            // Caso mixto: mantener rangos y singles separados
+            RegexClass::Mixed { ranges, singles }
         } else {
             RegexClass::Set(singles)
         };

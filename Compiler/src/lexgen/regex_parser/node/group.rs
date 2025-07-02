@@ -12,12 +12,4 @@ impl<T> RegexGroup<T> {
     pub fn new(expr: T) -> Self {
         RegexGroup { expr }
     }
-    /// Devuelve una referencia a la subexpresión agrupada.
-    pub fn inner(&self) -> &T {
-        &self.expr
-    }
-    /// Devuelve la subexpresión agrupada, consumiendo la agrupación.
-    pub fn into_inner(self) -> T {
-        self.expr
-    }
 }

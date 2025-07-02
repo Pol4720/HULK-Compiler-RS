@@ -95,7 +95,7 @@ impl Codegen for FunctionAccess {
         llvm_args.push(format!("ptr {}", original_object_reg)); // Usa el objeto original
         for arg in self.member.arguments.iter() {
             let arg_reg = arg.codegen(context);
-            let arg_type = context.temp_types.get(&arg_reg).cloned().unwrap_or_else(|| "ptr".to_string());
+            let arg_type = context.get_register_hulk_type(&arg_reg).cloned().unwrap_or_else(|| "Number".to_string());
             llvm_args.push(format!("{} {}", CodegenContext::to_llvm_type(arg_type), arg_reg));
         }
         let args_str = llvm_args.join(", ");

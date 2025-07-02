@@ -230,7 +230,11 @@ impl Codegen for FunctionParams {
 
         let alloca_reg = context.generate_temp();
         context.emit(&format!("  {} = alloca {}", alloca_reg, llvm_type));
-        context.emit(&format!("  store {} {}, {}* {}", llvm_type, arg_name, llvm_type, alloca_reg));
+        if llvm_type == "ptr" {
+            context.emit(&format!("  store ptr {}, ptr {}", arg_name, alloca_reg));
+        } else {
+            context.emit(&format!("  store {} {}, {}* {}", llvm_type, arg_name, llvm_type, alloca_reg));
+        }
 
         context.register_variable(&self.name, alloca_reg.clone());
         context.register_type(&self.name, llvm_type);

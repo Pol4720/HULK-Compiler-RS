@@ -102,6 +102,9 @@ impl ProgramNode {
         // Registra tipos de argumentos del constructor
         let params_types_list: Vec<String> = type_node.parameters.iter().map(|p| p.param_type.clone()).collect();
         context.constructor_args_types.insert(type_name.clone(), params_types_list);
+        // Guarda también los nombres de los parámetros del constructor
+        let params_names_list: Vec<String> = type_node.parameters.iter().map(|p| p.name.clone()).collect();
+        context.constructor_args_names.insert(type_name.clone(), params_names_list);
 
         // Emite el tipo LLVM para el struct
         let props_types: Vec<String> = props_list.iter().map(|(_, t)| CodegenContext::to_llvm_type(t.clone())).collect();
@@ -191,6 +194,9 @@ impl Codegen for ProgramNode {
                 // Constructor args
                 let params_types_list: Vec<String> = type_node.parameters.iter().map(|p| p.param_type.clone()).collect();
                 context.constructor_args_types.insert(type_name.clone(), params_types_list);
+                // Guarda también los nombres de los parámetros del constructor
+                let params_names_list: Vec<String> = type_node.parameters.iter().map(|p| p.name.clone()).collect();
+                context.constructor_args_names.insert(type_name.clone(), params_names_list);
                 // Atributos
                 if let Some(attr_names) = type_defs.attributes_map.get(type_name) {
                     for attr in attr_names {
@@ -242,8 +248,8 @@ impl Codegen for ProgramNode {
 
         // Emite el tipo de la vtable
         context.emit_global(&format!("%VTableType = type [{} x ptr]", max_functions));
-
-        // SOLUCIÓN: Asignar explícitamente type_ids en orden y guardarlos
+        context.max_function = max_functions;
+        
         // Creamos un mapa que asigna cada nombre de tipo a su índice en la vtable
         let mut type_id_map = HashMap::new();
         

@@ -13,7 +13,9 @@ use crate::hulk_ast_nodes::hulk_identifier::Identifier;
 use crate::hulk_ast_nodes::hulk_inheritance::Inheritance;
 use crate::hulk_tokens::TokenPos;
 use crate::typings::types_node::TypeNode;
-use std::collections::HashMap;
+use std::cmp::max;
+use std::collections::{HashMap, HashSet};
+
 
 /// Representa la definición de un tipo (clase) en el AST.
 ///
@@ -120,10 +122,31 @@ impl HulkTypeNode {
 
         self.generate_type_constructor(&mut type_context, attrs, methods, attr_indices, method_indices);
 
+        // Primero generamos los métodos propios definidos en este tipo
         for (_name, method) in self.methods.iter_mut() {
             // Renombrar el método con el prefijo del tipo
             method.name = format!("{}_{}", type_name, method.name.clone());
             method.codegen(&mut type_context);
+        }
+
+        // Ahora generamos delegadores para los métodos heredados que no están sobrescritos
+        if let (Some(parent_name), Some(all_methods)) = (&self.parent, methods) {
+            // Obtenemos los nombres de los métodos definidos en este tipo
+            let own_method_names: HashSet<String> = self.methods.keys().cloned().collect();
+            
+            // Para cada método en la lista completa (incluyendo heredados)
+            for method_name in all_methods {
+                // Si este método no está definido en este tipo, es heredado y necesitamos un delegador
+                if !own_method_names.contains(method_name) {
+                    // Generamos un delegador que llame al método del padre
+                    self.generate_method_delegator(
+                        &mut type_context, 
+                        method_name, 
+                        parent_name, 
+                        method_indices.and_then(|m| m.get(method_name).cloned())
+                    );
+                }
+            }
         }
 
         type_context.current_self = None;
@@ -132,6 +155,106 @@ impl HulkTypeNode {
         context.merge_into_global(type_context);
 
         format!("%{}_type", type_name)
+    }
+
+    // Método auxiliar para generar delegadores para métodos heredados
+    fn generate_method_delegator(
+        &self,
+        context: &mut CodegenContext,
+        method_name: &str,
+        parent_name: &str,
+        method_index: Option<usize>
+    ) {
+        let type_name = self.type_name.clone();
+        let child_method_name = format!("{}_{}", type_name, method_name);
+        let parent_method_name = format!("@{}_{}", parent_name, method_name);
+        
+        // Obtenemos información del tipo de retorno y parámetros del método
+        let return_type = context
+            .type_members_types
+            .get(&(parent_name.to_string(), method_name.to_string()))
+            .cloned()
+            .unwrap_or_else(|| "Number".to_string()); // Por defecto asumimos Number si no hay tipo
+        
+        let llvm_return_type = CodegenContext::to_llvm_type(return_type.clone());
+        
+        // Obtenemos los parámetros del método
+        let param_types = if let Some(method_idx) = method_index {
+            context
+                .types_members_functions
+                .get(&(parent_name.to_string(), method_name.to_string(), method_idx as i32))
+                .cloned()
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        
+        // Construimos la lista de parámetros para la declaración del método
+        let mut param_list = vec![format!("ptr %self")]; // El primer parámetro siempre es 'self'
+        let mut arg_list = Vec::new(); // Argumentos para llamar al método padre (sin self)
+        
+        for (i, param_type) in param_types.iter().enumerate() {
+            let llvm_type = CodegenContext::to_llvm_type(param_type.clone());
+            let param_name = format!("%arg{}", i);
+            param_list.push(format!("{} {}", llvm_type, param_name));
+            arg_list.push(param_name);
+        }
+        
+        // Generamos la definición del delegador
+        context.emit(&format!(
+            "define {} @{}({}) {{",
+            llvm_return_type,
+            child_method_name,
+            param_list.join(", ")
+        ));
+        
+        // Generamos el código para cargar el puntero al padre
+        context.emit(&format!("  %parent_ptr_ptr = getelementptr %{}_type, ptr %self, i32 0, i32 1", type_name));
+        context.emit("  %parent_ptr = load ptr, ptr %parent_ptr_ptr");
+        
+        // Llamamos al método del padre
+        let result_reg = if llvm_return_type == "void" {
+            // Para métodos void, no necesitamos un registro de resultado
+            if arg_list.is_empty() {
+                context.emit(&format!("  call void {}(ptr %parent_ptr)", parent_method_name));
+            } else {
+                context.emit(&format!(
+                    "  call void {}(ptr %parent_ptr, {})",
+                    parent_method_name,
+                    arg_list.join(", ")
+                ));
+            }
+            "".to_string()
+        } else {
+            // Para métodos con valor de retorno
+            let result = context.generate_temp();
+            if arg_list.is_empty() {
+                context.emit(&format!(
+                    "  {} = call {} {}(ptr %parent_ptr)",
+                    result,
+                    llvm_return_type,
+                    parent_method_name
+                ));
+            } else {
+                context.emit(&format!(
+                    "  {} = call {} {}(ptr %parent_ptr, {})",
+                    result,
+                    llvm_return_type,
+                    parent_method_name,
+                    arg_list.join(", ")
+                ));
+            }
+            result
+        };
+        
+        // Retornamos el resultado
+        if llvm_return_type != "void" {
+            context.emit(&format!("  ret {} {}", llvm_return_type, result_reg));
+        } else {
+            context.emit("  ret void");
+        }
+        
+        context.emit("}");
     }
 
     /// Genera el constructor del tipo (estructura y lógica de inicialización)
@@ -170,28 +293,34 @@ impl HulkTypeNode {
         // 1. Build params list: usa el tipo real de cada parámetro
         let mut params_list = Vec::new();
         context.build_scope();
+
+        // Agrega los parámetros propios y los registra en el contexto ANTES de usarlos
         for param in self.parameters.iter() {
             let llvm_type = CodegenContext::to_llvm_type(param.param_type.clone());
             let param_name = format!("%{}", param.name.clone());
             params_list.push(format!("{} {}", llvm_type, param_name));
             context.register_variable(&param_name, llvm_type.clone());
+            context.register_variable(param.name.as_str(), llvm_type.clone());
         }
         let params_str = params_list.join(", ");
 
-        // 2. Determina el número máximo de métodos (max_functions) usando methods
-        let max_functions = methods.map(|m| m.len()).unwrap_or(0).max(1);
-        let mut method_list = vec!["ptr null".to_string(); max_functions];
+        // 2. Inicializar la lista de métodos con punteros nulos
+        // Aseguramos que la lista tenga exactamente context.max_function elementos
+        let mut method_list = vec!["ptr null".to_string(); context.max_function];
+        
+        // Reemplazamos solo las entradas correspondientes a los métodos definidos
         if let (Some(methods), Some(method_indices)) = (methods, method_indices) {
             for method_name in methods {
                 if let Some(&index) = method_indices.get(method_name) {
-                    if index < method_list.len() {
+                    if index < context.max_function {
                         let llvm_name = format!("{}_{}", type_name, method_name);
                         method_list[index] = format!("ptr @{}", llvm_name);
                     }
                 }
             }
         }
-        // 3. Preparar vtable
+        
+        // 3. Preparar vtable - garantizando que tenga exactamente context.max_function elementos
         let type_table_instance = format!("@{}_vtable", type_name);
         context.emit(&format!(
             "{} = constant %VTableType [ {} ]",
@@ -238,26 +367,13 @@ impl HulkTypeNode {
         // 7. Inicializa los atributos del padre (igual que antes, si aplica)
         if let Some(parent_name) = self.parent.clone() {
             let mut parent_args_values = Vec::new();
-            for arg in self.parent_args.iter() {
-                let arg_result = arg.codegen(context);
-                let arg_reg = context.generate_temp();
-                let llvm_type = context
-                    .symbol_table
-                    .get("__last_type__")
-                    .cloned()
-                    .unwrap_or_else(|| "ptr".to_string());
-                context.emit(&format!(
-                    "{} = alloca {}",
-                    arg_reg.clone(),
-                    llvm_type.clone()
-                ));
-                context.emit(&format!(
-                    "store {} {}, ptr {}",
-                    llvm_type,
-                    arg_result,
-                    arg_reg.clone()
-                ));
-                parent_args_values.push(format!("ptr {}", arg_reg.clone()));
+            if let Some(parent_args_types) = context.constructor_args_types.get(&parent_name) {
+                for (i, _arg) in self.parent_args.iter().enumerate() {
+                    let param_name = format!("%{}", self.parameters[i].name);
+                    let hulk_type = &parent_args_types[i];
+                    let llvm_type = CodegenContext::to_llvm_type(hulk_type.clone());
+                    parent_args_values.push(format!("{} {}", llvm_type, param_name));
+                }
             }
             let args_regs_str = parent_args_values.join(", ");
             let parent_ptr = context.generate_temp();
@@ -361,3 +477,4 @@ impl Codegen for HulkTypeNode {
         String::new()
     }
 }
+

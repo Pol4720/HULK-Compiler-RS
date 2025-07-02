@@ -143,6 +143,13 @@ impl NFABuilder {
                         }
                     }
                     // Para caracteres normales (no escapes)
+                    RegexChar::Any => {
+                        // El punto (.) representa cualquier carácter
+                        self.states
+                            .get_mut(&start)
+                            .unwrap()
+                            .add_transition(Some(RegexChar::Any), accept.clone());
+                    }
                     _ => {
                         self.states
                             .get_mut(&start)
@@ -192,19 +199,15 @@ impl NFABuilder {
                         let dot_start = self.new_state();
                         let dot_accept = self.new_state();
                         // Nodo Dot después de la expresión
-                        for &c in ALPHABET {
-                            self.states
-                                .get_mut(&dot_start)
-                                .unwrap()
-                                .add_transition(Some(RegexChar::Literal(c)), dot_accept.clone());
-                        }
-                        // Bucle en dot_accept para todos los caracteres del alfabeto
-                        for &c in ALPHABET {
-                            self.states
-                                .get_mut(&dot_accept)
-                                .unwrap()
-                                .add_transition(Some(RegexChar::Literal(c)), dot_accept.clone());
-                        }
+                        self.states
+                            .get_mut(&dot_start)
+                            .unwrap()
+                            .add_transition(Some(RegexChar::Any), dot_accept.clone());
+                        // Bucle en dot_accept para cualquier carácter del alfabeto
+                        self.states
+                            .get_mut(&dot_accept)
+                            .unwrap()
+                            .add_transition(Some(RegexChar::Any), dot_accept.clone());
                         // Transición de Start a expresión
                         let start = self.new_state();
                         self.states
@@ -228,12 +231,10 @@ impl NFABuilder {
                         let dot_start = self.new_state();
                         // let dot_accept = self.new_state();
                         // Nodo Dot antes de la expresión
-                        for &c in ALPHABET {
-                            self.states
-                                .get_mut(&dot_start)
-                                .unwrap()
-                                .add_transition(Some(RegexChar::Literal(c)), dot_start.clone());
-                        }
+                        self.states
+                            .get_mut(&dot_start)
+                            .unwrap()
+                            .add_transition(Some(RegexChar::Any), dot_start.clone());
                         // Transición de Dot a expresión
                         self.states
                             .get_mut(&dot_start)
@@ -360,6 +361,24 @@ impl NFABuilder {
                             }
                         }
                     }
+                    RegexClass::Mixed { ranges, singles } => {
+                        // Procesar rangos
+                        for (a, b) in ranges {
+                            for ch in (*a as u8)..=(*b as u8) {
+                                self.states.get_mut(&start).unwrap().add_transition(
+                                    Some(RegexChar::Literal(ch as char)),
+                                    accept.clone(),
+                                );
+                            }
+                        }
+                        // Procesar caracteres individuales
+                        for c in singles {
+                            self.states
+                                .get_mut(&start)
+                                .unwrap()
+                                .add_transition(Some(c.clone()), accept.clone());
+                        }
+                    }
                     RegexClass::Negated(inner) => {
                         // Para clases negadas [^...], crear transiciones para todos los caracteres EXCEPTO los especificados
                         let mut excluidos = std::collections::HashSet::new();
@@ -377,6 +396,20 @@ impl NFABuilder {
                                 for (a, b) in ranges {
                                     for ch in (*a as u8)..=(*b as u8) {
                                         excluidos.insert(ch as char);
+                                    }
+                                }
+                            }
+                            RegexClass::Mixed { ranges, singles } => {
+                                // Procesar rangos
+                                for (a, b) in ranges {
+                                    for ch in (*a as u8)..=(*b as u8) {
+                                        excluidos.insert(ch as char);
+                                    }
+                                }
+                                // Procesar caracteres individuales
+                                for c in singles {
+                                    if let RegexChar::Literal(ch) = c {
+                                        excluidos.insert(*ch);
                                     }
                                 }
                             }
@@ -405,12 +438,11 @@ impl NFABuilder {
                         }
                     }
                     RegexClass::Dot => {
-                        for &c in ALPHABET {
-                            self.states
-                                .get_mut(&start)
-                                .unwrap()
-                                .add_transition(Some(RegexChar::Literal(c)), accept.clone());
-                        }
+                        // En lugar de crear múltiples transiciones literales, usar RegexChar::Any
+                        self.states
+                            .get_mut(&start)
+                            .unwrap()
+                            .add_transition(Some(RegexChar::Any), accept.clone());
                     }
                 }
                 NFAFragment {
