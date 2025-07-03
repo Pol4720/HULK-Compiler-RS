@@ -1,5 +1,4 @@
 use super::regex_char::RegexChar;
-use super::regex_escape::RegexEscape;
 
 /// Representa una clase de caracteres en una expresión regular.
 ///

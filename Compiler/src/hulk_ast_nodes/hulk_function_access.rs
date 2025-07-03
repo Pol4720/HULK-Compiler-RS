@@ -74,12 +74,20 @@ impl Codegen for FunctionAccess {
         // Obtiene el índice del método en la jerarquía
         let function_index = *context.type_functions_ids.get(&(curr_object_type.clone(), function_name.clone())).unwrap();
         
-        // IMPORTANTE: Obtenemos el ID del tipo original del objeto
-        // Este debería ser un entero literal en tiempo de compilación, no un valor en tiempo de ejecución
-        let type_id = match context.type_ids.get(&original_object_type) {
-            Some(id) => *id,
-            None => panic!("Type ID not found for type: {}", original_object_type)
-        };
+        // IMPORTANTE: Obtener el ID de tipo dinámicamente desde la instancia del objeto
+        let type_id_ptr = context.generate_temp();
+        context.emit(&format!(
+            "{} = getelementptr %{}_type, ptr {}, i32 0, i32 0", 
+            type_id_ptr, 
+            original_object_type, 
+            original_object_reg
+        ));
+        let type_id = context.generate_temp();
+        context.emit(&format!(
+            "{} = load i32, ptr {}", 
+            type_id, 
+            type_id_ptr
+        ));
         
         // Usa el type_id del tipo concreto y el índice del método
         let func_ptr = context.generate_temp();
@@ -90,16 +98,20 @@ impl Codegen for FunctionAccess {
             function_index
         ));
         
-        // Prepara los argumentos
+        // Prepara los argumentos - CORREGIDO: Usamos el objeto original como primer argumento
         let mut llvm_args: Vec<String> = Vec::new();
-        llvm_args.push(format!("ptr {}", original_object_reg)); // Usa el objeto original
+        // Siempre pasamos el objeto original como primer argumento (this/self)
+        llvm_args.push(format!("ptr {}", original_object_reg));
+        
+        // Añade el resto de argumentos
         for arg in self.member.arguments.iter() {
             let arg_reg = arg.codegen(context);
             let arg_type = context.get_register_hulk_type(&arg_reg).cloned().unwrap_or_else(|| "Number".to_string());
             llvm_args.push(format!("{} {}", CodegenContext::to_llvm_type(arg_type), arg_reg));
         }
+        
+        // El resto del código es igual
         let args_str = llvm_args.join(", ");
-        // Determina el tipo de retorno
         let return_type = self._type.as_ref().map(|t| t.type_name.clone()).unwrap_or_else(|| "ptr".to_string());
         let return_llvm = CodegenContext::to_llvm_type(return_type.clone());
         let temp = context.generate_temp();
@@ -107,9 +119,13 @@ impl Codegen for FunctionAccess {
             "{} = call {} {}({})",
             temp, return_llvm, func_ptr, args_str
         ));
-        context
-            .symbol_table
-            .insert("__last_type__".to_string(), return_llvm.clone());
+        
+        // Registra el tipo del objeto retornado si es relevante
+        if return_llvm == "ptr" {
+            context.add_register_hulk_type(temp.clone(), return_type);
+        }
+        
+        context.symbol_table.insert("__last_type__".to_string(), return_llvm.clone());
         temp
     }
 }

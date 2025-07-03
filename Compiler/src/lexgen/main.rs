@@ -100,9 +100,9 @@ fn main() {
                 }
             }
             Err(errors) => {
-                println!("\nErrores léxicos:");
+                println!("\nErrores léxicos encontrados:");
                 for err in errors {
-                    println!("{:?}", err);
+                    println!("  Línea {}, columna {}: {}", err.line, err.column, err.message);
                 }
             }
         }

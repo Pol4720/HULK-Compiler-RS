@@ -253,14 +253,19 @@ impl Codegen for ProgramNode {
         // Creamos un mapa que asigna cada nombre de tipo a su índice en la vtable
         let mut type_id_map = HashMap::new();
         
-        // Recopilamos los nombres de los tipos en el mismo orden que se usarán para la vtable
-        let type_names: Vec<String> = type_defs.methods_map.keys().cloned().collect();
+        // Recopilamos los nombres de los tipos y los ordenamos para garantizar consistencia
+        let mut type_names: Vec<String> = type_defs.methods_map.keys().cloned().collect();
+        // Ordenamos alfabéticamente para garantizar un orden determinista
+        type_names.sort();
         
         // Asignamos índices secuenciales a cada tipo
         for (index, type_name) in type_names.iter().enumerate() {
             type_id_map.insert(type_name.clone(), index as i32);
             // Guardar en el contexto para que esté disponible durante la generación de código
             context.type_ids.insert(type_name.clone(), index as i32);
+            
+            // También registramos el ID del tipo como una función especial
+            context.type_functions_ids.insert((type_name.clone(), "__typeid__".to_string()), index as i32);
         }
 
         // Emite la declaración global de la super vtable - esto no cambia
