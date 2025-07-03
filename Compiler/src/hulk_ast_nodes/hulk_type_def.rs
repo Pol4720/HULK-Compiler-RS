@@ -123,9 +123,13 @@ impl HulkTypeNode {
         self.generate_type_constructor(&mut type_context, attrs, methods, attr_indices, method_indices);
 
         // Primero generamos los métodos propios definidos en este tipo
-        for (_name, method) in self.methods.iter_mut() {
+        // Convertimos a un vector y ordenamos para garantizar orden consistente
+        let mut method_entries: Vec<_> = self.methods.iter_mut().collect();
+        method_entries.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
+        
+        for (name, method) in method_entries {
             // Renombrar el método con el prefijo del tipo
-            method.name = format!("{}_{}", type_name, method.name.clone());
+            method.name = format!("{}_{}", type_name, name);
             method.codegen(&mut type_context);
         }
 
@@ -357,11 +361,8 @@ impl HulkTypeNode {
             "%index_ptr = getelementptr {}, ptr {}, i32 0, i32 0",
             type_reg, mem_temp
         ));
-        let type_id = context
-            .type_functions_ids
-            .get(&(type_name.clone(), "__typeid__".to_string()))
-            .cloned()
-            .unwrap_or(0);
+        // IMPORTANTE: Obtener el ID del tipo correcto del mapa
+        let type_id = context.type_ids.get(&type_name).cloned().unwrap_or(0);
         context.emit(&format!("store i32 {}, ptr %index_ptr", type_id));
 
         // 7. Inicializa los atributos del padre (igual que antes, si aplica)
@@ -477,4 +478,5 @@ impl Codegen for HulkTypeNode {
         String::new()
     }
 }
+
 

@@ -143,7 +143,14 @@ impl CodegenContext {
         self.types_members_functions.extend(other.types_members_functions);
         self.function_member_llvm_names.extend(other.function_member_llvm_names);
         self.temp_types.extend(other.temp_types);
-        self.type_ids.extend(other.type_ids);
+        
+        // Mantenemos consistencia en los type_ids
+        // Solo agregamos nuevos IDs, no sobrescribimos los existentes
+        for (type_name, id) in other.type_ids {
+            if !self.type_ids.contains_key(&type_name) {
+                self.type_ids.insert(type_name, id);
+            }
+        }
         // No se fusionan scopes ni current_self
     }
     pub fn register_type(&mut self, name: &str, llvm_type: String) {

@@ -149,6 +149,8 @@ impl TypesGlobalHelper for TypesGlobal {
                 }
             }
         }
+        // Ordenamos el resultado por nombre para garantizar un orden consistente
+        result.sort_by(|a, b| a.type_name.cmp(&b.type_name));
         result
     }
 }
