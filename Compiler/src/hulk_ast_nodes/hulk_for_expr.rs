@@ -70,8 +70,8 @@ impl Codegen for ForExpr {
 
         // Aloca espacio para la variable del bucle y almacena el valor inicial
         let loop_var_alloc = context.generate_temp();
-        context.emit(&format!("  {} = alloca {}", loop_var_alloc, llvm_type));
-        context.emit(&format!("  store {} {}, {}* {}", llvm_type, start_val, llvm_type, loop_var_alloc));
+        context.emit(&format!("  {} = alloca double", loop_var_alloc));
+        context.emit(&format!("  store double {}, double* {}", start_val, loop_var_alloc));
 
         // Registrar variable del iterador en el symbol_table
         context.symbol_table.insert(self.variable.clone(), loop_var_alloc.clone());
@@ -88,7 +88,7 @@ impl Codegen for ForExpr {
         // loop_cond:
         context.emit(&format!("{}:", loop_cond_label));
         let loop_var = context.generate_temp();
-        context.emit(&format!("  {} = load {}, {}* {}", loop_var, llvm_type, llvm_type, loop_var_alloc));
+        context.emit(&format!("  {} = load double, double* {}", loop_var, loop_var_alloc));
 
         let cond_temp = context.generate_temp();
         context.emit(&format!(
@@ -109,10 +109,10 @@ impl Codegen for ForExpr {
         context.emit(&format!("{}:", loop_inc_label));
         let next_val = context.generate_temp();
         context.emit(&format!(
-            "  {} = fadd {} {}, 1.0", // Considerar suma adecuada para tipos no enteros si se soportan
-            next_val, llvm_type, loop_var
+            "  {} = fadd double {}, 1.0", // Considerar suma adecuada para tipos no enteros si se soportan
+            next_val, loop_var
         ));
-        context.emit(&format!("  store {} {}, {}* {}", llvm_type, next_val, llvm_type, loop_var_alloc));
+        context.emit(&format!("  store double {}, double* {}", next_val, loop_var_alloc));
         context.emit(&format!("  br label %{}", loop_cond_label));
 
         // loop_end:
