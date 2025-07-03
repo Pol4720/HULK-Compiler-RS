@@ -22,6 +22,10 @@ impl NFA {
     /// Imprime la tabla de transición del NFA en formato tabular.
     pub fn print_transition_table(&self) {
         use std::collections::BTreeSet;
+
+        println!("  Estado inicial: {:?}", self.start);
+        println!("  Estados de aceptación: {:?}", self.accepts);
+
         // Recolectar todos los símbolos usados (excepto epsilon)
         let mut symbols = BTreeSet::new();
         for state in self.states.values() {

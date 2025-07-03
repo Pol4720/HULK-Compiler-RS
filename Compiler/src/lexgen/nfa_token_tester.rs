@@ -17,7 +17,7 @@ fn main() {
     println!("==============================");
     // Define aquí el nombre y la regex del token a probar
     let token_name = "Token de prueba";
-    let token_regex = "^a.*";
+    let token_regex = "[0-9]*";
     println!("Token: {} => {}", token_name, token_regex);
     if let Some(ast) = parse_regex(token_regex) {
         println!("  AST: {}", ast.to_repr());
@@ -39,6 +39,7 @@ fn main() {
             let mut input = String::new();
             io::stdin().read_line(&mut input).unwrap();
             let input = input.trim();
+            // let input = &input;
             if input == "salir" {
                 break;
             }
