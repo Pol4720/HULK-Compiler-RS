@@ -1,103 +1,87 @@
-use crate::Parser::token::{Token, TokenType};
-use crate::Parser::grammar::{Grammar, Symbol};
-use crate::Parser::cst::CstNode;
-use crate::Parser::ll1_table::LL1Table;
-use std::collections::VecDeque;
+use crate::grammar::Production;
+use crate::token::{Token};
+use crate::ll1::LL1Table;
+use crate::cst::DerivationNode;
 
 pub struct Parser {
-    grammar: Grammar,
-    ll1_table: LL1Table,
-    tokens: VecDeque<Token>,
-    current_token: usize,
+    tokens: Vec<Token>,
+    pos: usize,
+    table: LL1Table,
+    grammar: Vec<Production>,
+    start_symbol: String,
 }
 
 impl Parser {
-    pub fn new(grammar: Grammar, ll1_table: LL1Table) -> Self {
+    pub fn new(tokens: Vec<Token>, table: LL1Table, grammar: Vec<Production>, start: &str) -> Self {
         Self {
+            tokens,
+            pos: 0,
+            table,
             grammar,
-            ll1_table,
-            tokens: VecDeque::new(),
-            current_token: 0,
+            start_symbol: start.to_string(),
         }
     }
-    
-    pub fn parse(&mut self, tokens: Vec<Token>) -> Result<CstNode, ParseError> {
-        self.tokens = VecDeque::from(tokens);
-        self.current_token = 0;
-        
-        let mut stack = Vec::new();
-        stack.push(Symbol::NonTerminal(self.grammar.start_symbol.clone()));
-        
-        let mut cst_stack = Vec::new();
-        
-        while !stack.is_empty() {
-            let top = stack.pop().unwrap();
-            
-            match top {
-                Symbol::Terminal(expected_token_type) => {
-                    if let Some(current_token) = self.peek_token() {
-                        if current_token.token_type == expected_token_type {
-                            let token = self.advance();
-                            cst_stack.push(CstNode::new_terminal(token));
-                        } else {
-                            return Err(ParseError::UnexpectedToken {
-                                expected: expected_token_type,
-                                found: current_token.token_type.clone(),
-                            });
-                        }
-                    } else {
-                        return Err(ParseError::UnexpectedEof);
-                    }
+
+    pub fn parse(&mut self) -> DerivationNode {
+        let start = self.start_symbol.clone();
+        self.expand(&start)
+    }
+
+    fn expand(&mut self, symbol: &str) -> DerivationNode {
+        if symbol == "ε" {
+            return DerivationNode::new("ε");
+        }
+
+        // Terminal
+        if self.is_terminal(symbol) {
+            let current = self.current_token();
+            let token_type_str = format!("{:?}", current.token_type);
+            if token_type_str == symbol {
+                let node = DerivationNode::with_token(symbol, current.clone());
+                self.pos += 1;
+                return node;
+            } else {
+                self.report_error(symbol, current);
+            }
+        }
+
+        // Non terminal
+        let lookahead = format!("{:?}", self.current_token().token_type);
+        if let Some(row) = self.table.get(symbol) {
+            if let Some(prod) = row.get(&lookahead) {
+                let mut node = DerivationNode::new(symbol);
+                let production = prod.clone(); // Clone to avoid borrowing issues
+                for sym in &production {
+                    let child = self.expand(sym);
+                    node.add_child(child);
                 }
-                Symbol::NonTerminal(non_terminal) => {
-                    if let Some(current_token) = self.peek_token() {
-                        if let Some(production) = self.ll1_table.get_production(&non_terminal, &current_token.token_type) {
-                            // Push production symbols in reverse order
-                            for symbol in production.rhs.iter().rev() {
-                                if !matches!(symbol, Symbol::Epsilon) {
-                                    stack.push(symbol.clone());
-                                }
-                            }
-                        } else {
-                            return Err(ParseError::NoProductionFound {
-                                non_terminal,
-                                token: current_token.token_type.clone(),
-                            });
-                        }
-                    } else {
-                        return Err(ParseError::UnexpectedEof);
-                    }
-                }
-                Symbol::Epsilon => {
-                    // Do nothing for epsilon
-                }
+                return node;
             }
         }
         
-        // Build CST from stack (simplified)
-        Ok(CstNode::new_non_terminal("program".to_string(), cst_stack))
+        self.report_error(symbol, self.current_token());
     }
-    
-    fn peek_token(&self) -> Option<&Token> {
-        self.tokens.get(self.current_token)
-    }
-    
-    fn advance(&mut self) -> Token {
-        let token = self.tokens[self.current_token].clone();
-        self.current_token += 1;
-        token
-    }
-}
 
-#[derive(Debug)]
-pub enum ParseError {
-    UnexpectedToken {
-        expected: TokenType,
-        found: TokenType,
-    },
-    UnexpectedEof,
-    NoProductionFound {
-        non_terminal: String,
-        token: TokenType,
-    },
+    fn current_token(&self) -> &Token {
+        self.tokens.get(self.pos).unwrap_or_else(|| {
+            eprintln!("Unexpected end of input at position {}", self.pos);
+            std::process::exit(1);
+        })
+    }
+
+    fn is_terminal(&self, symbol: &str) -> bool {
+        !self.grammar.iter().any(|p| p.lhs == symbol)
+    }
+
+    fn report_error(&self, expected: &str, found: &Token) -> ! {
+        eprintln!(
+            "Syntax Error: Expected '{}', but found '{:?}' (lexeme: '{}') at line {}, column {}",
+            expected,
+            found.token_type,
+            found.lexeme,
+            found.line,
+            found.column
+        );
+        std::process::exit(1);
+    }
 }

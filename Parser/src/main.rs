@@ -1,63 +1,34 @@
-pub mod token;
-pub mod ast;
-pub mod cst;
-pub mod grammar;
-pub mod parser;
-pub mod ll1_table;
+use crate::grammar::load_grammar;
+use crate::token::mock_tokens;
+use crate::ll1::{compute_first, compute_follow, build_ll1_table};
+use crate::parser::Parser;
+use crate::cst_to_ast::convert_to_ast;
 
-pub use token::*;
-pub use ast::*;
-pub use cst::*;
-pub use grammar::*;
-pub use parser::*;
-pub use ll1_table::*;
+mod grammar;
+mod utils;
+mod token;
+mod ll1;
+mod parser;
+mod cst;
+mod ast;
+mod cst_to_ast;
 
-/// Main parser module for the HULK language compiler
-pub struct HulkParser {
-    grammar: Grammar,
-    ll1_table: LL1Table,
-}
+fn main() {
+    let grammar = load_grammar("grammar.ll1");
+    let first = compute_first(&grammar);
+    let follow = compute_follow(&grammar, &first, "Program");
+    let table = build_ll1_table(&grammar, &first, &follow);
 
-impl HulkParser {
-    pub fn new() -> Self {
-        let grammar = Self::build_hulk_grammar();
-        let ll1_table = LL1Table::new(&grammar);
-        
-        Self {
-            grammar,
-            ll1_table,
-        }
-    }
-    
-    pub fn parse(&self, tokens: Vec<Token>) -> Result<Vec<Stmt>, ParseError> {
-        let mut parser = Parser::new(self.grammar.clone(), self.ll1_table.clone());
-        let cst = parser.parse(tokens)?;
-        
-        let converter = cst::converter::CstToAstConverter::new();
-        converter.convert_to_ast(&cst)
-            .map_err(|_| ParseError::UnexpectedEof) // Simplified error handling
-    }
-    
-    fn build_hulk_grammar() -> Grammar {
-        let mut grammar = Grammar::new();
-        
-        // TODO: Add HULK grammar productions
-        // Example:
-        // grammar.add_production("program".to_string(), vec![
-        //     Symbol::NonTerminal("stmt_list".to_string())
-        // ]);
-        
-        grammar
-    }
-}
+    let tokens = mock_tokens();
+    let mut parser = Parser::new(tokens, table, grammar, "Program");
+    let cst = parser.parse();
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_parser_creation() {
-        let parser = HulkParser::new();
-        // Add basic tests
+    println!("\nCST Tree:");
+    println!("{}", cst);
+
+    let ast = convert_to_ast(&cst);
+    println!("\nAST Tree:");
+    for stmt in ast {
+        println!("{:?}", stmt);
     }
 }

@@ -1,58 +1,14 @@
-/// Token types for the HULK language
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
-    // Literals
-    Number,
-    String,
-    Boolean,
-    Identifier,
-    
-    // Keywords
-    Let,
-    In,
-    If,
-    Else,
-    While,
-    For,
-    Function,
-    Type,
-    Protocol,
-    New,
-    Is,
-    As,
-    
-    // Operators
-    Plus,
-    Minus,
-    Multiply,
-    Divide,
-    Power,
-    Assign,
-    Equal,
-    NotEqual,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    And,
-    Or,
-    Not,
-    
-    // Delimiters
-    LeftParen,
-    RightParen,
-    LeftBrace,
-    RightBrace,
-    LeftBracket,
-    RightBracket,
-    Comma,
-    Semicolon,
-    Colon,
-    Arrow,
-    
-    // Special
-    Eof,
-    Error,
+    IDENT,
+    FUNCTION,
+    LPAREN,
+    RPAREN,
+    LBRACE,
+    RBRACE,
+    SEMICOLON,
+    EOF,
+    // ... add others as needed
 }
 
 #[derive(Debug, Clone)]
@@ -63,13 +19,25 @@ pub struct Token {
     pub column: usize,
 }
 
-impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, line: usize, column: usize) -> Self {
-        Self {
-            token_type,
-            lexeme,
-            line,
-            column,
-        }
+// Helper function to create a token
+pub fn make_token(token_type: TokenType, lexeme: &str, line: usize, column: usize) -> Token {
+    Token {
+        token_type,
+        lexeme: lexeme.to_string(),
+        line,
+        column,
     }
+}
+
+/// Returns a list of mock tokens for testing
+pub fn mock_tokens() -> Vec<Token> {
+    vec![
+        make_token(TokenType::FUNCTION, "function", 1, 1),
+        make_token(TokenType::IDENT, "main", 1, 10),
+        make_token(TokenType::LPAREN, "(", 1, 14),
+        make_token(TokenType::RPAREN, ")", 1, 15),
+        make_token(TokenType::LBRACE, "{", 2, 1),
+        make_token(TokenType::RBRACE, "}", 3, 1),
+        make_token(TokenType::EOF, "", 4, 1),
+    ]
 }

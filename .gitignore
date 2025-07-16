@@ -5,6 +5,7 @@
 *.toc
 *.out
 Compiler/target
+Parser/target
 
 *.ll
 *.exe
