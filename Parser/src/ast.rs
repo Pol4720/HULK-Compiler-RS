@@ -55,11 +55,13 @@ pub enum ExprKind {
         op: UnaryOp,
         expr: Box<Expr>,
     },
-    Block(Vec<Stmt>),  // Changed from Block { stmts: Vec<Stmt> }
+    Block {
+        stmts: Vec<Stmt>,
+    },
     Let {
-        var_name: String,  // Changed from name
+        name: String,
         value: Box<Expr>,
-        body: Option<Box<Expr>>,  // Made optional since some implementations don't provide it
+        body: Box<Expr>,
         declared_type: Option<Type>,
     },
     If {
@@ -72,8 +74,8 @@ pub enum ExprKind {
         body: Box<Expr>,
     },
     For {
-        var_name: String,  // Changed from iterator
-        iterable: Box<Expr>,  // Changed from collection
+        iterator: String,
+        collection: Box<Expr>,
         body: Box<Expr>,
     },
     Call {

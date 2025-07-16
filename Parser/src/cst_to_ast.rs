@@ -107,7 +107,7 @@ fn convert_stmt(node: &DerivationNode) -> Result<Stmt, String> {
             })
         }
         "BlockStmt" => {
-            let expr = convert_block_stmt(child)?;
+            let expr = convert_block_expr(child)?;
             Ok(Stmt {
                 kind: StmtKind::ExprStmt(expr),
                 span,
@@ -127,7 +127,7 @@ fn convert_expr(node: &DerivationNode) -> Result<Expr, String> {
     }
 
     let child = &node.children[0];
-    let _span = get_span(node);
+    let span = get_span(node);
     
     match child.symbol.as_str() {
         "OrExpr" => convert_or_expr(child),
@@ -137,7 +137,6 @@ fn convert_expr(node: &DerivationNode) -> Result<Expr, String> {
     }
 }
 
-// Implementation for OrExpr
 fn convert_or_expr(node: &DerivationNode) -> Result<Expr, String> {
     if node.symbol != "OrExpr" {
         return Err("Expected OrExpr node".to_string());
@@ -172,451 +171,6 @@ fn convert_or_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, Stri
 
     convert_or_expr_prime(new_left, &node.children[2])
 }
-
-// Fix convert_let_expr to match AST structure
-fn convert_let_expr(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "LetExpr" {
-        return Err("Expected LetExpr node".to_string());
-    }
-    // Assuming structure: LET IDENT ASSIGN Expr (IN Expr)?
-    if node.children.len() < 4 {
-        return Err("Invalid LetExpr structure".to_string());
-    }
-    
-    let var_name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing variable name in LetExpr")?
-        .lexeme
-        .clone();
-    
-    let value = convert_expr(&node.children[3])?;
-    
-    // Check if there's an "IN" part (let x = expr in body)
-    let body = if node.children.len() > 5 && node.children[4].symbol == "IN" {
-        Some(Box::new(convert_expr(&node.children[5])?))
-    } else {
-        None
-    };
-    
-    Ok(Expr {
-        kind: ExprKind::Let {
-            var_name,
-            value: Box::new(value),
-            body,
-            declared_type: None, // Add type annotation handling if needed
-        },
-        span: get_span(node),
-    })
-}
-
-// Fix convert_if_expr to use convert_expr for both branches instead of convert_block_stmt
-fn convert_if_expr(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "IfExpr" {
-        return Err("Expected IfExpr node".to_string());
-    }
-    // Assuming structure: IF Expr THEN Expr (ELSE Expr)?
-    if node.children.len() < 3 {
-        return Err("Invalid IfExpr structure".to_string());
-    }
-    
-    let condition = convert_expr(&node.children[1])?;
-    
-    // Find the then branch node
-    let then_index = node.children.iter()
-        .position(|child| child.symbol == "THEN")
-        .map(|pos| pos + 1)
-        .unwrap_or(2);
-    
-    if then_index >= node.children.len() {
-        return Err("Missing then branch in if expression".to_string());
-    }
-    
-    let then_branch = convert_expr(&node.children[then_index])?;
-    
-    // Find the else branch if it exists
-    let else_branch = if let Some(else_pos) = node.children.iter()
-        .position(|child| child.symbol == "ELSE")
-    {
-        if else_pos + 1 < node.children.len() {
-            Some(Box::new(convert_expr(&node.children[else_pos + 1])?))
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-    
-    Ok(Expr {
-        kind: ExprKind::If {
-            condition: Box::new(condition),
-            then_branch: Box::new(then_branch),
-            else_branch,
-        },
-        span: get_span(node),
-    })
-}
-
-// Create a proper block statement to expression converter
-fn convert_block_stmt(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "BlockStmt" {
-        return Err("Expected BlockStmt node".to_string());
-    }
-    
-    // Assuming structure: LBRACE StmtList? RBRACE
-    if node.children.len() < 2 {
-        return Err("Invalid block statement structure".to_string());
-    }
-    
-    // Find the statement list if it exists
-    let stmt_list_index = node.children.iter()
-        .position(|child| child.symbol == "StmtList")
-        .unwrap_or(1);
-    
-    let stmts = if stmt_list_index < node.children.len() {
-        convert_stmt_list(&node.children[stmt_list_index])?
-    } else {
-        vec![]
-    };
-    
-    Ok(Expr {
-        kind: ExprKind::Block(stmts),
-        span: get_span(node),
-    })
-}
-
-// Fix convert_for_expr to match AST structure
-fn convert_for_expr(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "ForStmt" {
-        return Err("Expected ForStmt node".to_string());
-    }
-    // Assuming structure: FOR IDENT IN Expr BlockStmt
-    if node.children.len() < 5 {
-        return Err("Invalid ForStmt structure".to_string());
-    }
-    
-    let var_name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing loop variable name")?
-        .lexeme
-        .clone();
-    
-    // Find the IN token
-    let in_index = node.children.iter()
-        .position(|child| child.symbol == "IN")
-        .ok_or("Missing IN keyword in for loop")?;
-    
-    if in_index + 1 >= node.children.len() {
-        return Err("Missing iterable expression in for loop".to_string());
-    }
-    
-    let iterable = convert_expr(&node.children[in_index + 1])?;
-    
-    // Find the body (which should be after the iterable)
-    let body_index = in_index + 2;
-    if body_index >= node.children.len() {
-        return Err("Missing body in for loop".to_string());
-    }
-    
-    let body = convert_expr(&node.children[body_index])?;
-    
-    Ok(Expr {
-        kind: ExprKind::For {
-            var_name,
-            iterable: Box::new(iterable),
-            body: Box::new(body),
-        },
-        span: get_span(node),
-    })
-}
-
-// Fix convert_while_expr to use convert_expr for the body
-fn convert_while_expr(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "WhileStmt" {
-        return Err("Expected WhileStmt node".to_string());
-    }
-    // Assuming structure: WHILE Expr BlockStmt
-    if node.children.len() < 3 {
-        return Err("Invalid WhileStmt structure".to_string());
-    }
-    
-    let condition = convert_expr(&node.children[1])?;
-    let body = convert_expr(&node.children[2])?;
-    
-    Ok(Expr {
-        kind: ExprKind::While {
-            condition: Box::new(condition),
-            body: Box::new(body),
-        },
-        span: get_span(node),
-    })
-}
-
-// Replace the dummy convert_cmp_expr with a proper implementation
-fn convert_cmp_expr(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "CmpExpr" {
-        return Err("Expected CmpExpr node".to_string());
-    }
-
-    if node.children.len() < 2 {
-        return Err("CmpExpr requires two children".to_string());
-    }
-
-    let left = convert_concat_expr(&node.children[0])?;
-    convert_cmp_expr_prime(left, &node.children[1])
-}
-
-fn convert_cmp_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "CmpExpr'" || node.children.is_empty() {
-        return Ok(left);
-    }
-
-    if node.children.len() < 3 {
-        return Err("Invalid CmpExpr' structure".to_string());
-    }
-
-    let op = match node.children[0].symbol.as_str() {
-        "EQ" => BinaryOp::Eq,
-        "NEQ" => BinaryOp::Neq,
-        "LT" => BinaryOp::Lt,
-        "GT" => BinaryOp::Gt,
-        "LTE" => BinaryOp::Le,
-        "GTE" => BinaryOp::Ge,
-        _ => return Err(format!("Unknown comparison operator: {}", node.children[0].symbol)),
-    };
-
-    let right = convert_concat_expr(&node.children[1])?;
-    let new_left = Expr {
-        kind: ExprKind::Binary {
-            op,
-            left: Box::new(left),
-            right: Box::new(right),
-        },
-        span: None,
-    };
-
-    convert_cmp_expr_prime(new_left, &node.children[2])
-}
-
-fn convert_concat_expr(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "ConcatExpr" {
-        return Err("Expected ConcatExpr node".to_string());
-    }
-
-    if node.children.len() < 2 {
-        return Err("ConcatExpr requires two children".to_string());
-    }
-
-    let left = convert_add_expr(&node.children[0])?;
-    convert_concat_expr_prime(left, &node.children[1])
-}
-
-fn convert_concat_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "ConcatExpr'" || node.children.is_empty() {
-        return Ok(left);
-    }
-
-    if node.children.len() < 3 {
-        return Err("Invalid ConcatExpr' structure".to_string());
-    }
-
-    let op = match node.children[0].symbol.as_str() {
-        "CONCAT" => BinaryOp::Concat,
-        "CONCAT_WS" => BinaryOp::ConcatWs,
-        _ => return Err(format!("Unknown concatenation operator: {}", node.children[0].symbol)),
-    };
-
-    let right = convert_add_expr(&node.children[1])?;
-    let new_left = Expr {
-        kind: ExprKind::Binary {
-            op,
-            left: Box::new(left),
-            right: Box::new(right),
-        },
-        span: None,
-    };
-
-    convert_concat_expr_prime(new_left, &node.children[2])
-}
-
-fn convert_add_expr(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "AddExpr" {
-        return Err("Expected AddExpr node".to_string());
-    }
-
-    if node.children.len() < 2 {
-        return Err("AddExpr requires two children".to_string());
-    }
-
-    let left = convert_term(&node.children[0])?;
-    convert_add_expr_prime(left, &node.children[1])
-}
-
-fn convert_add_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "AddExpr'" || node.children.is_empty() {
-        return Ok(left);
-    }
-
-    if node.children.len() < 3 {
-        return Err("Invalid AddExpr' structure".to_string());
-    }
-
-    let op = match node.children[0].symbol.as_str() {
-        "PLUS" => BinaryOp::Add,
-        "MINUS" => BinaryOp::Sub,
-        _ => return Err(format!("Unknown additive operator: {}", node.children[0].symbol)),
-    };
-
-    let right = convert_term(&node.children[1])?;
-    let new_left = Expr {
-        kind: ExprKind::Binary {
-            op,
-            left: Box::new(left),
-            right: Box::new(right),
-        },
-        span: None,
-    };
-
-    convert_add_expr_prime(new_left, &node.children[2])
-}
-
-fn convert_term(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Term" {
-        return Err("Expected Term node".to_string());
-    }
-
-    if node.children.len() < 2 {
-        return Err("Term requires two children".to_string());
-    }
-
-    let left = convert_factor(&node.children[0])?;
-    convert_term_prime(left, &node.children[1])
-}
-
-fn convert_term_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Term'" || node.children.is_empty() {
-        return Ok(left);
-    }
-
-    if node.children.len() < 3 {
-        return Err("Invalid Term' structure".to_string());
-    }
-
-    let op = match node.children[0].symbol.as_str() {
-        "TIMES" => BinaryOp::Mul,
-        "DIVIDE" => BinaryOp::Div,
-        "MOD" => BinaryOp::Mod,
-        _ => return Err(format!("Unknown multiplicative operator: {}", node.children[0].symbol)),
-    };
-
-    let right = convert_factor(&node.children[1])?;
-    let new_left = Expr {
-        kind: ExprKind::Binary {
-            op,
-            left: Box::new(left),
-            right: Box::new(right),
-        },
-        span: None,
-    };
-
-    convert_term_prime(new_left, &node.children[2])
-}
-
-fn convert_factor(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Factor" {
-        return Err("Expected Factor node".to_string());
-    }
-
-    if node.children.is_empty() {
-        return Err("Factor node has no children".to_string());
-    }
-
-    let power = convert_power(&node.children[0])?;
-    
-    // Handle Factor' if present
-    if node.children.len() > 1 {
-        // Implement handling for Factor' if needed
-        // For most grammars, this might be empty
-        return Ok(power);
-    }
-    
-    Ok(power)
-}
-
-fn convert_power(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Power" {
-        return Err("Expected Power node".to_string());
-    }
-
-    if node.children.is_empty() {
-        return Err("Power node has no children".to_string());
-    }
-
-    // Handle base expression
-    let base = convert_unary(&node.children[0])?;
-    
-    // Check if there's an exponent (^)
-    if node.children.len() > 1 && node.children[1].symbol == "POW" {
-        if node.children.len() < 3 {
-            return Err("Invalid power expression".to_string());
-        }
-        
-        let exponent = convert_power(&node.children[2])?;
-        
-        return Ok(Expr {
-            kind: ExprKind::Binary {
-                op: BinaryOp::Pow,
-                left: Box::new(base),
-                right: Box::new(exponent),
-            },
-            span: get_span(node),
-        });
-    }
-    
-    Ok(base)
-}
-
-fn convert_unary(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Unary" {
-        return Err("Expected Unary node".to_string());
-    }
-
-    if node.children.is_empty() {
-        return Err("Unary node has no children".to_string());
-    }
-
-    // Check if it's a unary operator followed by expression
-    if node.children[0].symbol == "MINUS" {
-        if node.children.len() < 2 {
-            return Err("Invalid unary minus expression".to_string());
-        }
-        
-        let expr = convert_unary(&node.children[1])?;
-        
-        return Ok(Expr {
-            kind: ExprKind::Unary {
-                op: UnaryOp::Neg,
-                expr: Box::new(expr),
-            },
-            span: get_span(node),
-        });
-    }
-    
-    // Otherwise it's just a primary with optional AsExpr
-    let primary = convert_primary(&node.children[0])?;
-    
-    // Handle AsExpr if present (type casting)
-    if node.children.len() > 1 && !node.children[1].children.is_empty() {
-        // Process type casting logic here if needed
-        // For now, we'll just return the primary
-        return Ok(primary);
-    }
-    
-    Ok(primary)
-}
-
-// Implementaciones para diferentes tipos de expresiones
 
 fn convert_and_expr(node: &DerivationNode) -> Result<Expr, String> {
     if node.symbol != "AndExpr" {
@@ -653,173 +207,244 @@ fn convert_and_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, Str
     convert_and_expr_prime(new_left, &node.children[2])
 }
 
-// fn convert_cmp_expr(node: &DerivationNode) -> Result<Expr, String> {
-//     // Dummy implementation, replace with actual logic as needed
-//     // For now, just call convert_primary
-//     convert_primary(node)
-// }
-
-// fn convert_for_expr(node: &DerivationNode) -> Result<Expr, String> {
-//     if node.symbol != "ForStmt" {
-//         return Err("Expected ForStmt node".to_string());
-//     }
-//     // Assuming structure: FOR IDENT IN Expr BlockStmt
-//     if node.children.len() < 5 {
-//         return Err("Invalid ForStmt structure".to_string());
-//     }
-    
-//     let var_name = node.children[1]
-//         .token
-//         .as_ref()
-//         .ok_or("Missing loop variable name")?
-//         .lexeme
-//         .clone();
-    
-//     // Find the IN token
-//     let in_index = node.children.iter()
-//         .position(|child| child.symbol == "IN")
-//         .ok_or("Missing IN keyword in for loop")?;
-    
-//     if in_index + 1 >= node.children.len() {
-//         return Err("Missing iterable expression in for loop".to_string());
-//     }
-    
-//     let iterable = convert_expr(&node.children[in_index + 1])?;
-    
-//     // Find the body (which should be after the iterable)
-//     let body_index = in_index + 2;
-//     if body_index >= node.children.len() {
-//         return Err("Missing body in for loop".to_string());
-//     }
-    
-//     let body = convert_expr(&node.children[body_index])?;
-    
-//     Ok(Expr {
-//         kind: ExprKind::For {
-//             var_name,
-//             iterable: Box::new(iterable),
-//             body: Box::new(body),
-//         },
-//         span: get_span(node),
-//     })
-// }
-
-// fn convert_while_expr(node: &DerivationNode) -> Result<Expr, String> {
-//     if node.symbol != "WhileStmt" {
-//         return Err("Expected WhileStmt node".to_string());
-//     }
-//     // Assuming structure: WHILE Expr BlockStmt
-//     if node.children.len() < 3 {
-//         return Err("Invalid WhileStmt structure".to_string());
-//     }
-    
-//     let condition = convert_expr(&node.children[1])?;
-//     let body = convert_expr(&node.children[2])?;
-    
-//     Ok(Expr {
-//         kind: ExprKind::While {
-//             condition: Box::new(condition),
-//             body: Box::new(body),
-//         },
-//         span: get_span(node),
-//     })
-// }
-
-// Implementaciones para FunctionDef, TypeDef, etc.
-fn convert_function_def(node: &DerivationNode) -> Result<FunctionDecl, String> {
-    if node.symbol != "FunctionDef" {
-        return Err("Expected FunctionDef node".to_string());
+fn convert_cmp_expr(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "CmpExpr" {
+        return Err("Expected CmpExpr node".to_string());
     }
 
-    if node.children.len() < 7 {
-        return Err("Invalid FunctionDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing function name")?
-        .lexeme
-        .clone();
-    
-    let params = convert_arg_id_list_with_types(&node.children[3])?;
-    let return_type = convert_type_annotation(&node.children[5])?;
-    let body = convert_function_body(&node.children[6])?;
-    
-    Ok(FunctionDecl {
-        name,
-        params,
-        body,
-        return_type,
-    })
-}
-
-// Implementación para TypeDef
-fn convert_type_def(node: &DerivationNode) -> Result<TypeDecl, String> {
-    if node.symbol != "TypeDef" {
-        return Err("Expected TypeDef node".to_string());
-    }
-
-    // Suponiendo una estructura básica: TYPE IDENT TypeParams? Attributes? Methods? BASE? BASE_ARGS?
     if node.children.len() < 2 {
-        return Err("Invalid TypeDef structure".to_string());
+        return Err("CmpExpr requires two children".to_string());
     }
 
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing type name")?
-        .lexeme
-        .clone();
-
-    // Opcional: type_params, attributes, methods, base_type, base_args
-    let type_params = vec![];
-    let attributes = vec![];
-    let methods = vec![];
-    let base_type = String::new();
-    let base_args = vec![];
-
-    // Aquí podrías agregar lógica para extraer los campos opcionales si tu CST los provee
-
-    Ok(TypeDecl {
-        name,
-        type_params,
-        attributes,
-        methods,
-        base_type,
-        base_args,
-    })
+    let left = convert_concat_expr(&node.children[0])?;
+    convert_cmp_expr_prime(left, &node.children[1])
 }
 
-// Estructuras auxiliares para la conversión
-struct FunctionDecl {
-    name: String,
-    params: Vec<(String, Option<Type>)>,
-    body: Stmt,
-    return_type: Option<Type>,
+fn convert_cmp_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
+    if node.children.is_empty() {
+        return Ok(left);
+    }
+
+    if node.children.len() < 3 {
+        return Err("Invalid CmpExpr' structure".to_string());
+    }
+
+    if node.children[0].symbol == "IS" {
+        let type_name = get_token_value(&node.children[1])?;
+        let expr = Box::new(Expr {
+            kind: ExprKind::Is {
+                expr: Box::new(left),
+                type_name,
+            },
+            span: None,
+        });
+        convert_cmp_expr_prime(*expr, &node.children[2])
+    } else {
+        let op = convert_binary_op(&node.children[0].symbol)?;
+        let right = convert_concat_expr(&node.children[1])?;
+        let new_left = Expr {
+            kind: ExprKind::Binary {
+                op,
+                left: Box::new(left),
+                right: Box::new(right),
+            },
+            span: None,
+        };
+        convert_cmp_expr_prime(new_left, &node.children[2])
+    }
 }
 
-struct TypeDecl {
-    name: String,
-    type_params: Vec<String>,
-    attributes: Vec<AttributeDecl>,
-    methods: Vec<MethodDecl>,
-    base_type: String,
-    base_args: Vec<Expr>,
+fn convert_concat_expr(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "ConcatExpr" {
+        return Err("Expected ConcatExpr node".to_string());
+    }
+
+    if node.children.len() < 2 {
+        return Err("ConcatExpr requires two children".to_string());
+    }
+
+    let left = convert_add_expr(&node.children[0])?;
+    convert_concat_expr_prime(left, &node.children[1])
 }
 
-// Funciones helper
-fn get_span(node: &DerivationNode) -> Option<Span> {
-    node.token.as_ref().map(|token| Span {
-        line: token.line,
-        column: token.column,
-    })
+fn convert_concat_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
+    if node.children.is_empty() {
+        return Ok(left);
+    }
+
+    if node.children.len() < 3 {
+        return Err("Invalid ConcatExpr' structure".to_string());
+    }
+
+    let op = convert_binary_op(&node.children[0].symbol)?;
+    let right = convert_add_expr(&node.children[1])?;
+    let new_left = Expr {
+        kind: ExprKind::Binary {
+            op,
+            left: Box::new(left),
+            right: Box::new(right),
+        },
+        span: None,
+    };
+
+    convert_concat_expr_prime(new_left, &node.children[2])
 }
 
-// Replace the convert_primary function with a proper implementation
+fn convert_add_expr(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "AddExpr" {
+        return Err("Expected AddExpr node".to_string());
+    }
+
+    if node.children.len() < 2 {
+        return Err("AddExpr requires two children".to_string());
+    }
+
+    let left = convert_term(&node.children[0])?;
+    convert_add_expr_prime(left, &node.children[1])
+}
+
+fn convert_add_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
+    if node.children.is_empty() {
+        return Ok(left);
+    }
+
+    if node.children.len() < 3 {
+        return Err("Invalid AddExpr' structure".to_string());
+    }
+
+    let op = convert_binary_op(&node.children[0].symbol)?;
+    let right = convert_term(&node.children[1])?;
+    let new_left = Expr {
+        kind: ExprKind::Binary {
+            op,
+            left: Box::new(left),
+            right: Box::new(right),
+        },
+        span: None,
+    };
+
+    convert_add_expr_prime(new_left, &node.children[2])
+}
+
+fn convert_term(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "Term" {
+        return Err("Expected Term node".to_string());
+    }
+
+    if node.children.len() < 2 {
+        return Err("Term requires two children".to_string());
+    }
+
+    let left = convert_factor(&node.children[0])?;
+    convert_term_prime(left, &node.children[1])
+}
+
+fn convert_term_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
+    if node.children.is_empty() {
+        return Ok(left);
+    }
+
+    if node.children.len() < 3 {
+        return Err("Invalid Term' structure".to_string());
+    }
+
+    let op = convert_binary_op(&node.children[0].symbol)?;
+    let right = convert_factor(&node.children[1])?;
+    let new_left = Expr {
+        kind: ExprKind::Binary {
+            op,
+            left: Box::new(left),
+            right: Box::new(right),
+        },
+        span: None,
+    };
+
+    convert_term_prime(new_left, &node.children[2])
+}
+
+fn convert_factor(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "Factor" {
+        return Err("Expected Factor node".to_string());
+    }
+
+    if node.children.len() < 2 {
+        return Err("Factor requires two children".to_string());
+    }
+
+    let left = convert_power(&node.children[0])?;
+    convert_factor_prime(left, &node.children[1])
+}
+
+fn convert_factor_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
+    if node.children.is_empty() {
+        return Ok(left);
+    }
+
+    if node.children.len() < 3 {
+        return Err("Invalid Factor' structure".to_string());
+    }
+
+    let right = convert_power(&node.children[1])?;
+    let new_left = Expr {
+        kind: ExprKind::Binary {
+            op: BinaryOp::Pow,
+            left: Box::new(left),
+            right: Box::new(right),
+        },
+        span: None,
+    };
+
+    convert_factor_prime(new_left, &node.children[2])
+}
+
+fn convert_power(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "Power" {
+        return Err("Expected Power node".to_string());
+    }
+
+    if node.children.is_empty() {
+        return Err("Power node has no children".to_string());
+    }
+
+    convert_unary(&node.children[0])
+}
+
+fn convert_unary(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "Unary" {
+        return Err("Expected Unary node".to_string());
+    }
+
+    if node.children.is_empty() {
+        return Err("Unary node has no children".to_string());
+    }
+
+    let child = &node.children[0];
+    let span = get_span(child);
+
+    // Unary → MINUS Unary | Primary AsExpr
+    if node.children.len() == 2 && node.children[0].symbol == "MINUS" {
+        let expr = convert_unary(&node.children[1])?;
+        return Ok(Expr {
+            kind: ExprKind::Unary {
+                op: UnaryOp::Neg,
+                expr: Box::new(expr),
+            },
+            span,
+        });
+    }
+
+    // Primary AsExpr
+    let primary = convert_primary(&node.children[0])?;
+    if node.children.len() > 1 {
+        convert_as_expr(primary, &node.children[1])
+    } else {
+        Ok(primary)
+    }
+}
+
 fn convert_primary(node: &DerivationNode) -> Result<Expr, String> {
     if node.symbol != "Primary" {
-        return Err(format!("Expected Primary node, got {}", node.symbol));
+        return Err("Expected Primary node".to_string());
     }
 
     if node.children.is_empty() {
@@ -920,10 +545,9 @@ fn convert_primary(node: &DerivationNode) -> Result<Expr, String> {
     }
 }
 
-// Also need to update convert_primary_tail
 fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, String> {
     if node.symbol != "PrimaryTail" {
-        return Err(format!("Expected PrimaryTail node, got {}", node.symbol));
+        return Err("Expected PrimaryTail node".to_string());
     }
 
     if node.children.is_empty() {
@@ -1021,12 +645,176 @@ fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, Strin
     }
 }
 
-// Implementaciones para FunctionDef, TypeDef, etc.
+fn convert_as_expr(base: Expr, node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "AsExpr" {
+        return Err("Expected AsExpr node".to_string());
+    }
+
+    if node.children.is_empty() {
+        return Ok(base);
+    }
+
+    if node.children.len() < 3 {
+        return Err("Invalid AsExpr structure".to_string());
+    }
+
+    let type_name = get_token_value(&node.children[1])?;
+    let expr = Expr {
+        kind: ExprKind::As {
+            expr: Box::new(base),
+            type_name,
+        },
+        span: None,
+    };
+
+    if node.children.len() > 2 {
+        convert_as_expr(expr, &node.children[2])
+    } else {
+        Ok(expr)
+    }
+}
+
+fn convert_if_expr(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "IfExpr" {
+        return Err("Expected IfExpr node".to_string());
+    }
+
+    // IfExpr → IF LPAREN Expr RPAREN IfBody ElifList ELSE IfBody
+    if node.children.len() < 8 {
+        return Err("Invalid IfExpr structure".to_string());
+    }
+
+    let condition = convert_expr(&node.children[2])?;
+    let then_branch = convert_if_body(&node.children[4])?;
+    let elif_list = convert_elif_list(&node.children[5])?;
+    let else_branch = convert_if_body(&node.children[7])?;
+
+    // Construir la cadena de if-elif-else
+    let mut current_else = else_branch;
+    
+    for elif in elif_list.into_iter().rev() {
+        current_else = Expr {
+            kind: ExprKind::If {
+                condition: Box::new(elif.condition),
+                then_branch: Box::new(elif.then_branch),
+                else_branch: Some(Box::new(current_else)),
+            },
+            span: None,
+        };
+    }
+
+    Ok(Expr {
+        kind: ExprKind::If {
+            condition: Box::new(condition),
+            then_branch: Box::new(then_branch),
+            else_branch: Some(Box::new(current_else)),
+        },
+        span: get_span(node),
+    })
+}
+
+fn convert_let_expr(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "LetExpr" {
+        return Err("Expected LetExpr node".to_string());
+    }
+
+    // LetExpr → LET VarBindingList IN LetBody
+    if node.children.len() < 4 {
+        return Err("Invalid LetExpr structure".to_string());
+    }
+
+    let bindings = convert_var_binding_list(&node.children[1])?;
+    let body = convert_let_body(&node.children[3])?;
+
+    // Construir expresiones let anidadas
+    let mut current_body = body;
+    
+    for binding in bindings.into_iter().rev() {
+        current_body = Expr {
+            kind: ExprKind::Let {
+                name: binding.name,
+                value: Box::new(binding.value),
+                body: Box::new(current_body),
+                declared_type: binding.declared_type,
+            },
+            span: None,
+        };
+    }
+
+    Ok(current_body)
+}
+
+fn convert_while_expr(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "WhileStmt" {
+        return Err("Expected WhileStmt node".to_string());
+    }
+
+    // WhileStmt → WHILE Expr WhileBody
+    if node.children.len() < 3 {
+        return Err("Invalid WhileStmt structure".to_string());
+    }
+
+    let condition = convert_expr(&node.children[1])?;
+    let body = convert_while_body(&node.children[2])?;
+
+    Ok(Expr {
+        kind: ExprKind::While {
+            condition: Box::new(condition),
+            body: Box::new(body),
+        },
+        span: get_span(node),
+    })
+}
+
+fn convert_for_expr(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "ForStmt" {
+        return Err("Expected ForStmt node".to_string());
+    }
+
+    // ForStmt → FOR LPAREN IDENT IN Expr RPAREN ForBody
+    if node.children.len() < 7 {
+        return Err("Invalid ForStmt structure".to_string());
+    }
+
+    let iterator = get_token_value(&node.children[2])?;
+    let collection = convert_expr(&node.children[4])?;
+    let body = convert_for_body(&node.children[6])?;
+
+    Ok(Expr {
+        kind: ExprKind::For {
+            iterator,
+            collection: Box::new(collection),
+            body: Box::new(body),
+        },
+        span: get_span(node),
+    })
+}
+
+fn convert_block_expr(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "BlockStmt" {
+        return Err("Expected BlockStmt node".to_string());
+    }
+
+    // BlockStmt → LBRACE StmtList RBRACE
+    if node.children.len() < 3 {
+        return Err("Invalid BlockStmt structure".to_string());
+    }
+
+    let stmts = convert_stmt_list(&node.children[1])?;
+    
+    Ok(Expr {
+        kind: ExprKind::Block { stmts },
+        span: get_span(node),
+    })
+}
+
+// Funciones para declaraciones
 fn convert_function_def(node: &DerivationNode) -> Result<FunctionDecl, String> {
     if node.symbol != "FunctionDef" {
         return Err("Expected FunctionDef node".to_string());
     }
 
+    // FunctionDef → FUNCTION IDENT LPAREN ArgIdList RPAREN TypeAnnotation FunctionBody
     if node.children.len() < 7 {
         return Err("Invalid FunctionDef structure".to_string());
     }
@@ -1050,14 +838,13 @@ fn convert_function_def(node: &DerivationNode) -> Result<FunctionDecl, String> {
     })
 }
 
-// Implementación para TypeDef
 fn convert_type_def(node: &DerivationNode) -> Result<TypeDecl, String> {
     if node.symbol != "TypeDef" {
         return Err("Expected TypeDef node".to_string());
     }
 
-    // Suponiendo una estructura básica: TYPE IDENT TypeParams? Attributes? Methods? BASE? BASE_ARGS?
-    if node.children.len() < 2 {
+    // TypeDef → TYPE IDENT TypeParams TypeInheritance LBRACE TypeBody RBRACE
+    if node.children.len() < 7 {
         return Err("Invalid TypeDef structure".to_string());
     }
 
@@ -1067,16 +854,11 @@ fn convert_type_def(node: &DerivationNode) -> Result<TypeDecl, String> {
         .ok_or("Missing type name")?
         .lexeme
         .clone();
-
-    // Opcional: type_params, attributes, methods, base_type, base_args
-    let type_params = vec![];
-    let attributes = vec![];
-    let methods = vec![];
-    let base_type = String::new();
-    let base_args = vec![];
-
-    // Aquí podrías agregar lógica para extraer los campos opcionales si tu CST los provee
-
+    
+    let type_params = convert_type_params(&node.children[2])?;
+    let (base_type, base_args) = convert_type_inheritance(&node.children[3])?;
+    let (attributes, methods) = convert_type_body(&node.children[5])?;
+    
     Ok(TypeDecl {
         name,
         type_params,
@@ -1085,6 +867,410 @@ fn convert_type_def(node: &DerivationNode) -> Result<TypeDecl, String> {
         base_type,
         base_args,
     })
+}
+
+// Funciones auxiliares
+fn get_span(node: &DerivationNode) -> Option<Span> {
+    node.token.as_ref().map(|token| Span {
+        line: token.line,
+        column: token.column,
+    })
+}
+
+fn get_token_value(node: &DerivationNode) -> Result<String, String> {
+    node.token
+        .as_ref()
+        .map(|token| token.lexeme.clone())
+        .ok_or("Node has no token".to_string())
+}
+
+fn convert_binary_op(op: &str) -> Result<BinaryOp, String> {
+    match op {
+        "PLUS" => Ok(BinaryOp::Add),
+        "MINUS" => Ok(BinaryOp::Sub),
+        "MULT" => Ok(BinaryOp::Mul),
+        "DIV" => Ok(BinaryOp::Div),
+        "MOD" => Ok(BinaryOp::Mod),
+        "POW" => Ok(BinaryOp::Pow),
+        "EQ" => Ok(BinaryOp::Eq),
+        "NEQ" => Ok(BinaryOp::Neq),
+        "LT" => Ok(BinaryOp::Lt),
+        "GT" => Ok(BinaryOp::Gt),
+        "LE" => Ok(BinaryOp::Le),
+        "GE" => Ok(BinaryOp::Ge),
+        "AND" => Ok(BinaryOp::And),
+        "OR" => Ok(BinaryOp::Or),
+        "CONCAT" => Ok(BinaryOp::Concat),
+        "CONCAT_WS" => Ok(BinaryOp::ConcatWs),
+        _ => Err(format!("Unknown binary operator: {}", op)),
+    }
+}
+
+fn convert_arg_list(node: &DerivationNode) -> Result<Vec<Expr>, String> {
+    if node.symbol != "ArgList" {
+        return Err("Expected ArgList node".to_string());
+    }
+
+    let mut args = vec![];
+    
+    // ArgList → Expr ArgListTail | ε
+    if node.children.is_empty() {
+        return Ok(args);
+    }
+    
+    // Primer argumento
+    if !node.children[0].children.is_empty() {
+        args.push(convert_expr(&node.children[0].children[0])?);
+    }
+    
+    // Argumentos adicionales
+    if node.children.len() > 1 {
+        let rest = convert_arg_list_tail(&node.children[1])?;
+        args.extend(rest);
+    }
+    
+    Ok(args)
+}
+
+fn convert_arg_list_tail(node: &DerivationNode) -> Result<Vec<Expr>, String> {
+    if node.symbol != "ArgListTail" {
+        return Err("Expected ArgListTail node".to_string());
+    }
+
+    let mut args = vec![];
+    
+    // ArgListTail → COMMA Expr ArgListTail | ε
+    if node.children.is_empty() {
+        return Ok(args);
+    }
+    
+    for i in (1..node.children.len()).step_by(2) {
+        if i < node.children.len() {
+            args.push(convert_expr(&node.children[i])?);
+        }
+    }
+    
+    Ok(args)
+}
+
+fn convert_type_annotation(node: &DerivationNode) -> Result<Option<Type>, String> {
+    if node.symbol != "TypeAnnotation" || node.children.is_empty() {
+        return Ok(None);
+    }
+    
+    if node.children.len() < 2 {
+        return Err("Invalid type annotation".to_string());
+    }
+    
+    let type_name = node.children[1]
+        .token
+        .as_ref()
+        .ok_or("Missing type name")?
+        .lexeme
+        .clone();
+    
+    let ty = match type_name.as_str() {
+        "Number" => Type::Number,
+        "String" => Type::String,
+        "Boolean" => Type::Boolean,
+        _ => Type::Object(type_name),
+    };
+    
+    Ok(Some(ty))
+}
+
+fn convert_arg_id_list_with_types(node: &DerivationNode) -> Result<Vec<(String, Option<Type>)>, String> {
+    if node.symbol != "ArgIdList" {
+        return Err("Expected ArgIdList node".to_string());
+    }
+
+    let mut params = vec![];
+    
+    for child in &node.children {
+        if child.symbol == "ArgId" && child.children.len() >= 2 {
+            let name = child.children[0]
+                .token
+                .as_ref()
+                .ok_or("Missing parameter name")?
+                .lexeme
+                .clone();
+            
+            let ty = if child.children.len() > 1 {
+                convert_type_annotation(&child.children[1])?
+            } else {
+                None
+            };
+            
+            params.push((name, ty));
+        }
+    }
+    
+    Ok(params)
+}
+
+fn convert_function_body(node: &DerivationNode) -> Result<Stmt, String> {
+    if node.children.is_empty() {
+        return Err("Empty function body".to_string());
+    }
+    
+    let child = &node.children[0];
+    match child.symbol.as_str() {
+        "ARROW" => {
+            if node.children.len() < 2 {
+                return Err("Invalid arrow function".to_string());
+            }
+            let expr = convert_expr(&node.children[1])?;
+            Ok(Stmt {
+                kind: StmtKind::ExprStmt(expr),
+                span: get_span(child),
+            })
+        }
+        "BlockStmt" => convert_stmt(child),
+        _ => Err("Unsupported function body".to_string()),
+    }
+}
+
+fn convert_type_params(node: &DerivationNode) -> Result<Vec<String>, String> {
+    if node.symbol != "TypeParams" {
+        return Err("Expected TypeParams node".to_string());
+    }
+
+    let mut params = vec![];
+    
+    for child in &node.children {
+        if child.symbol == "IDENT" {
+            if let Some(token) = &child.token {
+                params.push(token.lexeme.clone());
+            }
+        }
+    }
+    
+    Ok(params)
+}
+
+fn convert_type_inheritance(node: &DerivationNode) -> Result<(String, Vec<Expr>), String> {
+    if node.symbol != "TypeInheritance" || node.children.is_empty() {
+        return Ok(("Object".to_string(), vec![]));
+    }
+
+    if node.children.len() < 3 {
+        return Err("Invalid TypeInheritance structure".to_string());
+    }
+
+    let base_type = get_token_value(&node.children[1])?;
+    let base_args = convert_type_base_args(&node.children[2])?;
+    
+    Ok((base_type, base_args))
+}
+
+fn convert_type_base_args(node: &DerivationNode) -> Result<Vec<Expr>, String> {
+    if node.symbol != "TypeBaseArgs" || node.children.is_empty() {
+        return Ok(vec![]);
+    }
+
+    if node.children.len() < 3 {
+        return Err("Invalid TypeBaseArgs structure".to_string());
+    }
+
+    convert_arg_list(&node.children[1])
+}
+
+fn convert_type_body(node: &DerivationNode) -> Result<(Vec<AttributeDecl>, Vec<MethodDecl>), String> {
+    if node.symbol != "TypeBody" {
+        return Err("Expected TypeBody node".to_string());
+    }
+
+    let mut attributes = vec![];
+    let mut methods = vec![];
+    
+    for child in &node.children {
+        if child.symbol == "TypeMember" {
+            let (attr, method) = convert_type_member(child)?;
+            if let Some(attr) = attr {
+                attributes.push(attr);
+            }
+            if let Some(method) = method {
+                methods.push(method);
+            }
+        }
+    }
+    
+    Ok((attributes, methods))
+}
+
+fn convert_type_member(node: &DerivationNode) -> Result<(Option<AttributeDecl>, Option<MethodDecl>), String> {
+    if node.symbol != "TypeMember" || node.children.len() < 2 {
+        return Ok((None, None));
+    }
+
+    let ident = &node.children[0];
+    let name = get_token_value(ident)?;
+    let tail = &node.children[1];
+    
+    convert_type_member_tail(name, tail)
+}
+
+fn convert_type_member_tail(name: String, node: &DerivationNode) -> Result<(Option<AttributeDecl>, Option<MethodDecl>), String> {
+    if node.symbol != "TypeMemberTail" || node.children.is_empty() {
+        return Ok((None, None));
+    }
+
+    let first = &node.children[0];
+    match first.symbol.as_str() {
+        "TypeAnnotation" => {
+            // Atributo
+            let declared_type = convert_type_annotation(first)?;
+            let initializer = if node.children.len() > 1 {
+                if let Some(assign) = node.children[1].children.get(1) {
+                    Some(convert_expr(assign)?)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+            
+            Ok((Some(AttributeDecl {
+                name,
+                initializer,
+                declared_type,
+            }), None))
+        }
+        "LPAREN" => {
+            // Método
+            if node.children.len() < 6 {
+                return Err("Invalid method declaration".to_string());
+            }
+            
+            let params = convert_arg_id_list_with_types(&node.children[1])?;
+            let return_type = convert_type_annotation(&node.children[3])?;
+            let body = convert_function_body(&node.children[4])?;
+            
+            Ok((None, Some(MethodDecl {
+                name,
+                params,
+                body: Box::new(body),
+                return_type,
+            })))
+        }
+        _ => Ok((None, None)),
+    }
+}
+
+fn convert_if_body(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "IfBody" || node.children.is_empty() {
+        return Err("Invalid IfBody".to_string());
+    }
+
+    let child = &node.children[0];
+    match child.symbol.as_str() {
+        "BlockStmt" => convert_block_expr(child),
+        "Expr" => convert_expr(child),
+        _ => Err("Unsupported IfBody".to_string()),
+    }
+}
+
+fn convert_elif_list(node: &DerivationNode) -> Result<Vec<ElifBranch>, String> {
+    if node.symbol != "ElifList" {
+        return Err("Expected ElifList node".to_string());
+    }
+
+    let mut branches = vec![];
+    
+    for child in &node.children {
+        if child.symbol == "ElifBranch" {
+            branches.push(convert_elif_branch(child)?);
+        }
+    }
+    
+    Ok(branches)
+}
+
+fn convert_elif_branch(node: &DerivationNode) -> Result<ElifBranch, String> {
+    if node.symbol != "ElifBranch" || node.children.len() < 5 {
+        return Err("Invalid ElifBranch".to_string());
+    }
+
+    let condition = convert_expr(&node.children[2])?;
+    let then_branch = convert_if_body(&node.children[4])?;
+    
+    Ok(ElifBranch {
+        condition,
+        then_branch,
+    })
+}
+
+fn convert_var_binding_list(node: &DerivationNode) -> Result<Vec<VarBinding>, String> {
+    if node.symbol != "VarBindingList" {
+        return Err("Expected VarBindingList node".to_string());
+    }
+
+    let mut bindings = vec![];
+    
+    for child in &node.children {
+        if child.symbol == "VarBinding" {
+            bindings.push(convert_var_binding(child)?);
+        }
+    }
+    
+    Ok(bindings)
+}
+
+fn convert_var_binding(node: &DerivationNode) -> Result<VarBinding, String> {
+    if node.symbol != "VarBinding" || node.children.len() < 4 {
+        return Err("Invalid VarBinding".to_string());
+    }
+
+    let name = get_token_value(&node.children[0])?;
+    let declared_type = convert_type_annotation(&node.children[1])?;
+    let value = convert_expr(&node.children[3])?;
+    
+    Ok(VarBinding {
+        name,
+        value,
+        declared_type,
+    })
+}
+
+fn convert_let_body(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "LetBody" || node.children.is_empty() {
+        return Err("Invalid LetBody".to_string());
+    }
+
+    let child = &node.children[0];
+    match child.symbol.as_str() {
+        "BlockStmt" => convert_block_expr(child),
+        "Expr" => convert_expr(child),
+        "WhileStmt" => convert_while_expr(child),
+        "ForStmt" => convert_for_expr(child),
+        _ => Err("Unsupported LetBody".to_string()),
+    }
+}
+
+fn convert_while_body(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "WhileBody" || node.children.is_empty() {
+        return Err("Invalid WhileBody".to_string());
+    }
+
+    let child = &node.children[0];
+    match child.symbol.as_str() {
+        "BlockStmt" => convert_block_expr(child),
+        "Expr" => convert_expr(child),
+        _ => Err("Unsupported WhileBody".to_string()),
+    }
+}
+
+fn convert_for_body(node: &DerivationNode) -> Result<Expr, String> {
+    if node.symbol != "ForBody" || node.children.is_empty() {
+        return Err("Invalid ForBody".to_string());
+    }
+
+    let child = &node.children[0];
+    match child.symbol.as_str() {
+        "BlockStmt" => convert_block_expr(child),
+        "Expr" => convert_expr(child),
+        _ => Err("Unsupported ForBody".to_string()),
+    }
 }
 
 // Estructuras auxiliares para la conversión
@@ -1104,1429 +1290,12 @@ struct TypeDecl {
     base_args: Vec<Expr>,
 }
 
-// Funciones helper
-fn get_span(node: &DerivationNode) -> Option<Span> {
-    node.token.as_ref().map(|token| Span {
-        line: token.line,
-        column: token.column,
-    })
+struct ElifBranch {
+    condition: Expr,
+    then_branch: Expr,
 }
 
-// Replace the convert_primary function with a proper implementation
-fn convert_primary(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Primary" {
-        return Err(format!("Expected Primary node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Err("Primary node has no children".to_string());
-    }
-
-    let child = &node.children[0];
-    let span = get_span(child);
-    
-    match child.symbol.as_str() {
-        "NUMBER" => {
-            let value = child.token.as_ref().unwrap().lexeme.parse::<f64>().map_err(|e| e.to_string())?;
-            Ok(Expr {
-                kind: ExprKind::Number(value),
-                span,
-            })
-        }
-        "STRING" => {
-            let value = child.token.as_ref().unwrap().lexeme.clone();
-            Ok(Expr {
-                kind: ExprKind::String(value),
-                span,
-            })
-        }
-        "TRUE" => Ok(Expr {
-            kind: ExprKind::Boolean(true),
-            span,
-        }),
-        "FALSE" => Ok(Expr {
-            kind: ExprKind::Boolean(false),
-            span,
-        }),
-        "IDENT" => {
-            let name = child.token.as_ref().unwrap().lexeme.clone();
-            let mut expr = Expr {
-                kind: ExprKind::Variable(name),
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "SELF" => {
-            let mut expr = Expr {
-                kind: ExprKind::SelfExpr,
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "BASE" => {
-            if node.children.len() < 4 {
-                return Err("Invalid BASE expression".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[2])?;
-            Ok(Expr {
-                kind: ExprKind::BaseCall { args },
-                span,
-            })
-        }
-        "NEW" => {
-            if node.children.len() < 5 {
-                return Err("Invalid NEW expression".to_string());
-            }
-            
-            let type_name = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing type name in NEW expression")?
-                .lexeme
-                .clone();
-            
-            let args = convert_arg_list(&node.children[3])?;
-            
-            Ok(Expr {
-                kind: ExprKind::New {
-                    type_name,
-                    args,
-                },
-                span,
-            })
-        }
-        "LPAREN" => {
-            if node.children.len() < 3 {
-                return Err("Invalid parenthesized expression".to_string());
-            }
-            convert_expr(&node.children[1])
-        }
-        _ => Err(format!("Unsupported primary expression: {}", child.symbol)),
-    }
-}
-
-// Also need to update convert_primary_tail
-fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "PrimaryTail" {
-        return Err(format!("Expected PrimaryTail node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Ok(base);
-    }
-
-    let first_child = &node.children[0];
-    match first_child.symbol.as_str() {
-        "LPAREN" => {
-            if node.children.len() < 4 {
-                return Err("Invalid function call".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[1])?;
-            let mut expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Call {
-                        function: name,
-                        args,
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::MethodCall {
-                        object,
-                        method: attr,
-                        args,
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid call expression".to_string()),
-            };
-            
-            if node.children.len() > 3 {
-                expr = convert_primary_tail(expr, &node.children[3])?;
-            }
-            
-            Ok(expr)
-        }
-        "DOT" => {
-            if node.children.len() < 3 {
-                return Err("Invalid attribute access".to_string());
-            }
-            
-            let attr = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing attribute name")?
-                .lexeme
-                .clone();
-            
-            let span = base.span.clone();
-            let expr = Expr {
-                kind: ExprKind::GetAttr {
-                    object: Box::new(base),
-                    attr,
-                },
-                span,
-            };
-            
-            if node.children.len() > 2 {
-                convert_primary_tail(expr, &node.children[2])
-            } else {
-                Ok(expr)
-            }
-        }
-        "ASSIGN" | "ASSIGN_DESTRUCT" => {
-            if node.children.len() < 2 {
-                return Err("Invalid assignment".to_string());
-            }
-            
-            let value = convert_expr(&node.children[1])?;
-            let expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Assign {
-                        var_name: name,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::SetAttr {
-                        object,
-                        attr,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid assignment target".to_string()),
-            };
-            
-            Ok(expr)
-        }
-        _ => Ok(base),
-    }
-}
-
-// Implementaciones para FunctionDef, TypeDef, etc.
-fn convert_function_def(node: &DerivationNode) -> Result<FunctionDecl, String> {
-    if node.symbol != "FunctionDef" {
-        return Err("Expected FunctionDef node".to_string());
-    }
-
-    if node.children.len() < 7 {
-        return Err("Invalid FunctionDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing function name")?
-        .lexeme
-        .clone();
-    
-    let params = convert_arg_id_list_with_types(&node.children[3])?;
-    let return_type = convert_type_annotation(&node.children[5])?;
-    let body = convert_function_body(&node.children[6])?;
-    
-    Ok(FunctionDecl {
-        name,
-        params,
-        body,
-        return_type,
-    })
-}
-
-// Implementación para TypeDef
-fn convert_type_def(node: &DerivationNode) -> Result<TypeDecl, String> {
-    if node.symbol != "TypeDef" {
-        return Err("Expected TypeDef node".to_string());
-    }
-
-    // Suponiendo una estructura básica: TYPE IDENT TypeParams? Attributes? Methods? BASE? BASE_ARGS?
-    if node.children.len() < 2 {
-        return Err("Invalid TypeDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing type name")?
-        .lexeme
-        .clone();
-
-    // Opcional: type_params, attributes, methods, base_type, base_args
-    let type_params = vec![];
-    let attributes = vec![];
-    let methods = vec![];
-    let base_type = String::new();
-    let base_args = vec![];
-
-    // Aquí podrías agregar lógica para extraer los campos opcionales si tu CST los provee
-
-    Ok(TypeDecl {
-        name,
-        type_params,
-        attributes,
-        methods,
-        base_type,
-        base_args,
-    })
-}
-
-// Estructuras auxiliares para la conversión
-struct FunctionDecl {
+struct VarBinding {
     name: String,
-    params: Vec<(String, Option<Type>)>,
-    body: Stmt,
-    return_type: Option<Type>,
-}
-
-struct TypeDecl {
-    name: String,
-    type_params: Vec<String>,
-    attributes: Vec<AttributeDecl>,
-    methods: Vec<MethodDecl>,
-    base_type: String,
-    base_args: Vec<Expr>,
-}
-
-// Funciones helper
-fn get_span(node: &DerivationNode) -> Option<Span> {
-    node.token.as_ref().map(|token| Span {
-        line: token.line,
-        column: token.column,
-    })
-}
-
-// Replace the convert_primary function with a proper implementation
-fn convert_primary(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Primary" {
-        return Err(format!("Expected Primary node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Err("Primary node has no children".to_string());
-    }
-
-    let child = &node.children[0];
-    let span = get_span(child);
-    
-    match child.symbol.as_str() {
-        "NUMBER" => {
-            let value = child.token.as_ref().unwrap().lexeme.parse::<f64>().map_err(|e| e.to_string())?;
-            Ok(Expr {
-                kind: ExprKind::Number(value),
-                span,
-            })
-        }
-        "STRING" => {
-            let value = child.token.as_ref().unwrap().lexeme.clone();
-            Ok(Expr {
-                kind: ExprKind::String(value),
-                span,
-            })
-        }
-        "TRUE" => Ok(Expr {
-            kind: ExprKind::Boolean(true),
-            span,
-        }),
-        "FALSE" => Ok(Expr {
-            kind: ExprKind::Boolean(false),
-            span,
-        }),
-        "IDENT" => {
-            let name = child.token.as_ref().unwrap().lexeme.clone();
-            let mut expr = Expr {
-                kind: ExprKind::Variable(name),
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "SELF" => {
-            let mut expr = Expr {
-                kind: ExprKind::SelfExpr,
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "BASE" => {
-            if node.children.len() < 4 {
-                return Err("Invalid BASE expression".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[2])?;
-            Ok(Expr {
-                kind: ExprKind::BaseCall { args },
-                span,
-            })
-        }
-        "NEW" => {
-            if node.children.len() < 5 {
-                return Err("Invalid NEW expression".to_string());
-            }
-            
-            let type_name = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing type name in NEW expression")?
-                .lexeme
-                .clone();
-            
-            let args = convert_arg_list(&node.children[3])?;
-            
-            Ok(Expr {
-                kind: ExprKind::New {
-                    type_name,
-                    args,
-                },
-                span,
-            })
-        }
-        "LPAREN" => {
-            if node.children.len() < 3 {
-                return Err("Invalid parenthesized expression".to_string());
-            }
-            convert_expr(&node.children[1])
-        }
-        _ => Err(format!("Unsupported primary expression: {}", child.symbol)),
-    }
-}
-
-// Also need to update convert_primary_tail
-fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "PrimaryTail" {
-        return Err(format!("Expected PrimaryTail node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Ok(base);
-    }
-
-    let first_child = &node.children[0];
-    match first_child.symbol.as_str() {
-        "LPAREN" => {
-            if node.children.len() < 4 {
-                return Err("Invalid function call".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[1])?;
-            let mut expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Call {
-                        function: name,
-                        args,
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::MethodCall {
-                        object,
-                        method: attr,
-                        args,
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid call expression".to_string()),
-            };
-            
-            if node.children.len() > 3 {
-                expr = convert_primary_tail(expr, &node.children[3])?;
-            }
-            
-            Ok(expr)
-        }
-        "DOT" => {
-            if node.children.len() < 3 {
-                return Err("Invalid attribute access".to_string());
-            }
-            
-            let attr = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing attribute name")?
-                .lexeme
-                .clone();
-            
-            let span = base.span.clone();
-            let expr = Expr {
-                kind: ExprKind::GetAttr {
-                    object: Box::new(base),
-                    attr,
-                },
-                span,
-            };
-            
-            if node.children.len() > 2 {
-                convert_primary_tail(expr, &node.children[2])
-            } else {
-                Ok(expr)
-            }
-        }
-        "ASSIGN" | "ASSIGN_DESTRUCT" => {
-            if node.children.len() < 2 {
-                return Err("Invalid assignment".to_string());
-            }
-            
-            let value = convert_expr(&node.children[1])?;
-            let expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Assign {
-                        var_name: name,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::SetAttr {
-                        object,
-                        attr,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid assignment target".to_string()),
-            };
-            
-            Ok(expr)
-        }
-        _ => Ok(base),
-    }
-}
-
-// Implementaciones para FunctionDef, TypeDef, etc.
-fn convert_function_def(node: &DerivationNode) -> Result<FunctionDecl, String> {
-    if node.symbol != "FunctionDef" {
-        return Err("Expected FunctionDef node".to_string());
-    }
-
-    if node.children.len() < 7 {
-        return Err("Invalid FunctionDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing function name")?
-        .lexeme
-        .clone();
-    
-    let params = convert_arg_id_list_with_types(&node.children[3])?;
-    let return_type = convert_type_annotation(&node.children[5])?;
-    let body = convert_function_body(&node.children[6])?;
-    
-    Ok(FunctionDecl {
-        name,
-        params,
-        body,
-        return_type,
-    })
-}
-
-// Implementación para TypeDef
-fn convert_type_def(node: &DerivationNode) -> Result<TypeDecl, String> {
-    if node.symbol != "TypeDef" {
-        return Err("Expected TypeDef node".to_string());
-    }
-
-    // Suponiendo una estructura básica: TYPE IDENT TypeParams? Attributes? Methods? BASE? BASE_ARGS?
-    if node.children.len() < 2 {
-        return Err("Invalid TypeDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing type name")?
-        .lexeme
-        .clone();
-
-    // Opcional: type_params, attributes, methods, base_type, base_args
-    let type_params = vec![];
-    let attributes = vec![];
-    let methods = vec![];
-    let base_type = String::new();
-    let base_args = vec![];
-
-    // Aquí podrías agregar lógica para extraer los campos opcionales si tu CST los provee
-
-    Ok(TypeDecl {
-        name,
-        type_params,
-        attributes,
-        methods,
-        base_type,
-        base_args,
-    })
-}
-
-// Estructuras auxiliares para la conversión
-struct FunctionDecl {
-    name: String,
-    params: Vec<(String, Option<Type>)>,
-    body: Stmt,
-    return_type: Option<Type>,
-}
-
-struct TypeDecl {
-    name: String,
-    type_params: Vec<String>,
-    attributes: Vec<AttributeDecl>,
-    methods: Vec<MethodDecl>,
-    base_type: String,
-    base_args: Vec<Expr>,
-}
-
-// Funciones helper
-fn get_span(node: &DerivationNode) -> Option<Span> {
-    node.token.as_ref().map(|token| Span {
-        line: token.line,
-        column: token.column,
-    })
-}
-
-// Replace the convert_primary function with a proper implementation
-fn convert_primary(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Primary" {
-        return Err(format!("Expected Primary node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Err("Primary node has no children".to_string());
-    }
-
-    let child = &node.children[0];
-    let span = get_span(child);
-    
-    match child.symbol.as_str() {
-        "NUMBER" => {
-            let value = child.token.as_ref().unwrap().lexeme.parse::<f64>().map_err(|e| e.to_string())?;
-            Ok(Expr {
-                kind: ExprKind::Number(value),
-                span,
-            })
-        }
-        "STRING" => {
-            let value = child.token.as_ref().unwrap().lexeme.clone();
-            Ok(Expr {
-                kind: ExprKind::String(value),
-                span,
-            })
-        }
-        "TRUE" => Ok(Expr {
-            kind: ExprKind::Boolean(true),
-            span,
-        }),
-        "FALSE" => Ok(Expr {
-            kind: ExprKind::Boolean(false),
-            span,
-        }),
-        "IDENT" => {
-            let name = child.token.as_ref().unwrap().lexeme.clone();
-            let mut expr = Expr {
-                kind: ExprKind::Variable(name),
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "SELF" => {
-            let mut expr = Expr {
-                kind: ExprKind::SelfExpr,
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "BASE" => {
-            if node.children.len() < 4 {
-                return Err("Invalid BASE expression".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[2])?;
-            Ok(Expr {
-                kind: ExprKind::BaseCall { args },
-                span,
-            })
-        }
-        "NEW" => {
-            if node.children.len() < 5 {
-                return Err("Invalid NEW expression".to_string());
-            }
-            
-            let type_name = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing type name in NEW expression")?
-                .lexeme
-                .clone();
-            
-            let args = convert_arg_list(&node.children[3])?;
-            
-            Ok(Expr {
-                kind: ExprKind::New {
-                    type_name,
-                    args,
-                },
-                span,
-            })
-        }
-        "LPAREN" => {
-            if node.children.len() < 3 {
-                return Err("Invalid parenthesized expression".to_string());
-            }
-            convert_expr(&node.children[1])
-        }
-        _ => Err(format!("Unsupported primary expression: {}", child.symbol)),
-    }
-}
-
-// Also need to update convert_primary_tail
-fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "PrimaryTail" {
-        return Err(format!("Expected PrimaryTail node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Ok(base);
-    }
-
-    let first_child = &node.children[0];
-    match first_child.symbol.as_str() {
-        "LPAREN" => {
-            if node.children.len() < 4 {
-                return Err("Invalid function call".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[1])?;
-            let mut expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Call {
-                        function: name,
-                        args,
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::MethodCall {
-                        object,
-                        method: attr,
-                        args,
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid call expression".to_string()),
-            };
-            
-            if node.children.len() > 3 {
-                expr = convert_primary_tail(expr, &node.children[3])?;
-            }
-            
-            Ok(expr)
-        }
-        "DOT" => {
-            if node.children.len() < 3 {
-                return Err("Invalid attribute access".to_string());
-            }
-            
-            let attr = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing attribute name")?
-                .lexeme
-                .clone();
-            
-            let span = base.span.clone();
-            let expr = Expr {
-                kind: ExprKind::GetAttr {
-                    object: Box::new(base),
-                    attr,
-                },
-                span,
-            };
-            
-            if node.children.len() > 2 {
-                convert_primary_tail(expr, &node.children[2])
-            } else {
-                Ok(expr)
-            }
-        }
-        "ASSIGN" | "ASSIGN_DESTRUCT" => {
-            if node.children.len() < 2 {
-                return Err("Invalid assignment".to_string());
-            }
-            
-            let value = convert_expr(&node.children[1])?;
-            let expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Assign {
-                        var_name: name,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::SetAttr {
-                        object,
-                        attr,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid assignment target".to_string()),
-            };
-            
-            Ok(expr)
-        }
-        _ => Ok(base),
-    }
-}
-
-// Implementaciones para FunctionDef, TypeDef, etc.
-fn convert_function_def(node: &DerivationNode) -> Result<FunctionDecl, String> {
-    if node.symbol != "FunctionDef" {
-        return Err("Expected FunctionDef node".to_string());
-    }
-
-    if node.children.len() < 7 {
-        return Err("Invalid FunctionDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing function name")?
-        .lexeme
-        .clone();
-    
-    let params = convert_arg_id_list_with_types(&node.children[3])?;
-    let return_type = convert_type_annotation(&node.children[5])?;
-    let body = convert_function_body(&node.children[6])?;
-    
-    Ok(FunctionDecl {
-        name,
-        params,
-        body,
-        return_type,
-    })
-}
-
-// Implementación para TypeDef
-fn convert_type_def(node: &DerivationNode) -> Result<TypeDecl, String> {
-    if node.symbol != "TypeDef" {
-        return Err("Expected TypeDef node".to_string());
-    }
-
-    // Suponiendo una estructura básica: TYPE IDENT TypeParams? Attributes? Methods? BASE? BASE_ARGS?
-    if node.children.len() < 2 {
-        return Err("Invalid TypeDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing type name")?
-        .lexeme
-        .clone();
-
-    // Opcional: type_params, attributes, methods, base_type, base_args
-    let type_params = vec![];
-    let attributes = vec![];
-    let methods = vec![];
-    let base_type = String::new();
-    let base_args = vec![];
-
-    // Aquí podrías agregar lógica para extraer los campos opcionales si tu CST los provee
-
-    Ok(TypeDecl {
-        name,
-        type_params,
-        attributes,
-        methods,
-        base_type,
-        base_args,
-    })
-}
-
-// Estructuras auxiliares para la conversión
-struct FunctionDecl {
-    name: String,
-    params: Vec<(String, Option<Type>)>,
-    body: Stmt,
-    return_type: Option<Type>,
-}
-
-struct TypeDecl {
-    name: String,
-    type_params: Vec<String>,
-    attributes: Vec<AttributeDecl>,
-    methods: Vec<MethodDecl>,
-    base_type: String,
-    base_args: Vec<Expr>,
-}
-
-// Funciones helper
-fn get_span(node: &DerivationNode) -> Option<Span> {
-    node.token.as_ref().map(|token| Span {
-        line: token.line,
-        column: token.column,
-    })
-}
-
-// Replace the convert_primary function with a proper implementation
-fn convert_primary(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Primary" {
-        return Err(format!("Expected Primary node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Err("Primary node has no children".to_string());
-    }
-
-    let child = &node.children[0];
-    let span = get_span(child);
-    
-    match child.symbol.as_str() {
-        "NUMBER" => {
-            let value = child.token.as_ref().unwrap().lexeme.parse::<f64>().map_err(|e| e.to_string())?;
-            Ok(Expr {
-                kind: ExprKind::Number(value),
-                span,
-            })
-        }
-        "STRING" => {
-            let value = child.token.as_ref().unwrap().lexeme.clone();
-            Ok(Expr {
-                kind: ExprKind::String(value),
-                span,
-            })
-        }
-        "TRUE" => Ok(Expr {
-            kind: ExprKind::Boolean(true),
-            span,
-        }),
-        "FALSE" => Ok(Expr {
-            kind: ExprKind::Boolean(false),
-            span,
-        }),
-        "IDENT" => {
-            let name = child.token.as_ref().unwrap().lexeme.clone();
-            let mut expr = Expr {
-                kind: ExprKind::Variable(name),
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "SELF" => {
-            let mut expr = Expr {
-                kind: ExprKind::SelfExpr,
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "BASE" => {
-            if node.children.len() < 4 {
-                return Err("Invalid BASE expression".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[2])?;
-            Ok(Expr {
-                kind: ExprKind::BaseCall { args },
-                span,
-            })
-        }
-        "NEW" => {
-            if node.children.len() < 5 {
-                return Err("Invalid NEW expression".to_string());
-            }
-            
-            let type_name = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing type name in NEW expression")?
-                .lexeme
-                .clone();
-            
-            let args = convert_arg_list(&node.children[3])?;
-            
-            Ok(Expr {
-                kind: ExprKind::New {
-                    type_name,
-                    args,
-                },
-                span,
-            })
-        }
-        "LPAREN" => {
-            if node.children.len() < 3 {
-                return Err("Invalid parenthesized expression".to_string());
-            }
-            convert_expr(&node.children[1])
-        }
-        _ => Err(format!("Unsupported primary expression: {}", child.symbol)),
-    }
-}
-
-// Also need to update convert_primary_tail
-fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "PrimaryTail" {
-        return Err(format!("Expected PrimaryTail node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Ok(base);
-    }
-
-    let first_child = &node.children[0];
-    match first_child.symbol.as_str() {
-        "LPAREN" => {
-            if node.children.len() < 4 {
-                return Err("Invalid function call".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[1])?;
-            let mut expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Call {
-                        function: name,
-                        args,
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::MethodCall {
-                        object,
-                        method: attr,
-                        args,
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid call expression".to_string()),
-            };
-            
-            if node.children.len() > 3 {
-                expr = convert_primary_tail(expr, &node.children[3])?;
-            }
-            
-            Ok(expr)
-        }
-        "DOT" => {
-            if node.children.len() < 3 {
-                return Err("Invalid attribute access".to_string());
-            }
-            
-            let attr = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing attribute name")?
-                .lexeme
-                .clone();
-            
-            let span = base.span.clone();
-            let expr = Expr {
-                kind: ExprKind::GetAttr {
-                    object: Box::new(base),
-                    attr,
-                },
-                span,
-            };
-            
-            if node.children.len() > 2 {
-                convert_primary_tail(expr, &node.children[2])
-            } else {
-                Ok(expr)
-            }
-        }
-        "ASSIGN" | "ASSIGN_DESTRUCT" => {
-            if node.children.len() < 2 {
-                return Err("Invalid assignment".to_string());
-            }
-            
-            let value = convert_expr(&node.children[1])?;
-            let expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Assign {
-                        var_name: name,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::SetAttr {
-                        object,
-                        attr,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid assignment target".to_string()),
-            };
-            
-            Ok(expr)
-        }
-        _ => Ok(base),
-    }
-}
-
-// Implementaciones para FunctionDef, TypeDef, etc.
-fn convert_function_def(node: &DerivationNode) -> Result<FunctionDecl, String> {
-    if node.symbol != "FunctionDef" {
-        return Err("Expected FunctionDef node".to_string());
-    }
-
-    if node.children.len() < 7 {
-        return Err("Invalid FunctionDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing function name")?
-        .lexeme
-        .clone();
-    
-    let params = convert_arg_id_list_with_types(&node.children[3])?;
-    let return_type = convert_type_annotation(&node.children[5])?;
-    let body = convert_function_body(&node.children[6])?;
-    
-    Ok(FunctionDecl {
-        name,
-        params,
-        body,
-        return_type,
-    })
-}
-
-// Implementación para TypeDef
-fn convert_type_def(node: &DerivationNode) -> Result<TypeDecl, String> {
-    if node.symbol != "TypeDef" {
-        return Err("Expected TypeDef node".to_string());
-    }
-
-    // Suponiendo una estructura básica: TYPE IDENT TypeParams? Attributes? Methods? BASE? BASE_ARGS?
-    if node.children.len() < 2 {
-        return Err("Invalid TypeDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing type name")?
-        .lexeme
-        .clone();
-
-    // Opcional: type_params, attributes, methods, base_type, base_args
-    let type_params = vec![];
-    let attributes = vec![];
-    let methods = vec![];
-    let base_type = String::new();
-    let base_args = vec![];
-
-    // Aquí podrías agregar lógica para extraer los campos opcionales si tu CST los provee
-
-    Ok(TypeDecl {
-        name,
-        type_params,
-        attributes,
-        methods,
-        base_type,
-        base_args,
-    })
-}
-
-// Estructuras auxiliares para la conversión
-struct FunctionDecl {
-    name: String,
-    params: Vec<(String, Option<Type>)>,
-    body: Stmt,
-    return_type: Option<Type>,
-}
-
-struct TypeDecl {
-    name: String,
-    type_params: Vec<String>,
-    attributes: Vec<AttributeDecl>,
-    methods: Vec<MethodDecl>,
-    base_type: String,
-    base_args: Vec<Expr>,
-}
-
-// Funciones helper
-fn get_span(node: &DerivationNode) -> Option<Span> {
-    node.token.as_ref().map(|token| Span {
-        line: token.line,
-        column: token.column,
-    })
-}
-
-// Replace the convert_primary function with a proper implementation
-fn convert_primary(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "Primary" {
-        return Err(format!("Expected Primary node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Err("Primary node has no children".to_string());
-    }
-
-    let child = &node.children[0];
-    let span = get_span(child);
-    
-    match child.symbol.as_str() {
-        "NUMBER" => {
-            let value = child.token.as_ref().unwrap().lexeme.parse::<f64>().map_err(|e| e.to_string())?;
-            Ok(Expr {
-                kind: ExprKind::Number(value),
-                span,
-            })
-        }
-        "STRING" => {
-            let value = child.token.as_ref().unwrap().lexeme.clone();
-            Ok(Expr {
-                kind: ExprKind::String(value),
-                span,
-            })
-        }
-        "TRUE" => Ok(Expr {
-            kind: ExprKind::Boolean(true),
-            span,
-        }),
-        "FALSE" => Ok(Expr {
-            kind: ExprKind::Boolean(false),
-            span,
-        }),
-        "IDENT" => {
-            let name = child.token.as_ref().unwrap().lexeme.clone();
-            let mut expr = Expr {
-                kind: ExprKind::Variable(name),
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "SELF" => {
-            let mut expr = Expr {
-                kind: ExprKind::SelfExpr,
-                span,
-            };
-            
-            if node.children.len() > 1 {
-                expr = convert_primary_tail(expr, &node.children[1])?;
-            }
-            
-            Ok(expr)
-        }
-        "BASE" => {
-            if node.children.len() < 4 {
-                return Err("Invalid BASE expression".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[2])?;
-            Ok(Expr {
-                kind: ExprKind::BaseCall { args },
-                span,
-            })
-        }
-        "NEW" => {
-            if node.children.len() < 5 {
-                return Err("Invalid NEW expression".to_string());
-            }
-            
-            let type_name = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing type name in NEW expression")?
-                .lexeme
-                .clone();
-            
-            let args = convert_arg_list(&node.children[3])?;
-            
-            Ok(Expr {
-                kind: ExprKind::New {
-                    type_name,
-                    args,
-                },
-                span,
-            })
-        }
-        "LPAREN" => {
-            if node.children.len() < 3 {
-                return Err("Invalid parenthesized expression".to_string());
-            }
-            convert_expr(&node.children[1])
-        }
-        _ => Err(format!("Unsupported primary expression: {}", child.symbol)),
-    }
-}
-
-// Also need to update convert_primary_tail
-fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "PrimaryTail" {
-        return Err(format!("Expected PrimaryTail node, got {}", node.symbol));
-    }
-
-    if node.children.is_empty() {
-        return Ok(base);
-    }
-
-    let first_child = &node.children[0];
-    match first_child.symbol.as_str() {
-        "LPAREN" => {
-            if node.children.len() < 4 {
-                return Err("Invalid function call".to_string());
-            }
-            
-            let args = convert_arg_list(&node.children[1])?;
-            let mut expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Call {
-                        function: name,
-                        args,
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::MethodCall {
-                        object,
-                        method: attr,
-                        args,
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid call expression".to_string()),
-            };
-            
-            if node.children.len() > 3 {
-                expr = convert_primary_tail(expr, &node.children[3])?;
-            }
-            
-            Ok(expr)
-        }
-        "DOT" => {
-            if node.children.len() < 3 {
-                return Err("Invalid attribute access".to_string());
-            }
-            
-            let attr = node.children[1]
-                .token
-                .as_ref()
-                .ok_or("Missing attribute name")?
-                .lexeme
-                .clone();
-            
-            let span = base.span.clone();
-            let expr = Expr {
-                kind: ExprKind::GetAttr {
-                    object: Box::new(base),
-                    attr,
-                },
-                span,
-            };
-            
-            if node.children.len() > 2 {
-                convert_primary_tail(expr, &node.children[2])
-            } else {
-                Ok(expr)
-            }
-        }
-        "ASSIGN" | "ASSIGN_DESTRUCT" => {
-            if node.children.len() < 2 {
-                return Err("Invalid assignment".to_string());
-            }
-            
-            let value = convert_expr(&node.children[1])?;
-            let expr = match base.kind {
-                ExprKind::Variable(name) => Expr {
-                    kind: ExprKind::Assign {
-                        var_name: name,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                ExprKind::GetAttr { object, attr } => Expr {
-                    kind: ExprKind::SetAttr {
-                        object,
-                        attr,
-                        value: Box::new(value),
-                    },
-                    span: base.span,
-                },
-                _ => return Err("Invalid assignment target".to_string()),
-            };
-            
-            Ok(expr)
-        }
-        _ => Ok(base),
-    }
-}
-
-// Implementaciones para FunctionDef, TypeDef, etc.
-fn convert_function_def(node: &DerivationNode) -> Result<FunctionDecl, String> {
-    if node.symbol != "FunctionDef" {
-        return Err("Expected FunctionDef node".to_string());
-    }
-
-    if node.children.len() < 7 {
-        return Err("Invalid FunctionDef structure".to_string());
-    }
-
-    let name = node.children[1]
-        .token
-        .as_ref()
-        .ok_or("Missing function name")?
-        .lexeme
-        .clone();
-    
-    let params = convert_arg_id_list_with_types(&node.children[3])?;
-    let return_type = convert_type_annotation(&node.children[5])?;
-    let body = convert_function_body(&node.children[6])?;
-    
-    Ok(FunctionDecl {
-        name,
-        params,
-        body,
-        return_type,
-    })
-}
-
+    value: Expr,
+    declared_type: Option<Type>,}
