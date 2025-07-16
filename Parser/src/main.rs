@@ -88,11 +88,9 @@ fn main() {
             println!("\nCST Tree:");
             println!("{}", cst);
 
-            // let ast = convert_to_ast(&cst);
-            // println!("\nAST Tree:");
-            // for stmt in ast {
-            //     println!("{:?}", stmt);
-            // }
+            let ast = convert_to_ast(&cst);
+            println!("\nAST Tree:");
+            println!("{:?}", ast);
         },
         Err(error) => {
             eprintln!("Parsing failed: {}", error);

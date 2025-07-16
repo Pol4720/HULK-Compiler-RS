@@ -81,7 +81,6 @@ pub fn make_token(token_type: TokenType, lexeme: &str, line: usize, column: usiz
 pub fn mock_tokens() -> Vec<Token> {
     vec![
         make_token(TokenType::NUMBER, "42", 1, 1),
-        make_token(TokenType::PLUS, "+", 1, 2),
         make_token(TokenType::SEMICOLON, ";", 1, 3),
         make_token(TokenType::EOF, "", 1, 4)
     ]
