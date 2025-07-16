@@ -81,7 +81,7 @@ fn main() {
 
     let tokens = mock_tokens();
     let mut parser = Parser::new(tokens, table, grammar.clone(), "Program")
-                           .with_error_recovery(true);
+                           .with_error_recovery(false);
     
     match parser.parse() {
         Ok(cst) => {

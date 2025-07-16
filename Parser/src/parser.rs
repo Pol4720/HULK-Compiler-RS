@@ -46,59 +46,77 @@ impl Parser {
             return Err("No tokens to process".to_string());
         }
 
-        let mut token_index = 0;
-        let result = self.parse_symbol(&self.start_symbol.clone(), &mut token_index)?;
+        // Create the root node of the tree
+        let mut root = DerivationNode::new(&self.start_symbol);
         
-        // Check if all tokens were processed
-        if token_index < self.tokens.len() - 1 || 
-           (token_index < self.tokens.len() && self.tokens[token_index].token_type != TokenType::EOF) {
-            let remaining_token = &self.tokens[token_index];
-            return Err(format!(
-                "Syntax Error at line {}, column {}: Unexpected token '{:?}' after complete parse",
-                remaining_token.line, remaining_token.column, remaining_token.token_type
-            ));
-        }
+        // Stack for predictive parsing (stores mutable pointers to nodes)
+        let mut parse_stack: Vec<*mut DerivationNode> = Vec::new();
+        parse_stack.push(&mut root as *mut DerivationNode);
         
-        if self.debug_output {
-            println!("✓ LL(1) parsing completed successfully");
-        }
+        self.pos = 0; // Reset position counter
         
-        Ok(result)
-    }
-
-    fn parse_symbol(&mut self, symbol: &str, token_index: &mut usize) -> Result<DerivationNode, String> {
-        let mut node = DerivationNode::new(symbol);
-        
-        if self.debug_output {
-            let current_token = if *token_index < self.tokens.len() {
-                format!("{:?}", self.tokens[*token_index].token_type)
+        while !parse_stack.is_empty() {
+            let current_node = unsafe { &mut *parse_stack.pop().unwrap() };
+            let symbol = current_node.symbol.clone();
+            
+            // Get the current token (or EOF if we've reached the end)
+            let current_token = if self.pos < self.tokens.len() {
+                &self.tokens[self.pos]
             } else {
-                "EOF".to_string()
+                // Create artificial EOF token
+                &Token {
+                    token_type: TokenType::EOF,
+                    lexeme: "$".to_string(),
+                    line: if !self.tokens.is_empty() { 
+                        self.tokens.last().unwrap().line 
+                    } else { 
+                        1 
+                    },
+                    column: 0,
+                }
             };
-            println!("Processing: {}, Token: {}", symbol, current_token);
-        }
-
-        if is_terminal(symbol, &self.grammar) {
-            // Terminal
-            if symbol == "ε" {
-                // Epsilon production - do nothing
-                if self.debug_output {
-                    println!("  ✓ Applied ε production");
-                }
-            } else {
-                // Get current token (or EOF if at end)
-                if *token_index >= self.tokens.len() {
-                    let line = if !self.tokens.is_empty() { self.tokens.last().unwrap().line } else { 1 };
-                    return Err(format!("Unexpected end of input at line {}", line));
-                }
-                
-                let current_token = &self.tokens[*token_index];
-                let current_terminal = format!("{:?}", current_token.token_type);
-                
-                if current_terminal == symbol {
+            
+            let mut current_terminal = format!("{:?}", current_token.token_type);
+            if current_terminal == "EOF" {
+                current_terminal = "$".to_string();
+            }
+            
+            if self.debug_output {
+                println!("Processing: {}, Token: {}", symbol, current_terminal);
+            }
+            
+            if is_terminal(&symbol, &self.grammar) {
+                // Terminal
+                if symbol == "ε" {
+                    // Epsilon production - do nothing
+                    if self.debug_output {
+                        println!("  ✓ Applied ε production");
+                    }
+                } else if symbol == "$" {
+                    // End of input symbol
+                    if current_token.token_type == TokenType::EOF {
+                        current_node.set_token(current_token.clone());
+                        if self.debug_output {
+                            println!("  ✓ Successful match with EOF");
+                        }
+                    } else {
+                        let error_msg = format!(
+                            "Syntax Error at line {}, column {}: Expected EOF, but found '{:?}'",
+                            current_token.line, current_token.column, current_token.token_type
+                        );
+                        if self.error_recovery {
+                            println!("{}", error_msg);
+                            self.synchronize(&[TokenType::EOF]);
+                        } else {
+                            return Err(error_msg);
+                        }
+                    }
+                } else if symbol == current_terminal {
                     // Successful match - assign token and advance
-                    node.token = Some(current_token.clone());
-                    *token_index += 1;
+                    current_node.set_token(current_token.clone());
+                    if current_token.token_type != TokenType::EOF {
+                        self.pos += 1;
+                    }
                     if self.debug_output {
                         println!("  ✓ Successful match: {}", symbol);
                     }
@@ -108,84 +126,99 @@ impl Parser {
                         "Syntax Error at line {}, column {}: Expected '{}', but found '{:?}' (lexeme: '{}')",
                         current_token.line, current_token.column, symbol, current_token.token_type, current_token.lexeme
                     );
-                    
                     if self.error_recovery {
-                        // Try to recover
-                        self.synchronize(&[]);
-                        node.add_child(DerivationNode::new("ERROR"));
-                    } else {
-                        return Err(error_msg);
-                    }
-                }
-            }
-        } else {
-            // Non-terminal - look up in LL(1) table
-            if *token_index >= self.tokens.len() {
-                let line = if !self.tokens.is_empty() { self.tokens.last().unwrap().line } else { 1 };
-                return Err(format!("Unexpected end of input at line {}", line));
-            }
-            
-            let current_token = &self.tokens[*token_index];
-            let current_terminal = format!("{:?}", current_token.token_type);
-            
-            // Special case: Handle EOF token when parsing StmtList
-            if symbol == "StmtList" && current_token.token_type == TokenType::EOF {
-                // Treat EOF as empty statement list
-                let epsilon_node = DerivationNode::new("ε");
-                node.add_child(epsilon_node);
-                return Ok(node);
-            }
-            
-            if let Some(row) = self.table.get(symbol) {
-                if let Some(production) = row.get(&current_terminal) {
-                    if self.debug_output {
-                        print!("  Applying production: {} → ", symbol);
-                        if production.is_empty() {
-                            print!("ε");
-                        } else {
-                            for prod_symbol in production {
-                                print!("{} ", prod_symbol);
-                            }
-                        }
-                        println!();
-                    }
-                    
-                    // Parse each symbol in the production
-                    if production.is_empty() {
-                        // Epsilon production
-                        let epsilon_node = DerivationNode::new("ε");
-                        node.add_child(epsilon_node);
-                    } else {
-                        // Clone the production to avoid borrowing issues
-                        let production_clone = production.clone();
-                        for prod_symbol in &production_clone {
-                            let child_node = self.parse_symbol(prod_symbol, token_index)?;
-                            node.add_child(child_node);
-                        }
-                    }
-                } else {
-                    // Error: no production for this pair (non_terminal, terminal)
-                    let expected = self.get_expected_tokens(symbol);
-                    let error_msg = format!(
-                        "Syntax Error at line {}, column {}: Unexpected token '{:?}'. Expected one of: {:?}",
-                        current_token.line, current_token.column, current_token.token_type, expected
-                    );
-                    
-                    if self.error_recovery {
-                        // Try to recover
-                        self.synchronize(&[]);
-                        node.add_child(DerivationNode::new("ERROR"));
+                        println!("{}", error_msg);
+                        self.synchronize(&[TokenType::SEMICOLON]);
                     } else {
                         return Err(error_msg);
                     }
                 }
             } else {
-                // Error: non-terminal not found in table
-                return Err(format!("No production found for non-terminal: {}", symbol));
+                // Non-terminal - look up in LL(1) table
+                if let Some(row) = self.table.get(&symbol) {
+                    if let Some(production) = row.get(&current_terminal) {
+                        if self.debug_output {
+                            print!("  Applying production: {} → ", symbol);
+                            if production.is_empty() {
+                                print!("ε");
+                            } else {
+                                for prod_symbol in production {
+                                    print!("{} ", prod_symbol);
+                                }
+                            }
+                            println!();
+                        }
+                        
+                        // Create child nodes for each symbol in the production
+                        if production.is_empty() {
+                            // Epsilon production
+                            current_node.children.push(DerivationNode::new("ε"));
+                        } else {
+                            // Create child nodes and add them to the tree
+                            let mut children = Vec::with_capacity(production.len());
+                            
+                            for prod_symbol in production {
+                                children.push(DerivationNode::new(prod_symbol));
+                            }
+                            
+                            // Add children to current node
+                            current_node.children = children;
+                            
+                            // Push child node pointers to stack in reverse order
+                            for child in current_node.children.iter_mut().rev() {
+                                parse_stack.push(child as *mut DerivationNode);
+                            }
+                        }
+                    } else {
+                        // Error: no production for this pair (non_terminal, terminal)
+                        let expected = self.get_expected_tokens(&symbol);
+                        let error_msg = format!(
+                            "Syntax Error at line {}, column {}: No production for {} with terminal '{:?}'. Expected one of: {:?}",
+                            current_token.line, current_token.column, symbol, current_token.token_type, expected
+                        );
+                        if self.error_recovery {
+                            println!("{}", error_msg);
+                            self.synchronize(&[TokenType::SEMICOLON]);
+                        } else {
+                            return Err(error_msg);
+                        }
+                    }
+                } else {
+                    // Error: non-terminal not found in table
+                    let error_msg = format!("No production found for non-terminal: {}", symbol);
+                    if self.error_recovery {
+                        println!("{}", error_msg);
+                        self.synchronize(&[TokenType::SEMICOLON]);
+                    } else {
+                        return Err(error_msg);
+                    }
+                }
             }
         }
         
-        Ok(node)
+        // Check if all tokens were processed (only EOF can remain unconsumed)
+        if self.pos < self.tokens.len() {
+            if self.pos == self.tokens.len() - 1 && self.tokens[self.pos].token_type == TokenType::EOF {
+                // OK: only EOF left
+            } else {
+                let remaining_token = &self.tokens[self.pos];
+                let error_msg = format!(
+                    "Syntax Error at line {}, column {}: Unexpected token '{:?}' after complete parse",
+                    remaining_token.line, remaining_token.column, remaining_token.token_type
+                );
+                if self.error_recovery {
+                    println!("{}", error_msg);
+                } else {
+                    return Err(error_msg);
+                }
+            }
+        }
+        
+        if self.debug_output {
+            println!("✓ LL(1) parsing completed successfully");
+        }
+        
+        Ok(root)
     }
 
     fn get_expected_tokens(&self, non_terminal: &str) -> Vec<String> {

@@ -25,6 +25,10 @@ impl DerivationNode {
         }
     }
 
+    pub fn set_token(&mut self, token: Token) {
+        self.token = Some(token);
+    }
+
     pub fn add_child(&mut self, child: DerivationNode) {
         self.children.push(child);
     }
