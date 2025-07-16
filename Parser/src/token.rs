@@ -32,13 +32,11 @@ pub fn make_token(token_type: TokenType, lexeme: &str, line: usize, column: usiz
 /// Returns a list of mock tokens for testing
 pub fn mock_tokens() -> Vec<Token> {
     vec![
-        make_token(TokenType::FUNCTION, "function", 1, 1),
-        make_token(TokenType::IDENT, "main", 1, 10),
-        make_token(TokenType::LPAREN, "(", 1, 14),
-        make_token(TokenType::RPAREN, ")", 1, 15),
-        make_token(TokenType::LBRACE, "{", 2, 1),
-        make_token(TokenType::RBRACE, "}", 3, 1),
-        make_token(TokenType::EOF, "", 4, 1),
-        make_token(TokenType::SEMICOLON, ";", 3, 2)
+
+        make_token(TokenType::IDENT, "a", 1, 5),
+        make_token(TokenType::IDENT, "+", 1, 7),
+        make_token(TokenType::IDENT, "b", 1, 9),
+        make_token(TokenType::SEMICOLON, ";", 1, 10),
+        make_token(TokenType::EOF, "", 2, 1)
     ]
 }
