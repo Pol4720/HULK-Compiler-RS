@@ -39,5 +39,6 @@ pub fn mock_tokens() -> Vec<Token> {
         make_token(TokenType::LBRACE, "{", 2, 1),
         make_token(TokenType::RBRACE, "}", 3, 1),
         make_token(TokenType::EOF, "", 4, 1),
+        make_token(TokenType::SEMICOLON, ";", 3, 2)
     ]
 }

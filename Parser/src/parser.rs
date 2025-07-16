@@ -1,7 +1,9 @@
 use crate::grammar::Production;
-use crate::token::{Token};
+use crate::token::{Token, TokenType};
 use crate::ll1::LL1Table;
 use crate::cst::DerivationNode;
+use crate::utils::is_terminal;
+use std::collections::HashSet;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -9,6 +11,7 @@ pub struct Parser {
     table: LL1Table,
     grammar: Vec<Production>,
     start_symbol: String,
+    error_recovery: bool,
 }
 
 impl Parser {
@@ -19,69 +22,115 @@ impl Parser {
             table,
             grammar,
             start_symbol: start.to_string(),
+            error_recovery: false,
         }
     }
 
-    pub fn parse(&mut self) -> DerivationNode {
+    pub fn with_error_recovery(mut self, enable: bool) -> Self {
+        self.error_recovery = enable;
+        self
+    }
+
+    pub fn parse(&mut self) -> Result<DerivationNode, String> {
         let start = self.start_symbol.clone();
         self.expand(&start)
     }
 
-    fn expand(&mut self, symbol: &str) -> DerivationNode {
+    fn expand(&mut self, symbol: &str) -> Result<DerivationNode, String> {
         if symbol == "ε" {
-            return DerivationNode::new("ε");
+            return Ok(DerivationNode::new("ε"));
         }
 
         // Terminal
-        if self.is_terminal(symbol) {
-            let current = self.current_token();
+        if is_terminal(symbol, &self.grammar) {
+            let current = self.current_token()?;
             let token_type_str = format!("{:?}", current.token_type);
+            
             if token_type_str == symbol {
                 let node = DerivationNode::with_token(symbol, current.clone());
                 self.pos += 1;
-                return node;
+                return Ok(node);
             } else {
-                self.report_error(symbol, current);
+                return Err(self.format_error(symbol, current));
             }
         }
 
         // Non terminal
-        let lookahead = format!("{:?}", self.current_token().token_type);
+        let current = self.current_token()?;
+        let lookahead = format!("{:?}", current.token_type);
+        
         if let Some(row) = self.table.get(symbol) {
             if let Some(prod) = row.get(&lookahead) {
                 let mut node = DerivationNode::new(symbol);
-                let production = prod.clone(); // Clone to avoid borrowing issues
+                let production = prod.clone(); 
+                
                 for sym in &production {
-                    let child = self.expand(sym);
-                    node.add_child(child);
+                    match self.expand(sym) {
+                        Ok(child) => node.add_child(child),
+                        Err(e) => {
+                            if self.error_recovery {
+                                // Try synchronization - skip tokens until we find a sync point
+                                self.synchronize(&[]);
+                                node.add_child(DerivationNode::new("ERROR"));
+                                // Continue parsing
+                            } else {
+                                return Err(e);
+                            }
+                        }
+                    }
                 }
-                return node;
+                return Ok(node);
+            } else {
+                // No production found for this lookahead
+                let expected = self.get_expected_tokens(symbol);
+                return Err(format!(
+                    "Syntax Error at line {}, column {}: Unexpected token '{:?}'. Expected one of: {:?}",
+                    current.line, current.column, current.token_type, expected
+                ));
             }
         }
         
-        self.report_error(symbol, self.current_token());
+        Err(format!("No production found for non-terminal: {}", symbol))
     }
 
-    fn current_token(&self) -> &Token {
-        self.tokens.get(self.pos).unwrap_or_else(|| {
-            eprintln!("Unexpected end of input at position {}", self.pos);
-            std::process::exit(1);
-        })
+    fn current_token(&self) -> Result<&Token, String> {
+        self.tokens.get(self.pos).ok_or_else(|| 
+            format!("Unexpected end of input at position {}", self.pos)
+        )
     }
 
-    fn is_terminal(&self, symbol: &str) -> bool {
-        !self.grammar.iter().any(|p| p.lhs == symbol)
+    fn get_expected_tokens(&self, non_terminal: &str) -> Vec<String> {
+        if let Some(row) = self.table.get(non_terminal) {
+            row.keys().cloned().collect()
+        } else {
+            vec![]
+        }
     }
 
-    fn report_error(&self, expected: &str, found: &Token) -> ! {
-        eprintln!(
+    fn format_error(&self, expected: &str, found: &Token) -> String {
+        format!(
             "Syntax Error: Expected '{}', but found '{:?}' (lexeme: '{}') at line {}, column {}",
             expected,
             found.token_type,
             found.lexeme,
             found.line,
             found.column
-        );
-        std::process::exit(1);
+        )
+    }
+
+    fn synchronize(&mut self, sync_tokens: &[TokenType]) {
+        // Skip tokens until we find a synchronization point
+        while self.pos < self.tokens.len() {
+            let current = &self.tokens[self.pos];
+            
+            // Stop at statement boundaries or specified sync tokens
+            if current.token_type == TokenType::SEMICOLON || 
+               sync_tokens.contains(&current.token_type) {
+                self.pos += 1;
+                break;
+            }
+            
+            self.pos += 1;
+        }
     }
 }

@@ -6,6 +6,7 @@
 *.out
 Compiler/target
 Parser/target
+Parser_c++
 
 *.ll
 *.exe
