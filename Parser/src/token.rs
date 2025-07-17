@@ -57,6 +57,10 @@ pub enum TokenType {
     
     // End of file
     EOF,
+
+    a,
+    b,
+
 }
 
 #[derive(Debug, Clone)]

@@ -274,3 +274,43 @@ fn compute_first_of_sequence(
     result.insert("ε".to_string());
     result
 }
+
+pub fn validate_ll1_grammar(
+    productions: &[Production],
+    ll1_table: &LL1Table,
+) -> bool {
+    let mut is_ll1 = true;
+
+    // Print validation header
+    println!("\n=== Validación de gramática LL(1) ===");
+
+    // Count the total number of entries in the table
+    let total_entries = ll1_table.values().map(|row| row.len()).sum::<usize>();
+    println!("Total de entradas en la tabla LL(1): {}", total_entries);
+    println!("Total de no terminales: {}", ll1_table.len());
+
+    // Verify that all non-terminals have at least one production
+    let non_terminals: HashSet<String> = productions.iter()
+        .map(|prod| prod.lhs.clone())
+        .collect();
+    
+    for nt in &non_terminals {
+        if !ll1_table.contains_key(nt) || ll1_table[nt].is_empty() {
+            eprintln!("Error: No terminal '{}' no tiene entradas en la tabla LL(1)", nt);
+            is_ll1 = false;
+        }
+    }
+
+    // Note: Conflict checking is already done during table construction in build_ll1_table
+
+    if is_ll1 {
+        println!("✓ La gramática parece ser LL(1)");
+    } else {
+        println!("✗ La gramática NO es LL(1)");
+    }
+    println!("======================================");
+
+    is_ll1
+}
+
+

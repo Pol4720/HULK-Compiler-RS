@@ -20,3 +20,5 @@ ast.txt
 *output_macos
 codegen_done
 *.exe.tmp[0-9]*
+
+Grammars
