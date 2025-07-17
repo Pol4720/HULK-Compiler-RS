@@ -20,7 +20,7 @@ fn convert_stmt_list(node: &DerivationNode) -> Result<Vec<Stmt>, String> {
         return Err("Expected StmtList node".to_string());
     }
 
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Ok(vec![]);
     }
 
@@ -51,7 +51,7 @@ fn convert_stmt(node: &DerivationNode) -> Result<Stmt, String> {
         return Err("Expected Stmt node".to_string());
     }
 
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Err("Stmt node has no children".to_string());
     }
 
@@ -122,7 +122,7 @@ fn convert_expr(node: &DerivationNode) -> Result<Expr, String> {
         return Err("Expected Expr node".to_string());
     }
 
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Err("Expr node has no children".to_string());
     }
 
@@ -151,7 +151,7 @@ fn convert_or_expr(node: &DerivationNode) -> Result<Expr, String> {
 }
 
 fn convert_or_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Ok(left);
     }
 
@@ -186,7 +186,7 @@ fn convert_and_expr(node: &DerivationNode) -> Result<Expr, String> {
 }
 
 fn convert_and_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Ok(left);
     }
 
@@ -221,7 +221,7 @@ fn convert_cmp_expr(node: &DerivationNode) -> Result<Expr, String> {
 }
 
 fn convert_cmp_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Ok(left);
     }
 
@@ -268,7 +268,7 @@ fn convert_concat_expr(node: &DerivationNode) -> Result<Expr, String> {
 }
 
 fn convert_concat_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Ok(left);
     }
 
@@ -291,6 +291,7 @@ fn convert_concat_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, 
 }
 
 fn convert_add_expr(node: &DerivationNode) -> Result<Expr, String> {
+    
     if node.symbol != "AddExpr" {
         return Err("Expected AddExpr node".to_string());
     }
@@ -304,7 +305,9 @@ fn convert_add_expr(node: &DerivationNode) -> Result<Expr, String> {
 }
 
 fn convert_add_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.children.is_empty() {
+    
+    if node.children[0].symbol == "ε" {
+        
         return Ok(left);
     }
 
@@ -313,6 +316,7 @@ fn convert_add_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, Str
     }
 
     let op = convert_binary_op(&node.children[0].symbol)?;
+print!("pinga");
     let right = convert_term(&node.children[1])?;
     let new_left = Expr {
         kind: ExprKind::Binary {
@@ -340,7 +344,7 @@ fn convert_term(node: &DerivationNode) -> Result<Expr, String> {
 }
 
 fn convert_term_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Ok(left);
     }
 
@@ -376,7 +380,7 @@ fn convert_factor(node: &DerivationNode) -> Result<Expr, String> {
 }
 
 fn convert_factor_prime(left: Expr, node: &DerivationNode) -> Result<Expr, String> {
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Ok(left);
     }
 
@@ -402,7 +406,7 @@ fn convert_power(node: &DerivationNode) -> Result<Expr, String> {
         return Err("Expected Power node".to_string());
     }
 
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Err("Power node has no children".to_string());
     }
 
@@ -414,7 +418,7 @@ fn convert_unary(node: &DerivationNode) -> Result<Expr, String> {
         return Err("Expected Unary node".to_string());
     }
 
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Err("Unary node has no children".to_string());
     }
 
@@ -432,6 +436,7 @@ fn convert_unary(node: &DerivationNode) -> Result<Expr, String> {
             span,
         });
     }
+
 
     // Primary AsExpr
     let primary = convert_primary(&node.children[0])?;
@@ -550,7 +555,7 @@ fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, Strin
         return Err("Expected PrimaryTail node".to_string());
     }
 
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Ok(base);
     }
 
@@ -645,12 +650,12 @@ fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, Strin
     }
 }
 
-fn convert_as_expr(base: Expr, node: &DerivationNode) -> Result<Expr, String> {
+fn convert_as_expr(base: Expr, node: &DerivationNode) -> Result<Expr, String> {print!("pinga");
     if node.symbol != "AsExpr" {
         return Err("Expected AsExpr node".to_string());
     }
 
-    if node.children.is_empty() {
+    if node.children[0].symbol == "ε" {
         return Ok(base);
     }
 
@@ -914,7 +919,7 @@ fn convert_arg_list(node: &DerivationNode) -> Result<Vec<Expr>, String> {
     let mut args = vec![];
     
     // ArgList → Expr ArgListTail | ε
-    if node.children.is_empty() {
+    if node.children[0].children.is_empty() {
         return Ok(args);
     }
     
@@ -940,7 +945,7 @@ fn convert_arg_list_tail(node: &DerivationNode) -> Result<Vec<Expr>, String> {
     let mut args = vec![];
     
     // ArgListTail → COMMA Expr ArgListTail | ε
-    if node.children.is_empty() {
+    if node.children[0].children.is_empty() {
         return Ok(args);
     }
     
@@ -954,7 +959,7 @@ fn convert_arg_list_tail(node: &DerivationNode) -> Result<Vec<Expr>, String> {
 }
 
 fn convert_type_annotation(node: &DerivationNode) -> Result<Option<Type>, String> {
-    if node.symbol != "TypeAnnotation" || node.children.is_empty() {
+    if node.symbol != "TypeAnnotation" || node.children[0].children.is_empty() {
         return Ok(None);
     }
     
@@ -1009,7 +1014,7 @@ fn convert_arg_id_list_with_types(node: &DerivationNode) -> Result<Vec<(String, 
 }
 
 fn convert_function_body(node: &DerivationNode) -> Result<Stmt, String> {
-    if node.children.is_empty() {
+    if node.children[0].children.is_empty() {
         return Err("Empty function body".to_string());
     }
     
@@ -1049,7 +1054,7 @@ fn convert_type_params(node: &DerivationNode) -> Result<Vec<String>, String> {
 }
 
 fn convert_type_inheritance(node: &DerivationNode) -> Result<(String, Vec<Expr>), String> {
-    if node.symbol != "TypeInheritance" || node.children.is_empty() {
+    if node.symbol != "TypeInheritance" || node.children[0].children.is_empty() {
         return Ok(("Object".to_string(), vec![]));
     }
 
@@ -1064,7 +1069,7 @@ fn convert_type_inheritance(node: &DerivationNode) -> Result<(String, Vec<Expr>)
 }
 
 fn convert_type_base_args(node: &DerivationNode) -> Result<Vec<Expr>, String> {
-    if node.symbol != "TypeBaseArgs" || node.children.is_empty() {
+    if node.symbol != "TypeBaseArgs" || node.children[0].children.is_empty() {
         return Ok(vec![]);
     }
 
@@ -1111,7 +1116,7 @@ fn convert_type_member(node: &DerivationNode) -> Result<(Option<AttributeDecl>, 
 }
 
 fn convert_type_member_tail(name: String, node: &DerivationNode) -> Result<(Option<AttributeDecl>, Option<MethodDecl>), String> {
-    if node.symbol != "TypeMemberTail" || node.children.is_empty() {
+    if node.symbol != "TypeMemberTail" || node.children[0].children.is_empty() {
         return Ok((None, None));
     }
 
@@ -1158,7 +1163,7 @@ fn convert_type_member_tail(name: String, node: &DerivationNode) -> Result<(Opti
 }
 
 fn convert_if_body(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "IfBody" || node.children.is_empty() {
+    if node.symbol != "IfBody" || node.children[0].children.is_empty() {
         return Err("Invalid IfBody".to_string());
     }
 
@@ -1233,7 +1238,7 @@ fn convert_var_binding(node: &DerivationNode) -> Result<VarBinding, String> {
 }
 
 fn convert_let_body(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "LetBody" || node.children.is_empty() {
+    if node.symbol != "LetBody" || node.children[0].children.is_empty() {
         return Err("Invalid LetBody".to_string());
     }
 
@@ -1248,7 +1253,7 @@ fn convert_let_body(node: &DerivationNode) -> Result<Expr, String> {
 }
 
 fn convert_while_body(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "WhileBody" || node.children.is_empty() {
+    if node.symbol != "WhileBody" || node.children[0].children.is_empty() {
         return Err("Invalid WhileBody".to_string());
     }
 
@@ -1261,7 +1266,7 @@ fn convert_while_body(node: &DerivationNode) -> Result<Expr, String> {
 }
 
 fn convert_for_body(node: &DerivationNode) -> Result<Expr, String> {
-    if node.symbol != "ForBody" || node.children.is_empty() {
+    if node.symbol != "ForBody" || node.children[0].children.is_empty() {
         return Err("Invalid ForBody".to_string());
     }
 
@@ -1272,6 +1277,7 @@ fn convert_for_body(node: &DerivationNode) -> Result<Expr, String> {
         _ => Err("Unsupported ForBody".to_string()),
     }
 }
+
 
 // Estructuras auxiliares para la conversión
 struct FunctionDecl {
@@ -1299,3 +1305,152 @@ struct VarBinding {
     name: String,
     value: Expr,
     declared_type: Option<Type>,}
+
+
+pub fn print_ast(program: &Program) {
+    fn print_stmt(stmt: &Stmt, indent: usize) {
+        let pad = "  ".repeat(indent);
+        match &stmt.kind {
+            StmtKind::ExprStmt(expr) => {
+                println!("{}ExprStmt:", pad);
+                print_expr(expr, indent + 1);
+            }
+            StmtKind::FunctionDecl { name, params, body, return_type } => {
+                println!("{}FunctionDecl: {}", pad, name);
+                println!("{}  Params:", pad);
+                for (pname, ptype) in params {
+                    println!("{}    {}: {:?}", pad, pname, ptype);
+                }
+                println!("{}  ReturnType: {:?}", pad, return_type);
+                println!("{}  Body:", pad);
+                print_stmt(body, indent + 2);
+            }
+            StmtKind::TypeDecl { name, type_params, attributes, methods, base_type, base_args } => {
+                println!("{}TypeDecl: {}", pad, name);
+                println!("{}  TypeParams: {:?}", pad, type_params);
+                println!("{}  BaseType: {}", pad, base_type);
+                println!("{}  BaseArgs:", pad);
+                for arg in base_args {
+                    print_expr(arg, indent + 2);
+                }
+                println!("{}  Attributes:", pad);
+                for attr in attributes {
+                    println!("{}    {}: {:?}", pad, attr.name, attr.declared_type);
+                }
+                println!("{}  Methods:", pad);
+                for method in methods {
+                    println!("{}    Method: {}", pad, method.name);
+                }
+            }
+        }
+    }
+
+    fn print_expr(expr: &Expr, indent: usize) {
+        let pad = "  ".repeat(indent);
+        match &expr.kind {
+            ExprKind::Number(n) => println!("{}Number: {}", pad, n),
+            ExprKind::String(s) => println!("{}String: {:?}", pad, s),
+            ExprKind::Boolean(b) => println!("{}Boolean: {}", pad, b),
+            ExprKind::Variable(name) => println!("{}Variable: {}", pad, name),
+            ExprKind::SelfExpr => println!("{}Self", pad),
+            ExprKind::BaseCall { args } => {
+                println!("{}BaseCall:", pad);
+                for arg in args {
+                    print_expr(arg, indent + 1);
+                }
+            }
+            ExprKind::New { type_name, args } => {
+                println!("{}New: {}", pad, type_name);
+                for arg in args {
+                    print_expr(arg, indent + 1);
+                }
+            }
+            ExprKind::Call { function, args } => {
+                println!("{}Call: {}", pad, function);
+                for arg in args {
+                    print_expr(arg, indent + 1);
+                }
+            }
+            ExprKind::MethodCall { object, method, args } => {
+                println!("{}MethodCall: {}", pad, method);
+                print_expr(object, indent + 1);
+                for arg in args {
+                    print_expr(arg, indent + 1);
+                }
+            }
+            ExprKind::GetAttr { object, attr } => {
+                println!("{}GetAttr: {}", pad, attr);
+                print_expr(object, indent + 1);
+            }
+            ExprKind::Assign { var_name, value } => {
+                println!("{}Assign: {}", pad, var_name);
+                print_expr(value, indent + 1);
+            }
+            ExprKind::SetAttr { object, attr, value } => {
+                println!("{}SetAttr: {}", pad, attr);
+                print_expr(object, indent + 1);
+                print_expr(value, indent + 1);
+            }
+            ExprKind::Binary { op, left, right } => {
+                println!("{}BinaryOp: {:?}", pad, op);
+                print_expr(left, indent + 1);
+                print_expr(right, indent + 1);
+            }
+            ExprKind::Unary { op, expr: subexpr } => {
+                println!("{}UnaryOp: {:?}", pad, op);
+                print_expr(subexpr, indent + 1);
+            }
+            ExprKind::As { expr: subexpr, type_name } => {
+                println!("{}As: {}", pad, type_name);
+                print_expr(subexpr, indent + 1);
+            }
+            ExprKind::Is { expr: subexpr, type_name } => {
+                println!("{}Is: {}", pad, type_name);
+                print_expr(subexpr, indent + 1);
+            }
+            ExprKind::If { condition, then_branch, else_branch } => {
+                println!("{}If:", pad);
+                println!("{}  Condition:", pad);
+                print_expr(condition, indent + 2);
+                println!("{}  Then:", pad);
+                print_expr(then_branch, indent + 2);
+                if let Some(else_branch) = else_branch {
+                    println!("{}  Else:", pad);
+                    print_expr(else_branch, indent + 2);
+                }
+            }
+            ExprKind::Let { name, value, body, declared_type } => {
+                println!("{}Let: {} {:?}", pad, name, declared_type);
+                println!("{}  Value:", pad);
+                print_expr(value, indent + 2);
+                println!("{}  Body:", pad);
+                print_expr(body, indent + 2);
+            }
+            ExprKind::While { condition, body } => {
+                println!("{}While:", pad);
+                println!("{}  Condition:", pad);
+                print_expr(condition, indent + 2);
+                println!("{}  Body:", pad);
+                print_expr(body, indent + 2);
+            }
+            ExprKind::For { iterator, collection, body } => {
+                println!("{}For: {}", pad, iterator);
+                println!("{}  Collection:", pad);
+                print_expr(collection, indent + 2);
+                println!("{}  Body:", pad);
+                print_expr(body, indent + 2);
+            }
+            ExprKind::Block { stmts } => {
+                println!("{}Block:", pad);
+                for stmt in stmts {
+                    print_stmt(stmt, indent + 1);
+                }
+            }
+        }
+    }
+
+    println!("Program:");
+    for stmt in &program.stmts {
+        print_stmt(stmt, 1);
+    }
+}

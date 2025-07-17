@@ -2,7 +2,7 @@ use crate::grammar::load_grammar;
 use crate::token::mock_tokens;
 use crate::ll1::{compute_first, compute_follow, build_ll1_table, LL1Table};
 use crate::parser::Parser;
-use crate::cst_to_ast::convert_to_ast;
+use crate::cst_to_ast::{convert_to_ast, print_ast};
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{self, Write};
@@ -90,11 +90,16 @@ fn main() {
 
             let ast = convert_to_ast(&cst);
             println!("\nAST Tree:");
-            println!("{:?}", ast);
+            if let Ok(ref program) = ast {
+                print_ast(program);
+            } else {
+                eprintln!("{:?}", ast);
+            }
+           
         },
         Err(error) => {
             eprintln!("Parsing failed: {}", error);
         }
     }
 }
-    
+
