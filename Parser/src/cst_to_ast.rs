@@ -651,7 +651,7 @@ fn convert_primary_tail(base: Expr, node: &DerivationNode) -> Result<Expr, Strin
     }
 }
 
-fn convert_as_expr(base: Expr, node: &DerivationNode) -> Result<Expr, String> {print!("pinga");
+fn convert_as_expr(base: Expr, node: &DerivationNode) -> Result<Expr, String> {
     if node.symbol != "AsExpr" {
         return Err("Expected AsExpr node".to_string());
     }
