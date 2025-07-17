@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::cst::DerivationNode;
 
+
 pub fn convert_to_ast(root: &DerivationNode) -> Result<Program, String> {
     if root.symbol != "Program" {
         return Err("CST root must be a Program node".to_string());
@@ -316,7 +317,7 @@ fn convert_add_expr_prime(left: Expr, node: &DerivationNode) -> Result<Expr, Str
     }
 
     let op = convert_binary_op(&node.children[0].symbol)?;
-print!("pinga");
+
     let right = convert_term(&node.children[1])?;
     let new_left = Expr {
         kind: ExprKind::Binary {
@@ -1454,3 +1455,4 @@ pub fn print_ast(program: &Program) {
         print_stmt(stmt, 1);
     }
 }
+
