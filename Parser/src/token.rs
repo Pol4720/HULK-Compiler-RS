@@ -57,6 +57,10 @@ pub enum TokenType {
     
     // End of file
     EOF,
+
+    a,
+    b,
+
 }
 
 #[derive(Debug, Clone)]
@@ -79,11 +83,15 @@ pub fn make_token(token_type: TokenType, lexeme: &str, line: usize, column: usiz
 
 /// Returns a list of mock tokens for testing
 pub fn mock_tokens() -> Vec<Token> {
-    vec![
-        make_token(TokenType::NUMBER, "2", 1, 1),
-        make_token(TokenType::PLUS, "+", 1, 2),
-        make_token(TokenType::NUMBER, "3", 1, 3),
-        make_token(TokenType::SEMICOLON, ";", 1, 4),
-        make_token(TokenType::EOF, "", 1, 5)
-    ]
+vec![
+    make_token(TokenType::NUMBER, "2", 1, 1),
+    make_token(TokenType::MULT, "*", 1, 3),
+    make_token(TokenType::LPAREN, "(", 1, 5),
+    make_token(TokenType::NUMBER, "3", 1, 6),
+    make_token(TokenType::PLUS, "+", 1, 8),
+    make_token(TokenType::NUMBER, "4", 1, 10),
+    make_token(TokenType::RPAREN, ")", 1, 11),
+    make_token(TokenType::SEMICOLON, ";", 1, 12),
+    make_token(TokenType::EOF, "", 1, 13)
+]
 }

@@ -1,6 +1,6 @@
 use crate::grammar::load_grammar;
 use crate::token::mock_tokens;
-use crate::ll1::{compute_first, compute_follow, build_ll1_table, LL1Table};
+use crate::ll1::{build_ll1_table, compute_first, compute_follow, validate_ll1_grammar, LL1Table};
 use crate::parser::Parser;
 use crate::cst_to_ast::{convert_to_ast, print_ast};
 use std::collections::HashSet;
@@ -69,10 +69,12 @@ fn save_ll1_table_csv(table: &LL1Table, filepath: &str) -> io::Result<()> {
 
 fn main() {
     let grammar = load_grammar("grammar.ll1");
+    
     let first = compute_first(&grammar);
     let follow = compute_follow(&grammar, &first, "Program");
     let table = build_ll1_table(&grammar, &first, &follow);
-
+    validate_ll1_grammar(&grammar, &table);
+    
     // Save LL(1) table to CSV
     let csv_path = "ll1_table.csv";
     if let Err(e) = save_ll1_table_csv(&table, csv_path) {
