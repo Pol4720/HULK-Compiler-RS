@@ -167,7 +167,7 @@ pub fn compute_follow(
         }
     }
 
-    // Special correction for recursive lists like in the C++ implementation
+    // Special correction for recursive lists  
     if follow.contains_key("StmtList") && first.contains_key("TerminatedStmt") {
         let old_size = follow["StmtList"].len();
         for symbol in &first["TerminatedStmt"] {
@@ -304,7 +304,7 @@ pub fn validate_ll1_grammar(
     // Note: Conflict checking is already done during table construction in build_ll1_table
 
     if is_ll1 {
-        println!("✓ La gramática parece ser LL(1)");
+        println!("✓ La gramática es LL(1)");
     } else {
         println!("✗ La gramática NO es LL(1)");
     }
