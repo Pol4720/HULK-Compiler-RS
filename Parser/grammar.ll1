@@ -38,8 +38,8 @@ OrExpr'      -> OR AndExpr OrExpr' | ε
 AndExpr      -> CmpExpr AndExpr'
 AndExpr'     -> AND CmpExpr AndExpr' | ε
 CmpExpr      -> ConcatExpr CmpExpr'
-CmpExpr'     -> LESS_THAN ConcatExpr CmpExpr'
-              | GREATER_THAN ConcatExpr CmpExpr'
+CmpExpr'     -> LT ConcatExpr CmpExpr'
+              | GT ConcatExpr CmpExpr'
               | LE ConcatExpr CmpExpr'
               | GE ConcatExpr CmpExpr'
               | EQ ConcatExpr CmpExpr'
@@ -84,3 +84,4 @@ ArgList      -> Expr ArgListTail
               | ε
 ArgListTail  -> COMMA Expr ArgListTail
               | ε
+
