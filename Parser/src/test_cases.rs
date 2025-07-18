@@ -38,7 +38,7 @@ pub static TEST_CASES: LazyLock<Vec<ParserTestCase>> = LazyLock::new(|| {
                 make_token(TokenType::EOF, "", 7, 1),
             ], // ejemplo 1
             description: "Prueba con gramática HULK. Programa: \n\
-    function main() {\n\
+    function main( {\n\
         let x = ;\n\
         if {\n\
             y = 42;\n\
@@ -84,15 +84,15 @@ pub static TEST_CASES: LazyLock<Vec<ParserTestCase>> = LazyLock::new(|| {
         ParserTestCase {
             grammar_path: "grammar.ll1",
             start_symbol: "Program",
-            tokens:  vec![
-        make_token(TokenType::LET, "let", 1, 1),
-        make_token(TokenType::IDENT, "flag", 1, 5),
-        make_token(TokenType::ASSIGN, "=", 1, 10),
-        make_token(TokenType::OR, "||", 1, 12),
-        make_token(TokenType::AND, "&&", 1, 15),
-        make_token(TokenType::SEMICOLON, ";", 1, 17),
-        make_token(TokenType::EOF, "", 2, 1),
-    ],
+            tokens: vec![
+                make_token(TokenType::LET, "let", 1, 1),
+                make_token(TokenType::IDENT, "flag", 1, 5),
+                make_token(TokenType::ASSIGN, "=", 1, 10),
+                make_token(TokenType::OR, "||", 1, 12),
+                make_token(TokenType::AND, "&&", 1, 15),
+                make_token(TokenType::SEMICOLON, ";", 1, 17),
+                make_token(TokenType::EOF, "", 2, 1),
+            ],
             description: "Prueba con gramática HULK. Programa: \n\
     let flag = || && ;\n",
         },
