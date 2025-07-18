@@ -381,8 +381,6 @@ vec![
     make_token(TokenType::IDENT, "Cat", 9, 14),
     make_token(TokenType::LPAREN, "(", 9, 17),
     make_token(TokenType::IDENT, "name", 9, 18),
-    make_token(TokenType::COLON, ":", 9, 22),
-    make_token(TokenType::IDENT, "String", 9, 24),
     make_token(TokenType::RPAREN, ")", 9, 30),
     make_token(TokenType::INHERITS, "inherits", 9, 32),
     make_token(TokenType::IDENT, "Animal", 9, 41),
