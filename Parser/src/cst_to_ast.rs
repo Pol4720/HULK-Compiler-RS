@@ -917,24 +917,24 @@ fn convert_arg_list(node: &DerivationNode) -> Result<Vec<Expr>, String> {
         return Err("Expected ArgList node".to_string());
     }
 
-    let mut args = vec![];
-    
     // ArgList → Expr ArgListTail | ε
-    if node.children[0].children.is_empty() {
-        return Ok(args);
+    if node.children.is_empty() || node.children[0].symbol == "ε" {
+        return Ok(vec![]);
     }
-    
+
+    let mut args = vec![];
+
     // Primer argumento
-    if !node.children[0].children.is_empty() {
-        args.push(convert_expr(&node.children[0].children[0])?);
+    if node.children[0].symbol == "Expr" {
+        args.push(convert_expr(&node.children[0])?);
     }
-    
+
     // Argumentos adicionales
     if node.children.len() > 1 {
         let rest = convert_arg_list_tail(&node.children[1])?;
         args.extend(rest);
     }
-    
+
     Ok(args)
 }
 
@@ -943,20 +943,20 @@ fn convert_arg_list_tail(node: &DerivationNode) -> Result<Vec<Expr>, String> {
         return Err("Expected ArgListTail node".to_string());
     }
 
-    let mut args = vec![];
-    
     // ArgListTail → COMMA Expr ArgListTail | ε
-    if node.children[0].children.is_empty() {
-        return Ok(args);
+    if node.children.is_empty() || node.children[0].symbol == "ε" {
+        return Ok(vec![]);
     }
-    
-    for i in (1..node.children.len()).step_by(2) {
-        if i < node.children.len() {
-            args.push(convert_expr(&node.children[i])?);
-        }
+
+    // Espera: COMMA Expr ArgListTail
+    if node.children.len() >= 3 && node.children[0].symbol == "COMMA" && node.children[1].symbol == "Expr" {
+        let mut args = vec![convert_expr(&node.children[1])?];
+        let rest = convert_arg_list_tail(&node.children[2])?;
+        args.extend(rest);
+        Ok(args)
+    } else {
+        Err("Invalid ArgListTail structure".to_string())
     }
-    
-    Ok(args)
 }
 
 fn convert_type_annotation(node: &DerivationNode) -> Result<Option<Type>, String> {
